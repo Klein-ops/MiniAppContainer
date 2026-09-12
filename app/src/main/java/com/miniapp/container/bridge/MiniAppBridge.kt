@@ -279,7 +279,7 @@ class MiniAppBridge(
                     activity, android.Manifest.permission.READ_EXTERNAL_STORAGE
                 ) != android.content.pm.PackageManager.PERMISSION_GRANTED
             ) needed.add(android.Manifest.permission.READ_EXTERNAL_STORAGE)
-            if (android.os.Build.VERSION.SDK_INT <= android.os.Build.VERSION.Q &&
+            if (android.os.Build.VERSION.SDK_INT <= android.os.Build.VERSION_CODES.Q &&
                 androidx.core.content.ContextCompat.checkSelfPermission(
                     activity, android.Manifest.permission.WRITE_EXTERNAL_STORAGE
                 ) != android.content.pm.PackageManager.PERMISSION_GRANTED
