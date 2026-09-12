@@ -62,7 +62,6 @@ class MainActivity : AppCompatActivity() {
         adapter = AppListAdapter()
         adapter.onItemClick = { startMiniApp(it) }
         adapter.onSettingsClick = { openAppSettings(it.appKey) }
-        adapter.onItemClick = { startMiniApp(it) }
         recycler.layoutManager = LinearLayoutManager(this)
         recycler.adapter = adapter
 
