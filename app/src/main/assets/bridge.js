@@ -54,9 +54,31 @@
       remove: function (p) { return B.call('fs.remove', { path: p }); }
     },
     wasm: {
+      // 旧路径：wasm3 JNI（简单函数，仅字符串参数，保留兼容）
       load: function (p) { return B.call('wasm.load', { path: p }); },
       call: function (handle, func, args) { return B.call('wasm.call', { handle: handle, func: func, args: args || [] }); },
-      unload: function (handle) { return B.call('wasm.unload', { handle: handle }); }
+      unload: function (handle) { return B.call('wasm.unload', { handle: handle }); },
+
+      // 新路径：WebAssembly 原生（高性能，支持二进制/Memory/import）
+      instantiate: async function(path, imports) {
+        try {
+          const resp = await fetch(path);
+          if (!resp.ok) throw new Error('WASM load failed: HTTP ' + resp.status);
+          const bytes = await resp.arrayBuffer();
+          const { instance } = await WebAssembly.instantiate(bytes, imports || {});
+          return instance;
+        } catch (e) {
+          console.error('[MiniApp.wasm] instantiate failed:', e);
+          throw e;
+        }
+      },
+
+      createMemory: function(initial, maximum) {
+        return new WebAssembly.Memory({
+          initial: initial || 256,
+          maximum: maximum || 16384
+        });
+      }
     },
     net: { get: function (u) { return B.call('net.httpGet', { url: u }); } },
     sys: { openUrl: function (u) { return B.call('sys.openUrl', { url: u }); } },
