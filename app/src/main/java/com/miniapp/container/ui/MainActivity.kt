@@ -48,7 +48,8 @@ class MainActivity : AppCompatActivity() {
 
         adapter = AppListAdapter()
         adapter.onItemClick = { startMiniApp(it) }
-        adapter.onSettingsClick = { openPermissionManage(it.appKey) }
+        adapter.onPermManageClick = { openPermissionManage(it.appKey) }
+        adapter.onUninstallClick = { confirmUninstall(it) }
         recycler.layoutManager = LinearLayoutManager(this)
         recycler.adapter = adapter
     }

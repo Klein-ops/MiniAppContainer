@@ -1,11 +1,11 @@
 <resources>
-    <string name="app_name">小程序容器</string>
-    <string name="title_app_list">已安装应用</string>
+    <string name="app_name">蜗壳</string>
+    <string name="title_app_list">蜗壳</string>
     <string name="action_install">安装应用包</string>
     <string name="action_install_sample">安装内置示例</string>
     <string name="action_uninstall">卸载</string>
-    <string name="action_permissions">权限</string>
-    <string name="empty_apps">暂无已安装小程序，点击右上角安装</string>
+    <string name="action_permissions">权限管理</string>
+    <string name="empty_apps">还没有小程序，点击右上角安装</string>
     <string name="perm_title">权限审批</string>
     <string name="perm_allow">允许</string>
     <string name="perm_deny">拒绝</string>

@@ -4,6 +4,7 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.TextView
+import androidx.appcompat.widget.PopupMenu
 import androidx.recyclerview.widget.RecyclerView
 import com.miniapp.container.R
 import com.miniapp.container.core.MiniAppInfo
@@ -12,7 +13,8 @@ class AppListAdapter : RecyclerView.Adapter<AppListAdapter.VH>() {
 
     private val items = mutableListOf<MiniAppInfo>()
     var onItemClick: ((MiniAppInfo) -> Unit)? = null
-    var onSettingsClick: ((MiniAppInfo) -> Unit)? = null
+    var onPermManageClick: ((MiniAppInfo) -> Unit)? = null
+    var onUninstallClick: ((MiniAppInfo) -> Unit)? = null
 
     fun submit(list: List<MiniAppInfo>) {
         items.clear()
@@ -37,8 +39,17 @@ class AppListAdapter : RecyclerView.Adapter<AppListAdapter.VH>() {
         holder.tvVersion.text = info.version
         holder.tvAppkey.text = info.appKey
         holder.itemView.setOnClickListener { onItemClick?.invoke(info) }
-        holder.itemView.findViewById<View>(R.id.btn_settings).setOnClickListener {
-            onSettingsClick?.invoke(info)
+        holder.itemView.findViewById<View>(R.id.btn_settings).setOnClickListener { anchor ->
+            val popup = PopupMenu(anchor.context, anchor)
+            popup.menuInflater.inflate(R.menu.app_item_menu, popup.menu)
+            popup.setOnMenuItemClickListener { item ->
+                when (item.itemId) {
+                    R.id.action_perm_manage -> { onPermManageClick?.invoke(info); true }
+                    R.id.action_uninstall -> { onUninstallClick?.invoke(info); true }
+                    else -> false
+                }
+            }
+            popup.show()
         }
     }
 
