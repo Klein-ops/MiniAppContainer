@@ -120,11 +120,11 @@ class MainActivity : AppCompatActivity() {
         val cats = hostApp.categoryManager.listCategories()
 
         // "全部" chip
-        addChip("全部", currentFilter == null) {
+        addChip("全部", currentFilter == null, {
             currentFilter = null
             refreshCategoryBar()
             refresh()
-        }
+        }, {})
         // 各分类 chip（长按可删除非默认分类）
         for (cat in cats) {
             addChip(cat, currentFilter == cat, {

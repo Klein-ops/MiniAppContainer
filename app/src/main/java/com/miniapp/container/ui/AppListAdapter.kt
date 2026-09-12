@@ -49,7 +49,6 @@ class AppListAdapter : RecyclerView.Adapter<AppListAdapter.VH>() {
         holder.itemView.findViewById<View>(R.id.btn_settings).setOnClickListener {
             onSettingsClick?.invoke(info)
         }
-        }
     }
 
     override fun getItemCount(): Int = items.size

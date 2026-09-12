@@ -23,7 +23,7 @@ class AppSettingsActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_app_settings)
         val appKey = intent.getStringExtra(EXTRA_APP_KEY) ?: run { finish(); return }
-        info = hostApp.registry.find(appKey) ?: run { finish(); return }
+        info = hostApp.registry.get(appKey) ?: run { finish(); return }
 
         findViewById<MaterialToolbar>(R.id.toolbar).also { setSupportActionBar(it); title = info.uname }
         findViewById<MaterialButton>(R.id.btn_perm_manage).setOnClickListener {
