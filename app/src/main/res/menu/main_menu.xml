@@ -9,4 +9,8 @@
         android:id="@+id/action_install"
         android:title="@string/action_install"
         app:showAsAction="never" />
+    <item
+        android:id="@+id/action_clean_storage"
+        android:title="清理 WebView 缓存"
+        app:showAsAction="never" />
 </menu>

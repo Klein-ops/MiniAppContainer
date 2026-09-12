@@ -32,10 +32,14 @@ class AppInstaller(
                 return@withContext InstallResult(false, message = "解压失败: ${t.message}")
             }
 
-            val manifestFile = File(tmp, "manifest.json")
-            if (!manifestFile.isFile) {
+            // 清单查找：zip 根目录优先，否则递归查找第一个 manifest.json。
+            // 支持带目录层级的应用包（不强制扁平化），以 manifest 所在目录为应用根。
+            val manifestFile = File(tmp, "manifest.json").takeIf { it.isFile }
+                ?: tmp.walkTopDown().firstOrNull { it.isFile && it.name == "manifest.json" }
+            if (manifestFile == null) {
                 return@withContext InstallResult(false, message = "清单 manifest.json 不存在")
             }
+            val appRoot = manifestFile.parentFile ?: tmp
             val manifest = AppManifest.parse(manifestFile)
                 ?: return@withContext InstallResult(false, message = "清单解析失败或字段缺失")
 
@@ -51,8 +55,8 @@ class AppInstaller(
             resDir.deleteRecursively()
             resDir.mkdirs()
 
-            // 将解压内容拷入 app/
-            tmp.copyRecursively(resDir, overwrite = true)
+            // 将应用根内容拷入 app/（保留目录层级）
+            appRoot.copyRecursively(resDir, overwrite = true)
 
             // 写 meta.json
             val meta = MetaInfo(

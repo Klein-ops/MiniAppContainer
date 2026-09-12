@@ -108,9 +108,17 @@ class MiniAppActivity : AppCompatActivity() {
         w.isVerticalScrollBarEnabled = true
     }
 
+    private var lastBackPressedAt = 0L
+
     @Deprecated("Deprecated in Java")
     override fun onBackPressed() {
-        if (webView.canGoBack()) webView.goBack() else super.onBackPressed()
+        // 有历史页则向前推一页
+        if (webView.canGoBack()) { webView.goBack(); return }
+        // 已到入口页：二次确认才退出
+        val now = System.currentTimeMillis()
+        if (now - lastBackPressedAt < 2000) { super.onBackPressed(); return }
+        lastBackPressedAt = now
+        Toast.makeText(this, "再按一次返回才会退出", Toast.LENGTH_SHORT).show()
     }
 
     override fun onDestroy() {

@@ -15,12 +15,22 @@ class AppListAdapter : RecyclerView.Adapter<AppListAdapter.VH>() {
     var onItemClick: ((MiniAppInfo) -> Unit)? = null
     var onPermManageClick: ((MiniAppInfo) -> Unit)? = null
     var onUninstallClick: ((MiniAppInfo) -> Unit)? = null
+    var onMoveCategoryClick: ((MiniAppInfo) -> Unit)? = null
 
     fun submit(list: List<MiniAppInfo>) {
         items.clear()
         items.addAll(list)
         notifyDataSetChanged()
     }
+
+    fun move(from: Int, to: Int) {
+        if (from !in items.indices || to !in items.indices) return
+        val item = items.removeAt(from)
+        items.add(to, item)
+        notifyItemMoved(from, to)
+    }
+
+    fun appKeyAt(pos: Int): String? = items.getOrNull(pos)?.appKey
 
     inner class VH(itemView: View) : RecyclerView.ViewHolder(itemView) {
         val tvName: TextView = itemView.findViewById(R.id.tv_name)
@@ -45,6 +55,7 @@ class AppListAdapter : RecyclerView.Adapter<AppListAdapter.VH>() {
             popup.setOnMenuItemClickListener { item ->
                 when (item.itemId) {
                     R.id.action_perm_manage -> { onPermManageClick?.invoke(info); true }
+                    R.id.action_move_category -> { onMoveCategoryClick?.invoke(info); true }
                     R.id.action_uninstall -> { onUninstallClick?.invoke(info); true }
                     else -> false
                 }

@@ -6,6 +6,10 @@
         android:title="@string/action_permissions"
         app:showAsAction="never" />
     <item
+        android:id="@+id/action_move_category"
+        android:title="移动到分类"
+        app:showAsAction="never" />
+    <item
         android:id="@+id/action_uninstall"
         android:title="@string/action_uninstall"
         app:showAsAction="never" />

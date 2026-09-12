@@ -5,14 +5,15 @@ import java.io.File
 /** 路径清洗与沙箱穿越防护。 */
 object PathGuard {
 
-    private val NAME_RE = Regex("^[A-Za-z0-9._-]{1,64}$")
-
-    /** uid/uname 清洗：禁止路径分隔符、.. 等。返回清洗后的合法串或 null。 */
+    /**
+     * uid/uname 清洗：允许中文/英文/数字等任意字符，
+     * 仅禁止路径分隔符、控制字符、空串、".."。返回清洗后的串或 null。
+     */
     fun sanitizeName(raw: String): String? {
         val s = raw.trim()
         if (s.isEmpty() || s.length > 64) return null
-        if (s.contains('/') || s.contains('\\') || s == "." || s == "..") return null
-        if (!NAME_RE.matches(s)) return null
+        if (s == "." || s == "..") return null
+        if (s.any { it == '/' || it == '\\' || it.isISOControl() }) return null
         return s
     }
 

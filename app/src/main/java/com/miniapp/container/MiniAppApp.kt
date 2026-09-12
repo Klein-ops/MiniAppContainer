@@ -5,6 +5,7 @@ import com.miniapp.container.core.AppInstaller
 import com.miniapp.container.core.AppRegistry
 import com.miniapp.container.core.SandboxManager
 import com.miniapp.container.permission.PermissionManager
+import com.miniapp.container.core.CategoryManager
 import java.io.File
 
 class MiniAppApp : Application() {
@@ -17,6 +18,8 @@ class MiniAppApp : Application() {
         private set
     lateinit var permissionManager: PermissionManager
         private set
+    lateinit var categoryManager: CategoryManager
+        private set
 
     override fun onCreate() {
         super.onCreate()
@@ -24,6 +27,7 @@ class MiniAppApp : Application() {
         sandbox = SandboxManager(base)
         registry = AppRegistry(File(base, "registry.json"))
         permissionManager = PermissionManager(this)
+        categoryManager = CategoryManager(File(base, "categories.json"))
         installer = AppInstaller(this, sandbox, registry, permissionManager)
     }
 

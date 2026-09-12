@@ -3,16 +3,21 @@ package com.miniapp.container.ui
 import android.content.Intent
 import android.net.Uri
 import android.os.Bundle
+import android.view.LayoutInflater
 import android.view.Menu
 import android.view.MenuItem
 import android.view.View
+import android.widget.HorizontalScrollView
+import android.widget.LinearLayout
 import android.widget.TextView
 import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
+import androidx.appcompat.widget.PopupMenu
 import androidx.appcompat.widget.Toolbar
 import androidx.lifecycle.lifecycleScope
+import androidx.recyclerview.widget.ItemTouchHelper
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.miniapp.container.MiniAppApp
@@ -20,15 +25,21 @@ import com.miniapp.container.R
 import com.miniapp.container.core.MiniAppInfo
 import com.miniapp.container.permission.PermissionScope
 import com.miniapp.container.util.IoUtil
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import java.io.File
 
-/** 应用管理界面：列出已安装小程序、安装/卸载、启动、权限管理。 */
+/** 应用管理界面：分类栏 + 拖动排序 + 安装/卸载/权限管理/移动分类。 */
 class MainActivity : AppCompatActivity() {
 
     private lateinit var recycler: RecyclerView
     private lateinit var empty: TextView
+    private lateinit var categoryBar: LinearLayout
+    private lateinit var categoryScroll: HorizontalScrollView
     private lateinit var adapter: AppListAdapter
+
+    private var currentFilter: String? = null  // null = 全部
 
     private val hostApp: MiniAppApp get() = application as MiniAppApp
 
@@ -45,17 +56,42 @@ class MainActivity : AppCompatActivity() {
 
         recycler = findViewById(R.id.recycler)
         empty = findViewById(R.id.empty)
+        categoryBar = findViewById(R.id.category_bar)
+        categoryScroll = findViewById(R.id.category_scroll)
 
         adapter = AppListAdapter()
         adapter.onItemClick = { startMiniApp(it) }
         adapter.onPermManageClick = { openPermissionManage(it.appKey) }
         adapter.onUninstallClick = { confirmUninstall(it) }
+        adapter.onMoveCategoryClick = { showMoveToCategory(it) }
         recycler.layoutManager = LinearLayoutManager(this)
         recycler.adapter = adapter
+
+        // 长按拖动排序
+        val touchHelper = ItemTouchHelper(object : ItemTouchHelper.SimpleCallback(
+            ItemTouchHelper.UP or ItemTouchHelper.DOWN, 0
+        ) {
+            override fun onMove(
+                rv: RecyclerView, vh: RecyclerView.ViewHolder, target: RecyclerView.ViewHolder
+            ): Boolean {
+                val from = vh.bindingAdapterPosition
+                val to = target.bindingAdapterPosition
+                adapter.move(from, to)
+                return true
+            }
+            override fun onSwiped(viewHolder: RecyclerView.ViewHolder, direction: Int) {}
+            override fun isLongPressDragEnabled(): Boolean = true
+            override fun clearView(rv: RecyclerView, vh: RecyclerView.ViewHolder) {
+                super.clearView(rv, vh)
+                saveOrder()
+            }
+        })
+        touchHelper.attachToRecyclerView(recycler)
     }
 
     override fun onResume() {
         super.onResume()
+        refreshCategoryBar()
         refresh()
     }
 
@@ -73,19 +109,120 @@ class MainActivity : AppCompatActivity() {
             lifecycleScope.launch { installSample() }
             true
         }
+        R.id.action_clean_storage -> {
+            lifecycleScope.launch { cleanStorage() }
+            true
+        }
         else -> super.onOptionsItemSelected(item)
     }
 
+    // ===== 分类栏 =====
+    private fun refreshCategoryBar() {
+        categoryBar.removeAllViews()
+        val cats = hostApp.categoryManager.listCategories()
+
+        // "全部" chip
+        addChip("全部", currentFilter == null) {
+            currentFilter = null
+            refreshCategoryBar()
+            refresh()
+        }
+        // 各分类 chip
+        for (cat in cats) {
+            addChip(cat, currentFilter == cat) {
+                currentFilter = cat
+                refreshCategoryBar()
+                refresh()
+            }
+        }
+        // "+ 添加分类"
+        addChip("+", false) { showAddCategoryDialog() }
+    }
+
+    private fun addChip(text: String, selected: Boolean, onClick: () -> Unit) {
+        val tv = LayoutInflater.from(this).inflate(R.layout.item_category_chip, categoryBar, false) as TextView
+        tv.text = text
+        tv.setBackgroundResource(if (selected) R.drawable.chip_selected else R.drawable.chip_unselected)
+        tv.setTextColor(if (selected) 0xFFFFFFFF.toInt() else 0xFF6B7280.toInt())
+        tv.setOnClickListener { onClick() }
+        categoryBar.addView(tv)
+    }
+
+    private fun showAddCategoryDialog() {
+        val input = android.widget.EditText(this).apply {
+            hint = "分类名称"
+        }
+        AlertDialog.Builder(this)
+            .setTitle("新建分类")
+            .setView(input)
+            .setPositiveButton("创建") { _, _ ->
+                val name = input.text.toString().trim()
+                if (hostApp.categoryManager.addCategory(name)) {
+                    refreshCategoryBar()
+                    toast("已创建分类: $name")
+                } else {
+                    toast("分类名无效或已存在")
+                }
+            }
+            .setNegativeButton("取消", null)
+            .show()
+    }
+
+    /** 显示"移动到分类"对话框。 */
+    private fun showMoveToCategory(info: MiniAppInfo) {
+        val cats = hostApp.categoryManager.listCategories().toMutableList()
+        cats.add("＋ 新建分类…")
+        AlertDialog.Builder(this)
+            .setTitle("移动 ${info.uname} 到分类")
+            .setItems(cats.toTypedArray()) { _, which ->
+                if (which == cats.size - 1) {
+                    showAddCategoryAndMove(info)
+                } else {
+                    hostApp.categoryManager.moveTo(info.appKey, cats[which])
+                    refresh()
+                    toast("已移到 ${cats[which]}")
+                }
+            }
+            .show()
+    }
+
+    private fun showAddCategoryAndMove(info: MiniAppInfo) {
+        val input = android.widget.EditText(this).apply { hint = "分类名称" }
+        AlertDialog.Builder(this)
+            .setTitle("新建分类并移入")
+            .setView(input)
+            .setPositiveButton("创建") { _, _ ->
+                val name = input.text.toString().trim()
+                if (hostApp.categoryManager.addCategory(name)) {
+                    hostApp.categoryManager.moveTo(info.appKey, name)
+                    refreshCategoryBar()
+                    refresh()
+                    toast("已移到 $name")
+                } else toast("分类名无效或已存在")
+            }
+            .setNegativeButton("取消", null)
+            .show()
+    }
+
+    // ===== 列表刷新 =====
     private fun refresh() {
-        val list = hostApp.registry.list()
+        val cm = hostApp.categoryManager
+        val allApps = hostApp.registry.list().associateBy { it.appKey }
+        val order = if (currentFilter == null) cm.appsInFiltered(null) else cm.appsIn(currentFilter!!)
+        val list = order.mapNotNull { allApps[it] }
         adapter.submit(list)
         empty.visibility = if (list.isEmpty()) View.VISIBLE else View.GONE
     }
 
-    /**
-     * 启动小程序：若有未授权的「必要权限」则先弹窗强制审批；
-     * 用户拒绝任一必要权限则不进入。
-     */
+    /** 拖动结束后保存顺序到当前分类。 */
+    private fun saveOrder() {
+        val cm = hostApp.categoryManager
+        val appKeys = (0 until adapter.itemCount).mapNotNull { adapter.appKeyAt(it) }
+        val target = currentFilter ?: com.miniapp.container.core.CategoryManager.DEFAULT
+        cm.setOrder(target, appKeys)
+    }
+
+    // ===== 启动小程序（必要权限检查）=====
     private fun startMiniApp(app: MiniAppInfo) {
         val pm = hostApp.permissionManager
         val ungranted = app.requiredPermissions.filter { !pm.isGranted(app.appKey, it) }
@@ -122,18 +259,28 @@ class MainActivity : AppCompatActivity() {
         )
     }
 
+    private fun confirmUninstall(info: MiniAppInfo) {
+        AlertDialog.Builder(this)
+            .setTitle("卸载")
+            .setMessage("卸载 ${info.uname}？\n沙箱数据与权限记录将被清除。")
+            .setPositiveButton("卸载") { _, _ ->
+                lifecycleScope.launch {
+                    hostApp.installer.uninstall(info.appKey)
+                    refreshCategoryBar()
+                    refresh()
+                }
+            }
+            .setNegativeButton("取消", null)
+            .show()
+    }
+
     private suspend fun installFromUri(uri: Uri) {
         val cache = File(cacheDir, "pick_${System.currentTimeMillis()}.zip")
         try {
             val ok = try {
                 contentResolver.openInputStream(uri)?.use { IoUtil.copy(it, cache); true } ?: false
-            } catch (t: Throwable) {
-                false
-            }
-            if (!ok) {
-                toast("无法读取文件")
-                return
-            }
+            } catch (t: Throwable) { false }
+            if (!ok) { toast("无法读取文件"); return }
             val r = hostApp.installer.installFromZip(cache)
             toast(if (r.success) "已安装: ${r.info?.uname}" else "安装失败: ${r.message}")
         } finally {
@@ -148,18 +295,14 @@ class MainActivity : AppCompatActivity() {
         refresh()
     }
 
-    private fun confirmUninstall(info: MiniAppInfo) {
-        AlertDialog.Builder(this)
-            .setTitle("卸载")
-            .setMessage("卸载 ${info.uname}？\n沙箱数据与权限记录将被清除。")
-            .setPositiveButton("卸载") { _, _ ->
-                lifecycleScope.launch {
-                    hostApp.installer.uninstall(info.appKey)
-                    refresh()
-                }
-            }
-            .setNegativeButton("取消", null)
-            .show()
+    private suspend fun cleanStorage() = withContext(Dispatchers.IO) {
+        runOnUiThread {
+            try {
+                android.webkit.WebStorage.getInstance().deleteAllData()
+                IoUtil.clearCache(this@MainActivity)
+            } catch (t: Throwable) { /* ignore */ }
+        }
+        toast("已清理 WebView 缓存与存储")
     }
 
     private fun toast(msg: String) {
