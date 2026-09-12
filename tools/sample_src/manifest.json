@@ -4,5 +4,6 @@
   "version": "1.0.0",
   "entry": "index.html",
   "wasm": ["sample.wasm"],
-  "permissions": ["net", "sys.openUrl", "fs.external"]
+  "permissions": ["net", "sys.openUrl", "fs.external"],
+  "requiredPermissions": ["net"]
 }

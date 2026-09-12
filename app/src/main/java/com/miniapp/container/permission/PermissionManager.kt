@@ -27,6 +27,9 @@ class PermissionManager(context: Context) {
 
     fun revoke(appKey: String, scope: String) = store.revoke(appKey, scope)
 
+    /** 卸载应用时清除其所有授权记录。 */
+    fun clearApp(appKey: String) = store.clearApp(appKey)
+
     suspend fun ensurePermission(
         activity: FragmentActivity,
         appKey: String,

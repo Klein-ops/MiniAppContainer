@@ -24,7 +24,7 @@ class MiniAppApp : Application() {
         sandbox = SandboxManager(base)
         registry = AppRegistry(File(base, "registry.json"))
         permissionManager = PermissionManager(this)
-        installer = AppInstaller(this, sandbox, registry)
+        installer = AppInstaller(this, sandbox, registry, permissionManager)
     }
 
     companion object {

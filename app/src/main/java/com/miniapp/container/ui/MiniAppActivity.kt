@@ -2,8 +2,6 @@ package com.miniapp.container.ui
 
 import android.net.Uri
 import android.os.Bundle
-import android.view.Menu
-import android.view.MenuItem
 import android.view.View
 import android.view.ViewGroup
 import android.webkit.WebSettings
@@ -11,19 +9,19 @@ import android.webkit.WebView
 import android.widget.ProgressBar
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
-import androidx.appcompat.widget.Toolbar
 import com.miniapp.container.MiniAppApp
 import com.miniapp.container.R
 import com.miniapp.container.bridge.MiniAppBridge
 import com.miniapp.container.core.MiniAppInfo
 import com.miniapp.container.file.FileService
 import com.miniapp.container.sys.SystemInfoService
+import com.miniapp.container.web.FloatingExitView
 import com.miniapp.container.web.MiniAppWebChromeClient
 import com.miniapp.container.web.MiniAppWebViewClient
 import com.miniapp.container.wasm.WasmRuntimeManager
 import java.io.File
 
-/** WebView 容器：加载沙箱入口页面，注入 JS Bridge。 */
+/** WebView 容器：全屏渲染沙箱入口页面，注入 JS Bridge，悬浮按钮退出。 */
 class MiniAppActivity : AppCompatActivity() {
 
     companion object {
@@ -33,8 +31,9 @@ class MiniAppActivity : AppCompatActivity() {
     private lateinit var appInfo: MiniAppInfo
     private lateinit var bridge: MiniAppBridge
     private lateinit var wasmManager: WasmRuntimeManager
-    private lateinit var progress: ProgressBar
     private lateinit var webView: WebView
+    private lateinit var progress: ProgressBar
+    private lateinit var floatingExit: FloatingExitView
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -46,12 +45,11 @@ class MiniAppActivity : AppCompatActivity() {
         appInfo = info
 
         setContentView(R.layout.activity_mini_app)
-        setSupportActionBar(findViewById<Toolbar>(R.id.toolbar))
-        supportActionBar?.title = "${appInfo.uid}/${appInfo.uname}"
-        supportActionBar?.setDisplayHomeAsUpEnabled(true)
-
         progress = findViewById(R.id.progress)
         webView = findViewById(R.id.webView)
+        floatingExit = findViewById(R.id.floating_exit)
+        floatingExit.onExit = { finish() }
+        floatingExit.scheduleIdleHide()
 
         val hostApp = application as MiniAppApp
         val sandboxRoot = hostApp.sandbox.appDir(appInfo.appKey)
@@ -84,7 +82,7 @@ class MiniAppActivity : AppCompatActivity() {
                 progress.progress = p
                 progress.visibility = if (p in 1..99) View.VISIBLE else View.GONE
             },
-            onTitle = { t -> supportActionBar?.title = t }
+            onTitle = { }
         )
 
         val entryFile = File(File(sandboxRoot, "app"), appInfo.entry)
@@ -103,8 +101,6 @@ class MiniAppActivity : AppCompatActivity() {
         val s = w.settings
         s.javaScriptEnabled = true
         s.domStorageEnabled = true
-        s.databaseEnabled = true
-        // 允许 file:// 主框架加载；跨沙箱隔离由 WebViewClient 拦截放行/拒绝。
         s.allowFileAccess = true
         s.allowContentAccess = false
         s.allowFileAccessFromFileURLs = false
@@ -116,42 +112,9 @@ class MiniAppActivity : AppCompatActivity() {
         w.isVerticalScrollBarEnabled = true
     }
 
-    override fun onCreateOptionsMenu(menu: Menu): Boolean {
-        menuInflater.inflate(R.menu.mini_app_menu, menu)
-        return true
-    }
-
-    override fun onOptionsItemSelected(item: MenuItem): Boolean = when (item.itemId) {
-        R.id.action_reload -> { webView.reload(); true }
-        R.id.action_permissions -> { showPermissions(); true }
-        else -> super.onOptionsItemSelected(item)
-    }
-
-    override fun onSupportNavigateUp(): Boolean {
-        finish()
-        return true
-    }
-
     @Deprecated("Deprecated in Java")
     override fun onBackPressed() {
         if (webView.canGoBack()) webView.goBack() else super.onBackPressed()
-    }
-
-    private fun showPermissions() {
-        val pm = (application as MiniAppApp).permissionManager
-        val declared = appInfo.permissions
-        val granted = pm.grantedScopes(appInfo.appKey)
-        val msg = buildString {
-            append("声明的权限：\n")
-            append(if (declared.isEmpty()) "（无）" else declared.joinToString(", "))
-            append("\n\n已授权：\n")
-            append(if (granted.isEmpty()) "（无）" else granted.joinToString(", "))
-        }
-        AlertDialog.Builder(this)
-            .setTitle("权限")
-            .setMessage(msg)
-            .setPositiveButton("好的", null)
-            .show()
     }
 
     override fun onDestroy() {

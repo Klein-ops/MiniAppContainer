@@ -14,6 +14,7 @@ data class MiniAppInfo(
     val entry: String,
     val wasm: List<String>,
     val permissions: List<String>,
+    val requiredPermissions: List<String>,
     val installedAt: Long
 ) {
     val appKey: String get() = "${uid}_${uname}"
@@ -23,6 +24,8 @@ data class MiniAppInfo(
         wasm.forEach { wasmArr.put(it) }
         val permArr = JSONArray()
         permissions.forEach { permArr.put(it) }
+        val reqArr = JSONArray()
+        requiredPermissions.forEach { reqArr.put(it) }
         return JSONObject()
             .put("uid", uid)
             .put("uname", uname)
@@ -30,6 +33,7 @@ data class MiniAppInfo(
             .put("entry", entry)
             .put("wasm", wasmArr)
             .put("permissions", permArr)
+            .put("requiredPermissions", reqArr)
             .put("installedAt", installedAt)
             .put("appKey", appKey)
     }
@@ -42,6 +46,7 @@ data class MiniAppInfo(
             entry = o.optStringOr("entry", "index.html"),
             wasm = o.optStringList("wasm"),
             permissions = o.optStringList("permissions"),
+            requiredPermissions = o.optStringList("requiredPermissions"),
             installedAt = o.optLongOr("installedAt", System.currentTimeMillis())
         )
     }

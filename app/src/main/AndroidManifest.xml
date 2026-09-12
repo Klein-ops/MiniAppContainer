@@ -1,7 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
 
-    <!-- 出沙箱能力示例：网络访问（由小程序权限审批门控，而非系统运行时权限） -->
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
 
@@ -31,6 +30,12 @@
             android:exported="false"
             android:configChanges="orientation|screenSize|keyboardHidden|uiMode"
             android:label="@string/app_name"
+            android:theme="@style/Theme.MiniApp" />
+
+        <activity
+            android:name=".ui.PermissionManageActivity"
+            android:exported="false"
+            android:label="权限管理"
             android:theme="@style/Theme.MiniApp" />
 
     </application>

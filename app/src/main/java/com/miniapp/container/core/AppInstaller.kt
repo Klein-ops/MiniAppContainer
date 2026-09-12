@@ -1,6 +1,7 @@
 package com.miniapp.container.core
 
 import android.content.Context
+import com.miniapp.container.permission.PermissionManager
 import com.miniapp.container.util.IoUtil
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -17,7 +18,8 @@ data class InstallResult(
 class AppInstaller(
     private val context: Context,
     private val sandbox: SandboxManager,
-    private val registry: AppRegistry
+    private val registry: AppRegistry,
+    private val permissionManager: PermissionManager
 ) {
 
     suspend fun installFromZip(zipFile: File): InstallResult = withContext(Dispatchers.IO) {
@@ -60,6 +62,7 @@ class AppInstaller(
                 entry = manifest.entry,
                 wasm = manifest.wasm,
                 permissions = manifest.permissions,
+                requiredPermissions = manifest.requiredPermissions,
                 installedAt = System.currentTimeMillis(),
                 appKey = appKey,
                 sandboxPath = sandbox.appDir(appKey).absolutePath
@@ -73,12 +76,13 @@ class AppInstaller(
                 entry = manifest.entry,
                 wasm = manifest.wasm,
                 permissions = manifest.permissions,
+                requiredPermissions = manifest.requiredPermissions,
                 installedAt = System.currentTimeMillis()
             )
             registry.put(info)
             registry.save()
 
-            InstallResult(true, info = info, message = if (registry.list().size > 0) "已安装/更新" else "已安装")
+            InstallResult(true, info = info)
         } finally {
             tmp.deleteRecursively()
         }
@@ -99,6 +103,7 @@ class AppInstaller(
     suspend fun uninstall(appKey: String): Boolean = withContext(Dispatchers.IO) {
         registry.remove(appKey)
         registry.save()
+        permissionManager.clearApp(appKey)   // 修复：卸载时清除权限记录
         sandbox.delete(appKey)
     }
 }

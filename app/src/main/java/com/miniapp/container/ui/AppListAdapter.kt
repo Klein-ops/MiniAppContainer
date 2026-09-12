@@ -12,7 +12,7 @@ class AppListAdapter : RecyclerView.Adapter<AppListAdapter.VH>() {
 
     private val items = mutableListOf<MiniAppInfo>()
     var onItemClick: ((MiniAppInfo) -> Unit)? = null
-    var onItemLongClick: ((MiniAppInfo) -> Unit)? = null
+    var onSettingsClick: ((MiniAppInfo) -> Unit)? = null
 
     fun submit(list: List<MiniAppInfo>) {
         items.clear()
@@ -33,11 +33,13 @@ class AppListAdapter : RecyclerView.Adapter<AppListAdapter.VH>() {
 
     override fun onBindViewHolder(holder: VH, position: Int) {
         val info = items[position]
-        holder.tvName.text = "${info.uid}/${info.uname}"
+        holder.tvName.text = info.uname
         holder.tvVersion.text = info.version
         holder.tvAppkey.text = info.appKey
         holder.itemView.setOnClickListener { onItemClick?.invoke(info) }
-        holder.itemView.setOnLongClickListener { onItemLongClick?.invoke(info); true }
+        holder.itemView.findViewById<View>(R.id.btn_settings).setOnClickListener {
+            onSettingsClick?.invoke(info)
+        }
     }
 
     override fun getItemCount(): Int = items.size

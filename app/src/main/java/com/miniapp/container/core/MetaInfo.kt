@@ -10,6 +10,7 @@ data class MetaInfo(
     val entry: String,
     val wasm: List<String>,
     val permissions: List<String>,
+    val requiredPermissions: List<String>,
     val installedAt: Long,
     val appKey: String,
     val sandboxPath: String
@@ -21,6 +22,7 @@ data class MetaInfo(
         .put("entry", entry)
         .put("wasm", org.json.JSONArray(wasm))
         .put("permissions", org.json.JSONArray(permissions))
+        .put("requiredPermissions", org.json.JSONArray(requiredPermissions))
         .put("installedAt", installedAt)
         .put("appKey", appKey)
         .put("sandboxPath", sandboxPath)

@@ -65,4 +65,10 @@ class PermissionStore(private val file: File) {
 
     fun grantedScopes(appKey: String): List<String> =
         grants[appKey]?.toList() ?: emptyList()
+
+    /** 卸载应用时清除其所有授权记录。 */
+    fun clearApp(appKey: String) {
+        grants.remove(appKey)
+        save()
+    }
 }
