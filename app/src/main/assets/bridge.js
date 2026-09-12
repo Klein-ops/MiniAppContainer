@@ -60,11 +60,20 @@
       unload: function (handle) { return B.call('wasm.unload', { handle: handle }); },
 
       // 新路径：WebAssembly 原生（高性能，支持二进制/Memory/import）
-      instantiate: async function(path, imports) {
+      instantiate: async function(pathOrBytes, imports) {
         try {
-          const resp = await fetch(path);
-          if (!resp.ok) throw new Error('WASM load failed: HTTP ' + resp.status);
-          const bytes = await resp.arrayBuffer();
+          let bytes;
+          if (typeof pathOrBytes === 'string') {
+            // 路径模式：fetch（注意：file:// 下可能被 WebView 拦截，见开发者手册 6.3）
+            const resp = await fetch(pathOrBytes);
+            if (!resp.ok) throw new Error('WASM load failed: HTTP ' + resp.status);
+            bytes = await resp.arrayBuffer();
+          } else if (pathOrBytes && (typeof pathOrBytes === 'object') && (pathOrBytes.buffer instanceof ArrayBuffer || pathOrBytes instanceof Uint8Array || pathOrBytes instanceof Uint32Array)) {
+            // 直接传入 ArrayBuffer / TypedArray（推荐，避免 file:// fetch 问题）
+            bytes = pathOrBytes;
+          } else {
+            throw new Error('instantiate: 需要路径字符串或 ArrayBuffer/TypedArray');
+          }
           const { instance } = await WebAssembly.instantiate(bytes, imports || {});
           return instance;
         } catch (e) {
@@ -74,10 +83,12 @@
       },
 
       createMemory: function(initial, maximum) {
-        return new WebAssembly.Memory({
+        const mem = new WebAssembly.Memory({
           initial: initial || 256,
           maximum: maximum || 16384
         });
+        // 返回标准 Memory 对象（控制台可能显示为 {}，但 .buffer 可正常访问）
+        return mem;
       }
     },
     net: { get: function (u) { return B.call('net.httpGet', { url: u }); } },
