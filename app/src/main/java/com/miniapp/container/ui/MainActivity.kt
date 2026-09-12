@@ -110,7 +110,7 @@ class MainActivity : AppCompatActivity() {
             true
         }
         R.id.action_clean_storage -> {
-            lifecycleScope.launch { cleanStorage() }
+            cleanStorage()
             true
         }
         else -> super.onOptionsItemSelected(item)
@@ -207,7 +207,9 @@ class MainActivity : AppCompatActivity() {
     // ===== 列表刷新 =====
     private fun refresh() {
         val cm = hostApp.categoryManager
-        val allApps = hostApp.registry.list().associateBy { it.appKey }
+        val all = hostApp.registry.list()
+        cm.syncApps(all.map { it.appKey })   // 同步：新安装的加入默认，卸载的移除
+        val allApps = all.associateBy { it.appKey }
         val order = if (currentFilter == null) cm.appsInFiltered(null) else cm.appsIn(currentFilter!!)
         val list = order.mapNotNull { allApps[it] }
         adapter.submit(list)
@@ -295,13 +297,11 @@ class MainActivity : AppCompatActivity() {
         refresh()
     }
 
-    private suspend fun cleanStorage() = withContext(Dispatchers.IO) {
-        runOnUiThread {
-            try {
-                android.webkit.WebStorage.getInstance().deleteAllData()
-                IoUtil.clearCache(this@MainActivity)
-            } catch (t: Throwable) { /* ignore */ }
-        }
+    private fun cleanStorage() {
+        try {
+            android.webkit.WebStorage.getInstance().deleteAllData()
+            IoUtil.clearCache(this)
+        } catch (t: Throwable) { /* ignore */ }
         toast("已清理 WebView 缓存与存储")
     }
 

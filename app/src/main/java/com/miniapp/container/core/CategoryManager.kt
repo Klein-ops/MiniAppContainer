@@ -117,6 +117,22 @@ class CategoryManager(private val file: File) {
         save()
     }
 
+    /**
+     * 同步应用列表：移除已卸载的 appKey，把未分类的加入默认分类。
+     * 应在刷新列表前调用，确保所有已安装应用都可见。
+     */
+    fun syncApps(allAppKeys: List<String>) {
+        val all = allAppKeys.toSet()
+        // 移除已卸载的
+        for ((_, list) in categories) list.retainAll { it in all }
+        // 添加未分类的到默认
+        val known = categories.values.flatten().toSet()
+        for (key in allAppKeys) {
+            if (key !in known) categories.getOrPut(DEFAULT) { mutableListOf() }.add(key)
+        }
+        save()
+    }
+
     /** 获取某分类下的应用 appKey 列表（含"全部"模式）。 */
     fun appsInFiltered(filter: String?): List<String> =
         if (filter == null) categories.values.flatten()
