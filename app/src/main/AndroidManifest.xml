@@ -41,6 +41,12 @@
             android:label="权限管理"
             android:theme="@style/Theme.MiniApp" />
 
+        <activity
+            android:name=".ui.AppSettingsActivity"
+            android:exported="false"
+            android:label="应用设置"
+            android:theme="@style/Theme.MiniApp" />
+
     </application>
 
 </manifest>

@@ -13,9 +13,10 @@
         <item name="alertDialogTheme">@style/ThemeOverlay.MiniApp.RoundedDialog</item>
     </style>
 
-    <!-- 圆角对话框主题覆盖 -->
+    <!-- 圆角对话框主题覆盖：用 Material 默认背景（自带 colorSurface 日夜适配 + 圆角 + 正确文字色） -->
     <style name="ThemeOverlay.MiniApp.RoundedDialog" parent="ThemeOverlay.MaterialComponents.Dialog.Alert">
-        <item name="android:windowBackground">@drawable/bg_dialog_rounded</item>
+        <item name="colorPrimary">@color/brand_primary</item>
+        <item name="colorSecondary">@color/brand_accent</item>
         <item name="buttonBarPositiveButtonStyle">@style/Widget.MiniApp.DialogButton</item>
         <item name="buttonBarNegativeButtonStyle">@style/Widget.MiniApp.DialogButton</item>
         <item name="buttonBarNeutralButtonStyle">@style/Widget.MiniApp.DialogButton</item>
