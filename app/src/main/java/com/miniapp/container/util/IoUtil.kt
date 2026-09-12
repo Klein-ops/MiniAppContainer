@@ -54,7 +54,6 @@ object IoUtil {
     fun toBase64(bytes: ByteArray): String = Base64.encodeToString(bytes, Base64.NO_WRAP)
 
     fun fromBase64(s: String): ByteArray = Base64.decode(s, Base64.DEFAULT)
-}
 
     /** 清理宿主缓存目录（WebView 缓存等）。 */
     fun clearCache(context: android.content.Context) {
@@ -62,3 +61,4 @@ object IoUtil {
         cache.listFiles()?.forEach { it.deleteRecursively() }
         // WebView 数据库目录（app_webview）由 WebStorage.deleteAllData 处理
     }
+}
