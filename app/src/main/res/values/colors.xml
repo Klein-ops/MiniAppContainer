@@ -1,0 +1,12 @@
+<resources>
+    <color name="brand_primary">#3B5BDB</color>
+    <color name="brand_primary_dark">#26398C</color>
+    <color name="brand_accent">#FFC24B</color>
+    <color name="bg_window">#F4F5F8</color>
+    <color name="bg_card">#FFFFFF</color>
+    <color name="text_primary">#1A1A2E</color>
+    <color name="text_secondary">#6B7280</color>
+    <color name="divider">#E5E7EB</color>
+    <color name="danger">#E03131</color>
+    <color name="ok">#2F9E44</color>
+</resources>

@@ -1,0 +1,11 @@
+* { box-sizing: border-box; }
+body { margin: 0; font-family: -apple-system, "PingFang SC", "Roboto", sans-serif; background: #f4f5f8; color: #1a1a2e; }
+header { background: linear-gradient(135deg, #3b5bdb, #26398c); color: #fff; padding: 18px 16px; }
+header h1 { margin: 0; font-size: 18px; }
+header .sub { margin: 4px 0 0; opacity: .85; font-size: 12px; }
+main { padding: 14px; }
+.grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+button { border: 0; border-radius: 12px; background: #fff; color: #26398c; padding: 14px 8px; font-size: 13px; box-shadow: 0 1px 3px rgba(0,0,0,.08); cursor: pointer; }
+button:active { transform: translateY(1px); }
+button.danger { color: #e03131; }
+#out { margin: 14px 0 0; background: #11151c; color: #9fef00; padding: 12px; border-radius: 12px; font-size: 12px; line-height: 1.5; overflow: auto; max-height: 40vh; }

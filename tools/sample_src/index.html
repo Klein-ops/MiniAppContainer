@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
+  <title>示例小程序</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <header>
+    <h1>示例小程序</h1>
+    <p class="sub">uid/uname: demo/hello</p>
+  </header>
+  <main>
+    <section class="grid">
+      <button data-act="info">应用信息</button>
+      <button data-act="system">系统信息</button>
+      <button data-act="write">写文件 test.txt</button>
+      <button data-act="read">读文件 test.txt</button>
+      <button data-act="list">列目录 data/</button>
+      <button data-act="wasm-add">WASM add(2,3)</button>
+      <button data-act="wasm-fib">WASM fib(15)</button>
+      <button data-act="net" class="danger">网络请求(需审批)</button>
+      <button data-act="openurl" class="danger">打开链接(需审批)</button>
+      <button data-act="perm">预请求 net 权限</button>
+    </section>
+    <pre id="out">点击按钮查看输出…</pre>
+  </main>
+  <script src="app.js"></script>
+</body>
+</html>
