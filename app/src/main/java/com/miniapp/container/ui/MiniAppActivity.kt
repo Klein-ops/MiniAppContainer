@@ -18,7 +18,6 @@ import com.miniapp.container.sys.SystemInfoService
 import com.miniapp.container.web.FloatingExitView
 import com.miniapp.container.web.MiniAppWebChromeClient
 import com.miniapp.container.web.MiniAppWebViewClient
-import com.miniapp.container.wasm.WasmRuntimeManager
 import java.io.File
 
 /** WebView 容器：全屏渲染沙箱入口页面，注入 JS Bridge，悬浮按钮退出。 */
@@ -30,7 +29,6 @@ class MiniAppActivity : AppCompatActivity() {
 
     private lateinit var appInfo: MiniAppInfo
     private lateinit var bridge: MiniAppBridge
-    private lateinit var wasmManager: WasmRuntimeManager
     private lateinit var webView: WebView
     private lateinit var progress: ProgressBar
     private lateinit var floatingExit: FloatingExitView
@@ -57,7 +55,6 @@ class MiniAppActivity : AppCompatActivity() {
 
         configureWebView(webView)
 
-        wasmManager = WasmRuntimeManager(sandboxRoot)
         val hostAppVersion = try {
             packageManager.getPackageInfo(packageName, 0).versionName ?: "0.1.0"
         } catch (t: Throwable) {
@@ -68,7 +65,6 @@ class MiniAppActivity : AppCompatActivity() {
             appInfo = appInfo,
             sandboxRoot = sandboxRoot,
             fileService = FileService(sandboxRoot),
-            wasmManager = wasmManager,
             permissionManager = hostApp.permissionManager,
             systemInfo = SystemInfoService(this),
             hostAppVersion = hostAppVersion
@@ -118,7 +114,6 @@ class MiniAppActivity : AppCompatActivity() {
     }
 
     override fun onDestroy() {
-        try { wasmManager.unloadAll() } catch (t: Throwable) { /* ignore */ }
         try {
             webView.stopLoading()
             webView.removeAllViews()

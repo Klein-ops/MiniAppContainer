@@ -54,12 +54,7 @@
       remove: function (p) { return B.call('fs.remove', { path: p }); }
     },
     wasm: {
-      // 旧路径：wasm3 JNI（简单函数，仅字符串参数，保留兼容）
-      load: function (p) { return B.call('wasm.load', { path: p }); },
-      call: function (handle, func, args) { return B.call('wasm.call', { handle: handle, func: func, args: args || [] }); },
-      unload: function (handle) { return B.call('wasm.unload', { handle: handle }); },
-
-      // 新路径：WebAssembly 原生（高性能，支持二进制/Memory/import）
+      // 利用 WebView 内置 WebAssembly JIT 引擎（高性能，支持二进制/Memory/import）
       instantiate: async function(pathOrBytes, imports) {
         try {
           let bytes;

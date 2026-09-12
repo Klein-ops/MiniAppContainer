@@ -22,10 +22,10 @@
       })();
     });
   }
-  var handle = null;
+  var wasmInstance = null;
   function ensureWasm() {
-    if (handle) return Promise.resolve(handle);
-    return MiniApp.wasm.load('sample.wasm').then(function (r) { handle = r.handle; return handle; });
+    if (wasmInstance) return Promise.resolve(wasmInstance);
+    return MiniApp.wasm.instantiate('sample.wasm').then(function (inst) { wasmInstance = inst; return inst; });
   }
   var actions = {
     info: function () { return MiniApp.info(); },
@@ -38,11 +38,11 @@
     read: function () { return MiniApp.fs.read('data/test.txt'); },
     list: function () { return MiniApp.fs.list('data'); },
     'wasm-add': function () {
-      return ensureWasm().then(function (h) { return MiniApp.wasm.call(h, 'add', [2, 3]); })
+      return ensureWasm().then(function (inst) { return inst.exports.add(2, 3); })
         .then(function (r) { return 'add(2,3) = ' + r; });
     },
     'wasm-fib': function () {
-      return ensureWasm().then(function (h) { return MiniApp.wasm.call(h, 'fib', [15]); })
+      return ensureWasm().then(function (inst) { return inst.exports.fib(15); })
         .then(function (r) { return 'fib(15) = ' + r; });
     },
     net: function () {

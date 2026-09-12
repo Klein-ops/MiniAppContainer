@@ -16,7 +16,6 @@ import com.miniapp.container.permission.PermissionScope
 import com.miniapp.container.sys.SystemInfoService
 import com.miniapp.container.ui.MiniAppActivity
 import com.miniapp.container.util.optStringOr
-import com.miniapp.container.wasm.WasmRuntimeManager
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -42,7 +41,6 @@ class MiniAppBridge(
     private val appInfo: MiniAppInfo,
     private val sandboxRoot: java.io.File,
     private val fileService: FileService,
-    private val wasmManager: WasmRuntimeManager,
     private val permissionManager: PermissionManager,
     private val systemInfo: SystemInfoService,
     private val hostAppVersion: String
@@ -89,14 +87,6 @@ class MiniAppBridge(
         "fs.mkdir" -> fileService.mkdir(p.optStringOr("path"))
         "fs.remove" -> fileService.remove(p.optStringOr("path"))
         "fs.readExternal" -> readExternal(p.optStringOr("uri"))
-        "wasm.load" -> wasmManager.load(p.optStringOr("path"))
-        "wasm.call" -> {
-            val id = p.optLong("handle")
-            val func = p.optStringOr("func")
-            val args = argsToStringArray(p.optJSONArray("args"))
-            wasmManager.call(id, func, args)
-        }
-        "wasm.unload" -> wasmManager.unload(p.optLong("handle"))
         "net.httpGet" -> netHttpGet(p.optStringOr("url"))
         "sys.openUrl" -> openUrl(p.optStringOr("url"))
         "perm.request" -> {
