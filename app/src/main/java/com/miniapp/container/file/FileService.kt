@@ -11,16 +11,24 @@ import java.io.File
 /**
  * 沙箱内文件服务。
  *
- * - 所有路径都在沙箱内解析（[PathGuard.resolveUnderRoot]）。
- * - 沙箱内读写、创建、删除默认允许，无需审批。
- * - 出沙箱路径会抛 SecurityException，由上层转为权限错误。
- *
- * 所有方法返回 JSON 值字符串（供 JS Bridge 直接回传前端）。
+ * - 所有路径在沙箱内解析（[PathGuard.resolveUnderRoot]）。
+ * - **白名单**：写操作（write/writeBytes/mkdir/remove）只允许 `data/` 和 `tmp/`，
+ *   禁止写 `app/`（只读资源区）。
+ * - 读操作允许 `app/`、`data/`、`tmp/`。
  */
 class FileService(private val sandboxRoot: File) {
 
     private fun resolve(path: String): File =
         PathGuard.resolveUnderRoot(sandboxRoot, path)
+
+    /** 写操作白名单：只允许 data/ 和 tmp/ 前缀。 */
+    private fun assertWritable(path: String) {
+        val norm = path.trim().removePrefix("./").removePrefix("/")
+        val prefix = norm.substringBefore('/')
+        if (prefix != "data" && prefix != "tmp") {
+            throw SecurityException("写操作仅允许 data/ 和 tmp/ 目录: $path")
+        }
+    }
 
     suspend fun read(path: String): String = withContext(Dispatchers.IO) {
         val f = resolve(path)
@@ -37,6 +45,7 @@ class FileService(private val sandboxRoot: File) {
     }
 
     suspend fun write(path: String, content: String): String = withContext(Dispatchers.IO) {
+        assertWritable(path)
         val f = resolve(path)
         if (f.exists() && f.isDirectory) throw java.io.IOException("目标是目录: $path")
         f.parentFile?.mkdirs()
@@ -45,6 +54,7 @@ class FileService(private val sandboxRoot: File) {
     }
 
     suspend fun writeBytes(path: String, base64: String): String = withContext(Dispatchers.IO) {
+        assertWritable(path)
         val f = resolve(path)
         if (f.exists() && f.isDirectory) throw java.io.IOException("目标是目录: $path")
         IoUtil.writeBytes(f, IoUtil.fromBase64(base64))
@@ -83,13 +93,22 @@ class FileService(private val sandboxRoot: File) {
     }
 
     suspend fun mkdir(path: String): String = withContext(Dispatchers.IO) {
+        assertWritable(path)
         resolve(path).mkdirs()
         "true"
     }
 
     suspend fun remove(path: String): String = withContext(Dispatchers.IO) {
+        assertWritable(path)
         val f = resolve(path)
         val ok = if (f.isDirectory) f.deleteRecursively() else f.delete()
         if (ok) "true" else "false"
+    }
+
+    /** 清空沙箱数据（data/ 和 tmp/），保留 app/。 */
+    suspend fun clearData(): String = withContext(Dispatchers.IO) {
+        File(sandboxRoot, "data").listFiles()?.forEach { it.deleteRecursively() }
+        File(sandboxRoot, "tmp").listFiles()?.forEach { it.deleteRecursively() }
+        "true"
     }
 }

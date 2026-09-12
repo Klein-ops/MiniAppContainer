@@ -8,6 +8,21 @@
         <item name="colorOnSecondary">@color/text_primary</item>
         <item name="android:windowBackground">@color/bg_window</item>
         <item name="android:statusBarColor" tools:targetApi="l">@color/brand_primary_dark</item>
+        <!-- 所有 AlertDialog 统一圆角 -->
+        <item name="android:alertDialogTheme">@style/ThemeOverlay.MiniApp.RoundedDialog</item>
+        <item name="alertDialogTheme">@style/ThemeOverlay.MiniApp.RoundedDialog</item>
+    </style>
+
+    <!-- 圆角对话框主题覆盖 -->
+    <style name="ThemeOverlay.MiniApp.RoundedDialog" parent="ThemeOverlay.MaterialComponents.Dialog.Alert">
+        <item name="android:windowBackground">@drawable/bg_dialog_rounded</item>
+        <item name="buttonBarPositiveButtonStyle">@style/Widget.MiniApp.DialogButton</item>
+        <item name="buttonBarNegativeButtonStyle">@style/Widget.MiniApp.DialogButton</item>
+        <item name="buttonBarNeutralButtonStyle">@style/Widget.MiniApp.DialogButton</item>
+    </style>
+
+    <style name="Widget.MiniApp.DialogButton" parent="Widget.MaterialComponents.Button.TextButton.Dialog">
+        <item name="android:textColor">@color/brand_primary</item>
     </style>
 
 </resources>

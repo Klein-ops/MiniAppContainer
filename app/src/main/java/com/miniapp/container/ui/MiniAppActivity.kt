@@ -1,7 +1,9 @@
 package com.miniapp.container.ui
 
 import android.net.Uri
+import android.net.Uri
 import android.os.Bundle
+import androidx.activity.result.contract.ActivityResultContracts
 import android.view.View
 import android.view.ViewGroup
 import android.webkit.WebSettings
@@ -26,6 +28,8 @@ class MiniAppActivity : AppCompatActivity() {
 
     companion object {
         const val EXTRA_APP_KEY = "appKey"
+        private var importCallback: ((Uri?) -> Unit)? = null
+        private var exportCallback: ((Uri?) -> Unit)? = null
     }
 
     private lateinit var appInfo: MiniAppInfo
@@ -33,6 +37,29 @@ class MiniAppActivity : AppCompatActivity() {
     private lateinit var webView: WebView
     private lateinit var progress: ProgressBar
     private lateinit var floatingExit: FloatingExitView
+
+    private val importLauncher = registerForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
+        importCallback?.invoke(uri)
+        importCallback = null
+    }
+    private val exportLauncher = registerForActivityResult(
+        ActivityResultContracts.CreateDocument("application/octet-stream")
+    ) { uri ->
+        exportCallback?.invoke(uri)
+        exportCallback = null
+    }
+
+    /** 启动文件选择器导入（SAF，无需权限）。 */
+    fun launchImport(cb: (Uri?) -> Unit) {
+        importCallback = cb
+        importLauncher.launch(arrayOf("*/*"))
+    }
+
+    /** 启动文件保存器导出（SAF，无需权限）。 */
+    fun launchExport(defaultName: String, cb: (Uri?) -> Unit) {
+        exportCallback = cb
+        exportLauncher.launch(defaultName)
+    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)

@@ -39,7 +39,7 @@ class MainActivity : AppCompatActivity() {
     private lateinit var categoryScroll: HorizontalScrollView
     private lateinit var adapter: AppListAdapter
 
-    private var currentFilter: String? = null  // null = 全部
+    private var currentFilter: String? = com.miniapp.container.core.CategoryManager.DEFAULT
 
     private val hostApp: MiniAppApp get() = application as MiniAppApp
 
@@ -61,9 +61,8 @@ class MainActivity : AppCompatActivity() {
 
         adapter = AppListAdapter()
         adapter.onItemClick = { startMiniApp(it) }
-        adapter.onPermManageClick = { openPermissionManage(it.appKey) }
-        adapter.onUninstallClick = { confirmUninstall(it) }
-        adapter.onMoveCategoryClick = { showMoveToCategory(it) }
+        adapter.onSettingsClick = { openAppSettings(it.appKey) }
+        adapter.onItemClick = { startMiniApp(it) }
         recycler.layoutManager = LinearLayoutManager(this)
         recycler.adapter = adapter
 
@@ -127,25 +126,45 @@ class MainActivity : AppCompatActivity() {
             refreshCategoryBar()
             refresh()
         }
-        // 各分类 chip
+        // 各分类 chip（长按可删除非默认分类）
         for (cat in cats) {
-            addChip(cat, currentFilter == cat) {
+            addChip(cat, currentFilter == cat, {
                 currentFilter = cat
                 refreshCategoryBar()
                 refresh()
+            }) {
+                if (cat != com.miniapp.container.core.CategoryManager.DEFAULT) {
+                    confirmDeleteCategory(cat)
+                }
             }
         }
         // "+ 添加分类"
-        addChip("+", false) { showAddCategoryDialog() }
+        addChip("+", false, { showAddCategoryDialog() }) {}
+        categoryScroll.scrollTo(0, 0)
     }
 
-    private fun addChip(text: String, selected: Boolean, onClick: () -> Unit) {
+    private fun addChip(text: String, selected: Boolean, onClick: () -> Unit, onLongClick: () -> Unit) {
         val tv = LayoutInflater.from(this).inflate(R.layout.item_category_chip, categoryBar, false) as TextView
         tv.text = text
         tv.setBackgroundResource(if (selected) R.drawable.chip_selected else R.drawable.chip_unselected)
         tv.setTextColor(if (selected) 0xFFFFFFFF.toInt() else 0xFF6B7280.toInt())
         tv.setOnClickListener { onClick() }
+        tv.setOnLongClickListener { onLongClick(); true }
         categoryBar.addView(tv)
+    }
+
+    private fun confirmDeleteCategory(cat: String) {
+        AlertDialog.Builder(this)
+            .setTitle("删除分类")
+            .setMessage("删除分类「$cat」？\n其中的小程序将移回「默认」。")
+            .setPositiveButton("删除") { _, _ ->
+                hostApp.categoryManager.removeCategory(cat)
+                if (currentFilter == cat) currentFilter = com.miniapp.container.core.CategoryManager.DEFAULT
+                refreshCategoryBar()
+                refresh()
+            }
+            .setNegativeButton("取消", null)
+            .show()
     }
 
     private fun showAddCategoryDialog() {
@@ -252,6 +271,10 @@ class MainActivity : AppCompatActivity() {
         startActivity(
             Intent(this, MiniAppActivity::class.java).putExtra(MiniAppActivity.EXTRA_APP_KEY, appKey)
         )
+    }
+
+    private fun openAppSettings(appKey: String) {
+        startActivity(Intent(this, AppSettingsActivity::class.java).putExtra(AppSettingsActivity.EXTRA_APP_KEY, appKey))
     }
 
     private fun openPermissionManage(appKey: String) {

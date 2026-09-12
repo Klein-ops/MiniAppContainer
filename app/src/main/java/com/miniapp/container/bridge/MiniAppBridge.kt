@@ -18,6 +18,8 @@ import com.miniapp.container.ui.MiniAppActivity
 import com.miniapp.container.util.optStringOr
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.suspendCancellableCoroutine
+import kotlin.coroutines.resume
 import kotlinx.coroutines.withContext
 import org.json.JSONArray
 import org.json.JSONObject
@@ -87,6 +89,10 @@ class MiniAppBridge(
         "fs.mkdir" -> fileService.mkdir(p.optStringOr("path"))
         "fs.remove" -> fileService.remove(p.optStringOr("path"))
         "fs.readExternal" -> readExternal(p.optStringOr("uri"))
+        "fs.importFile" -> importFile(p.optStringOr("destPath"))
+        "fs.exportFile" -> exportFile(p.optStringOr("path"))
+        "fs.readExternalFile" -> readExternalFile(p.optStringOr("path"))
+        "fs.writeExternalFile" -> writeExternalFile(p.optStringOr("path"), p.optStringOr("base64"))
         "net.httpGet" -> netHttpGet(p.optStringOr("url"))
         "sys.openUrl" -> openUrl(p.optStringOr("url"))
         "perm.request" -> {
@@ -168,6 +174,83 @@ class MiniAppBridge(
         val bytes = activity.contentResolver.openInputStream(parsed)?.use { it.readBytes() }
             ?: throw java.io.IOException("无法读取: $uri")
         JSONObject.quote(com.miniapp.container.util.IoUtil.toBase64(bytes))
+    }
+
+    /** 通过 SAF 选择文件导入到沙箱（无需权限）。 */
+    private suspend fun importFile(destPath: String): String {
+        if (destPath.isBlank()) throw IllegalArgumentException("destPath required")
+        return suspendCancellableCoroutine { cont ->
+            activity.launchImport { uri ->
+                if (uri == null) { if (cont.isActive) cont.resume(""); return@launchImport }
+                activity.lifecycleScope.launch {
+                    try {
+                        val bytes = activity.contentResolver.openInputStream(uri)?.use { it.readBytes() } ?: ByteArray(0)
+                        fileService.writeBytes(destPath, com.miniapp.container.util.IoUtil.toBase64(bytes))
+                        if (cont.isActive) cont.resume("true")
+                    } catch (e: Throwable) { if (cont.isActive) cont.resumeWith(Result.failure(e)) }
+                }
+            }
+        }
+    }
+
+    /** 通过 SAF 选择位置导出沙箱文件（无需权限）。 */
+    private suspend fun exportFile(path: String): String {
+        if (path.isBlank()) throw IllegalArgumentException("path required")
+        val b64 = fileService.readBytes(path)
+        val bytes = com.miniapp.container.util.IoUtil.fromBase64(b64)
+        val defaultName = java.io.File(path).name
+        return suspendCancellableCoroutine { cont ->
+            activity.launchExport(defaultName) { uri ->
+                if (uri == null) { if (cont.isActive) cont.resume(""); return@launchExport }
+                activity.lifecycleScope.launch {
+                    try {
+                        activity.contentResolver.openOutputStream(uri)?.use { it.write(bytes) }
+                            ?: throw java.io.IOException("无法写入")
+                        if (cont.isActive) cont.resume("true")
+                    } catch (e: Throwable) { if (cont.isActive) cont.resumeWith(Result.failure(e)) }
+                }
+            }
+        }
+    }
+
+    /** 静默读取内部储存文件（需 fs.external 权限 + 系统所有文件访问）。 */
+    private suspend fun readExternalFile(absPath: String): String = withContext(Dispatchers.IO) {
+        val granted = permissionManager.ensurePermission(
+            activity, appInfo.appKey, appInfo.permissions, PermissionScope.FS_EXTERNAL
+        )
+        if (!granted) throw SecurityException("permission denied: fs.external")
+        if (!android.os.Environment.isExternalStorageManager()) {
+            throw SecurityException("系统未授予所有文件访问权限，请在设置中开启")
+        }
+        val f = java.io.File(absPath)
+        assertExternalPath(f)
+        if (!f.exists()) throw java.io.FileNotFoundException("文件不存在: $absPath")
+        if (f.isDirectory) throw java.io.IOException("目标是目录: $absPath")
+        JSONObject.quote(com.miniapp.container.util.IoUtil.toBase64(com.miniapp.container.util.IoUtil.readBytes(f)))
+    }
+
+    /** 静默写入内部储存文件（需 fs.external 权限 + 系统所有文件访问）。 */
+    private suspend fun writeExternalFile(absPath: String, base64: String): String = withContext(Dispatchers.IO) {
+        val granted = permissionManager.ensurePermission(
+            activity, appInfo.appKey, appInfo.permissions, PermissionScope.FS_EXTERNAL
+        )
+        if (!granted) throw SecurityException("permission denied: fs.external")
+        if (!android.os.Environment.isExternalStorageManager()) {
+            throw SecurityException("系统未授予所有文件访问权限，请在设置中开启")
+        }
+        val f = java.io.File(absPath)
+        assertExternalPath(f)
+        f.parentFile?.mkdirs()
+        com.miniapp.container.util.IoUtil.writeBytes(f, com.miniapp.container.util.IoUtil.fromBase64(base64))
+        "true"
+    }
+
+    /** 禁止访问应用私有目录（防篡改权限记录）。 */
+    private fun assertExternalPath(f: java.io.File) {
+        val p = try { f.canonicalPath } catch (e: Exception) { f.absolutePath }
+        if (p.startsWith(activity.filesDir.canonicalPath) || p.startsWith("/data/data/")) {
+            throw SecurityException("禁止访问应用私有目录: $p")
+        }
     }
 
     private fun respond(reqId: String, out: BridgeOut) {

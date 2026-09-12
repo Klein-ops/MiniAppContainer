@@ -11,8 +11,8 @@ import kotlin.math.abs
 /**
  * 可拖动、贴边、闲置半透明的悬浮退出按钮。
  * - 点击（位移小于阈值）→ 回调 [onExit]
- * - 拖动 → 跟随手指；松手 → 贴边并延迟收起（缩小成小圆点半藏）
- * - 触摸时展开到全尺寸、恢复不透明
+ * - 拖动 → 跟随手指；松手 → 贴边
+ * - 闲置 2.5s 后向屏幕边缘滑出，只露出一小段（约 18%）；触摸时滑回完全可见
  */
 class FloatingExitView @JvmOverloads constructor(
     context: Context,
@@ -29,15 +29,14 @@ class FloatingExitView @JvmOverloads constructor(
     private var downY = 0f
     private var dragged = false
     private var collapsed = false
+    private var stickX = 0f   // 贴边后的完全可见位置
 
     private val idleAlpha = 0.35f
     private val activeAlpha = 1f
     private val idleHideRunnable = Runnable { animate().alpha(idleAlpha).setDuration(300).start() }
     private val collapseRunnable = Runnable { collapse() }
 
-    init {
-        alpha = idleAlpha
-    }
+    init { alpha = idleAlpha }
 
     fun scheduleIdleHide() {
         removeCallbacks(idleHideRunnable)
@@ -46,39 +45,40 @@ class FloatingExitView @JvmOverloads constructor(
         postDelayed(idleHideRunnable, 2500)
     }
 
-    /** 贴边并缩小成小圆点（约 55% 尺寸），只露出贴边一半。 */
+    /** 向边缘滑出，只露出约 18%。 */
     private fun collapse() {
-        if (collapsed || dragged) return
+        if (collapsed) return
         collapsed = true
         val parent = parent as? View ?: return
-        val targetX = if (x + width / 2 < parent.width / 2) {
-            -width * 0.28f          // 左贴边，露出约 72%
-        } else {
-            (parent.width - width * 0.72f).toFloat()  // 右贴边
-        }
-        animate().x(targetX).scaleX(0.55f).scaleY(0.55f).setDuration(220).start()
+        val isLeft = stickX + width / 2 < parent.width / 2
+        val hiddenX = if (isLeft) -width * 0.82f
+        else (parent.width - width * 0.18f).toFloat()
+        animate().x(hiddenX).setDuration(220).start()
     }
 
-    /** 展开到全尺寸。 */
+    /** 滑回完全可见的贴边位置。 */
     private fun expand() {
+        if (!collapsed) return
         collapsed = false
-        animate().scaleX(1f).scaleY(1f).setDuration(150).start()
+        animate().x(stickX).setDuration(180).start()
     }
 
     private fun stickToEdge() {
         val parent = parent as? View ?: return
-        val edge = if (x + width / 2 < parent.width / 2) 0f else (parent.width - width).toFloat()
+        stickX = if (x + width / 2 < parent.width / 2) 0f else (parent.width - width).toFloat()
         val targetY = y.coerceIn(0f, (parent.height - height).toFloat())
-        animate().x(edge).y(targetY).setDuration(180).withEndAction { scheduleIdleHide() }.start()
+        animate().x(stickX).y(targetY).setDuration(180)
+            .withEndAction {
+                dragged = false   // 重置，允许后续 collapse
+                scheduleIdleHide()
+            }.start()
     }
 
     override fun onTouchEvent(event: MotionEvent): Boolean {
         when (event.action) {
             MotionEvent.ACTION_DOWN -> {
-                downRawX = event.rawX
-                downRawY = event.rawY
-                downX = x
-                downY = y
+                downRawX = event.rawX; downRawY = event.rawY
+                downX = x; downY = y
                 dragged = false
                 animate().cancel()
                 removeCallbacks(idleHideRunnable)
@@ -99,14 +99,11 @@ class FloatingExitView @JvmOverloads constructor(
                 }
             }
             MotionEvent.ACTION_UP -> {
-                if (!dragged) {
-                    onExit?.invoke()
-                    return true
-                }
+                if (!dragged) { onExit?.invoke(); return true }
                 stickToEdge()
             }
             MotionEvent.ACTION_CANCEL -> {
-                if (dragged) stickToEdge() else scheduleIdleHide()
+                if (dragged) stickToEdge() else { dragged = false; scheduleIdleHide() }
             }
         }
         return true
