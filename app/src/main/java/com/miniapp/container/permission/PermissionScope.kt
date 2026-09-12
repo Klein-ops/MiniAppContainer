@@ -8,14 +8,14 @@ object PermissionScope {
 
     fun label(scope: String): String = when (scope) {
         NET -> "网络访问"
-        FS_EXTERNAL -> "读取沙箱外文件"
+        FS_EXTERNAL -> "读写内部储存"
         OPEN_URL -> "打开外部链接"
         else -> scope
     }
 
     fun description(scope: String): String = when (scope) {
         NET -> "该小程序请求访问网络（发起 HTTP 请求）。"
-        FS_EXTERNAL -> "该小程序请求读取沙箱外的文件。"
+        FS_EXTERNAL -> "该小程序请求读写内部储存（沙箱外的文件）。"
         OPEN_URL -> "该小程序请求打开外部链接（跳转到系统浏览器）。"
         else -> "该小程序请求权限：$scope"
     }

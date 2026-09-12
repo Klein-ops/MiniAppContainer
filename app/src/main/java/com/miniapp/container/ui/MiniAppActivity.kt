@@ -3,6 +3,7 @@ package com.miniapp.container.ui
 import android.net.Uri
 import android.os.Bundle
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.core.content.ContextCompat
 import android.view.View
 import android.view.ViewGroup
 import android.webkit.WebSettings
@@ -29,6 +30,7 @@ class MiniAppActivity : AppCompatActivity() {
         const val EXTRA_APP_KEY = "appKey"
         private var importCallback: ((Uri?) -> Unit)? = null
         private var exportCallback: ((Uri?) -> Unit)? = null
+        // permCallback 不能放 companion（launcher 实例相关），放实例字段
     }
 
     private lateinit var appInfo: MiniAppInfo
@@ -58,6 +60,17 @@ class MiniAppActivity : AppCompatActivity() {
     fun launchExport(defaultName: String, cb: (Uri?) -> Unit) {
         exportCallback = cb
         exportLauncher.launch(defaultName)
+    }
+
+    private var permCallback: ((Map<String, Boolean>) -> Unit)? = null
+    private val permLauncher = registerForActivityResult(
+        ActivityResultContracts.RequestMultiplePermissions()
+    ) { result -> permCallback?.invoke(result); permCallback = null }
+
+    /** 主动申请运行时存储权限（Android 10 及以下弹窗）。 */
+    fun requestStoragePerms(permissions: Array<String>, cb: (Map<String, Boolean>) -> Unit) {
+        permCallback = cb
+        permLauncher.launch(permissions)
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {

@@ -16,7 +16,8 @@
         android:supportsRtl="true"
         android:theme="@style/Theme.MiniApp"
         android:usesCleartextTraffic="true"
-        android:hardwareAccelerated="true">
+        android:hardwareAccelerated="true"
+        android:requestLegacyExternalStorage="true">
 
         <activity
             android:name=".ui.MainActivity"

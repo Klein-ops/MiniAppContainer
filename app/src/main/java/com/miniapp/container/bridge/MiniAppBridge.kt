@@ -219,9 +219,7 @@ class MiniAppBridge(
             activity, appInfo.appKey, appInfo.permissions, PermissionScope.FS_EXTERNAL
         )
         if (!granted) throw SecurityException("permission denied: fs.external")
-        if (!android.os.Environment.isExternalStorageManager()) {
-            throw SecurityException("系统未授予所有文件访问权限，请在设置中开启")
-        }
+        ensureSystemStoragePermission()
         val f = java.io.File(absPath)
         assertExternalPath(f)
         if (!f.exists()) throw java.io.FileNotFoundException("文件不存在: $absPath")
@@ -235,9 +233,7 @@ class MiniAppBridge(
             activity, appInfo.appKey, appInfo.permissions, PermissionScope.FS_EXTERNAL
         )
         if (!granted) throw SecurityException("permission denied: fs.external")
-        if (!android.os.Environment.isExternalStorageManager()) {
-            throw SecurityException("系统未授予所有文件访问权限，请在设置中开启")
-        }
+        ensureSystemStoragePermission()
         val f = java.io.File(absPath)
         assertExternalPath(f)
         f.parentFile?.mkdirs()
@@ -250,6 +246,51 @@ class MiniAppBridge(
         val p = try { f.canonicalPath } catch (e: Exception) { f.absolutePath }
         if (p.startsWith(activity.filesDir.canonicalPath) || p.startsWith("/data/data/")) {
             throw SecurityException("禁止访问应用私有目录: $p")
+        }
+    }
+
+    /**
+     * 确保系统存储权限（版本适配 + 主动申请）。
+     * - Android 11+ (API>=30)：检查 [Environment.isExternalStorageManager]，
+     *   未开启则自动跳转系统设置页申请（MANAGE_EXTERNAL_STORAGE 系统限制只能跳设置）。
+     * - Android 10 及以下：主动弹窗申请 READ/WRITE_EXTERNAL_STORAGE 运行时权限。
+     */
+    private suspend fun ensureSystemStoragePermission() {
+        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.R) {
+            if (android.os.Environment.isExternalStorageManager()) return
+            withContext(Dispatchers.Main) {
+                try {
+                    activity.startActivity(
+                        android.content.Intent(android.provider.Settings.ACTION_MANAGE_APP_ALL_FILES_ACCESS_PERMISSION)
+                            .setData(android.net.Uri.parse("package:${activity.packageName}"))
+                    )
+                } catch (e: Exception) {
+                    try {
+                        activity.startActivity(
+                            android.content.Intent(android.provider.Settings.ACTION_MANAGE_ALL_FILES_ACCESS_PERMISSION)
+                        )
+                    } catch (e2: Exception) { /* 无该设置项，忽略 */ }
+                }
+            }
+            throw SecurityException("已跳转系统设置，请开启「所有文件访问权限」后重试")
+        } else {
+            val needed = mutableListOf<String>()
+            if (androidx.core.content.ContextCompat.checkSelfPermission(
+                    activity, android.Manifest.permission.READ_EXTERNAL_STORAGE
+                ) != android.content.pm.PackageManager.PERMISSION_GRANTED
+            ) needed.add(android.Manifest.permission.READ_EXTERNAL_STORAGE)
+            if (android.os.Build.VERSION.SDK_INT <= android.os.Build.VERSION.Q &&
+                androidx.core.content.ContextCompat.checkSelfPermission(
+                    activity, android.Manifest.permission.WRITE_EXTERNAL_STORAGE
+                ) != android.content.pm.PackageManager.PERMISSION_GRANTED
+            ) needed.add(android.Manifest.permission.WRITE_EXTERNAL_STORAGE)
+            if (needed.isEmpty()) return
+            val result = suspendCancellableCoroutine<Map<String, Boolean>> { cont ->
+                activity.requestStoragePerms(needed.toTypedArray()) { r ->
+                    if (cont.isActive) cont.resume(r)
+                }
+            }
+            if (!result.values.all { it }) throw SecurityException("存储权限被拒绝")
         }
     }
 
