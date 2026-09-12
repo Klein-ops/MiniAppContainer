@@ -25,7 +25,14 @@
   var wasmInstance = null;
   function ensureWasm() {
     if (wasmInstance) return Promise.resolve(wasmInstance);
-    return MiniApp.wasm.instantiate('sample.wasm').then(function (inst) { wasmInstance = inst; return inst; });
+    // 通过 Bridge 读取 WASM 文件（返回 base64），转成字节后实例化。
+    // 不用 fetch：file:// 下 allowFileAccessFromFileURLs=false，fetch 会被拦截。
+    return MiniApp.fs.readBytes('app/sample.wasm').then(function (b64) {
+      var bin = atob(b64);
+      var bytes = new Uint8Array(bin.length);
+      for (var i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+      return MiniApp.wasm.instantiate(bytes);
+    }).then(function (inst) { wasmInstance = inst; return inst; });
   }
   var actions = {
     info: function () { return MiniApp.info(); },
