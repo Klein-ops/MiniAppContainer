@@ -327,11 +327,12 @@ class MiniAppBridge(
         (f.exists() || f.mkdirs()).toString()
     }
 
-    /** 内部储存删除文件或空目录（需 fs.external）。 */
+    /** 内部储存删除文件或目录（递归，需 fs.external）。 */
     private suspend fun removeExternal(path: String): String = withContext(Dispatchers.IO) {
         val f = java.io.File(path)
         assertExternalGranted(f)
-        (if (f.exists()) f.delete() else false).toString()
+        val ok = if (f.isDirectory) f.deleteRecursively() else f.delete()
+        if (ok) "true" else "false"
     }
 
     /** 内部储存重命名/移动文件（需 fs.external）。 */
