@@ -14,6 +14,7 @@
         android:scaleType="centerCrop"
         android:src="@android:drawable/sym_def_app_icon"
         app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintStart_toStartOf="parent" />
 
     <TextView
@@ -22,6 +23,8 @@
         android:layout_height="wrap_content"
         android:layout_marginStart="12dp"
         android:layout_marginEnd="8dp"
+        android:ellipsize="end"
+        android:maxLines="1"
         android:textColor="@color/text_primary"
         android:textSize="16sp"
         android:textStyle="bold"
