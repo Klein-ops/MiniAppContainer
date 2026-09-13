@@ -5,7 +5,6 @@ import android.os.Bundle
 import android.widget.EditText
 import android.content.pm.ShortcutInfo
 import android.graphics.drawable.Icon
-import android.content.Intent
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.lifecycle.lifecycleScope
