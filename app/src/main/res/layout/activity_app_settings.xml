@@ -24,6 +24,18 @@
         android:background="@color/bg_card" />
 
     <com.google.android.material.button.MaterialButton
+        android:id="@+id/btn_rename"
+        style="@style/Widget.MaterialComponents.Button.TextButton"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:gravity="start|center_vertical"
+        android:paddingHorizontal="20dp"
+        android:text="重命名"
+        android:textColor="@color/text_primary"
+        app:icon="@android:drawable/ic_menu_edit"
+        app:iconTint="@color/brand_primary" />
+
+    <com.google.android.material.button.MaterialButton
         android:id="@+id/btn_perm_manage"
         style="@style/Widget.MaterialComponents.Button.TextButton"
         android:layout_width="match_parent"

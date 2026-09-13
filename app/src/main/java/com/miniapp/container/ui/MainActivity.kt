@@ -20,6 +20,7 @@ import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.ItemTouchHelper
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
+import com.google.android.material.floatingactionbutton.FloatingActionButton
 import com.miniapp.container.MiniAppApp
 import com.miniapp.container.R
 import com.miniapp.container.core.MiniAppInfo
@@ -62,6 +63,7 @@ class MainActivity : AppCompatActivity() {
         adapter = AppListAdapter()
         adapter.onItemClick = { startMiniApp(it) }
         adapter.onSettingsClick = { openAppSettings(it.appKey) }
+        findViewById<FloatingActionButton>(R.id.fab_install).setOnClickListener { showInstallOptions() }
         recycler.layoutManager = LinearLayoutManager(this)
         recycler.adapter = adapter
 
@@ -99,14 +101,6 @@ class MainActivity : AppCompatActivity() {
     }
 
     override fun onOptionsItemSelected(item: MenuItem): Boolean = when (item.itemId) {
-        R.id.action_install -> {
-            pickZip.launch(arrayOf("application/zip", "application/octet-stream", "*/*"))
-            true
-        }
-        R.id.action_install_sample -> {
-            lifecycleScope.launch { installSample() }
-            true
-        }
         R.id.action_clean_storage -> {
             cleanStorage()
             true
@@ -270,6 +264,17 @@ class MainActivity : AppCompatActivity() {
         startActivity(
             Intent(this, MiniAppActivity::class.java).putExtra(MiniAppActivity.EXTRA_APP_KEY, appKey)
         )
+    }
+
+    private fun showInstallOptions() {
+        AlertDialog.Builder(this)
+            .setTitle("安装")
+            .setItems(arrayOf("安装应用包（zip）", "安装内置示例")) { _, which ->
+                when (which) {
+                    0 -> pickZip.launch(arrayOf("application/zip", "application/octet-stream", "*/*"))
+                    1 -> lifecycleScope.launch { installSample() }
+                }
+            }.show()
     }
 
     private fun openAppSettings(appKey: String) {

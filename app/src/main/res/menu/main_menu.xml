@@ -2,14 +2,6 @@
 <menu xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto">
     <item
-        android:id="@+id/action_install_sample"
-        android:title="@string/action_install_sample"
-        app:showAsAction="never" />
-    <item
-        android:id="@+id/action_install"
-        android:title="@string/action_install"
-        app:showAsAction="never" />
-    <item
         android:id="@+id/action_clean_storage"
         android:title="清理 WebView 缓存"
         app:showAsAction="never" />

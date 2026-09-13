@@ -2,6 +2,7 @@ package com.miniapp.container.ui
 
 import android.content.Intent
 import android.os.Bundle
+import android.widget.EditText
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.lifecycle.lifecycleScope
@@ -26,6 +27,7 @@ class AppSettingsActivity : AppCompatActivity() {
         info = hostApp.registry.get(appKey) ?: run { finish(); return }
 
         findViewById<MaterialToolbar>(R.id.toolbar).also { setSupportActionBar(it); title = info.uname }
+        findViewById<MaterialButton>(R.id.btn_rename).setOnClickListener { showRename() }
         findViewById<MaterialButton>(R.id.btn_perm_manage).setOnClickListener {
             startActivity(Intent(this, PermissionManageActivity::class.java)
                 .putExtra(PermissionManageActivity.EXTRA_APP_KEY, appKey))
@@ -36,6 +38,26 @@ class AppSettingsActivity : AppCompatActivity() {
 
         findViewById<android.widget.TextView>(R.id.tv_app_info).text =
             "${info.uname}\n版本 ${info.version}\n${info.appKey}"
+    }
+
+    private fun showRename() {
+        val input = EditText(this).apply {
+            setText(info.displayName.ifBlank { info.uname })
+            setSelection(text.length)
+            hint = "显示名称"
+        }
+        AlertDialog.Builder(this)
+            .setTitle("重命名")
+            .setMessage("仅影响显示，不影响应用身份（${info.uid}_${info.uname}）")
+            .setView(input)
+            .setPositiveButton("确定") { _, _ ->
+                val name = input.text.toString().trim()
+                hostApp.registry.put(info.copy(displayName = name))
+                info = hostApp.registry.get(info.appKey) ?: return@setPositiveButton
+                findViewById<android.widget.TextView>(R.id.tv_app_info).text =
+                    "${info.displayName.ifBlank { info.uname }}\n版本 ${info.version}\n${info.appKey}"
+                toast("已重命名")
+            }.setNegativeButton("取消", null).show()
     }
 
     private fun showMoveToCategory() {

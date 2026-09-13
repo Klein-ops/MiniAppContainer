@@ -15,6 +15,8 @@ data class MiniAppInfo(
     val wasm: List<String>,
     val permissions: List<String>,
     val requiredPermissions: List<String>,
+    val icon: String = "",
+    val displayName: String = "",
     val installedAt: Long
 ) {
     val appKey: String get() = "${uid}_${uname}"
@@ -35,6 +37,8 @@ data class MiniAppInfo(
             .put("permissions", permArr)
             .put("requiredPermissions", reqArr)
             .put("installedAt", installedAt)
+            .put("icon", icon)
+            .put("displayName", displayName)
             .put("appKey", appKey)
     }
 
@@ -47,6 +51,8 @@ data class MiniAppInfo(
             wasm = o.optStringList("wasm"),
             permissions = o.optStringList("permissions"),
             requiredPermissions = o.optStringList("requiredPermissions"),
+            icon = o.optStringOr("icon", ""),
+            displayName = o.optStringOr("displayName", ""),
             installedAt = o.optLongOr("installedAt", System.currentTimeMillis())
         )
     }

@@ -73,6 +73,7 @@ class AppInstaller(
             )
             sandbox.metaFile(appKey).writeText(meta.toJson().toString(), Charsets.UTF_8)
 
+            val existing = registry.get(appKey)
             val info = MiniAppInfo(
                 uid = uid,
                 uname = uname,
@@ -81,6 +82,8 @@ class AppInstaller(
                 wasm = manifest.wasm,
                 permissions = manifest.permissions,
                 requiredPermissions = manifest.requiredPermissions,
+                icon = manifest.icon,
+                displayName = existing?.displayName ?: "",
                 installedAt = System.currentTimeMillis()
             )
             registry.put(info)

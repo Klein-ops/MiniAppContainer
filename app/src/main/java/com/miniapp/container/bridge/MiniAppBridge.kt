@@ -93,6 +93,7 @@ class MiniAppBridge(
         "fs.exportFile" -> exportFile(p.optStringOr("path"))
         "fs.readExternalFile" -> readExternalFile(p.optStringOr("path"))
         "fs.writeExternalFile" -> writeExternalFile(p.optStringOr("path"), p.optStringOr("base64"))
+        "fs.listExternal" -> listExternal(p.optStringOr("dir"))
         "net.httpGet" -> netHttpGet(p.optStringOr("url"))
         "sys.openUrl" -> openUrl(p.optStringOr("url"))
         "perm.request" -> {
@@ -247,6 +248,27 @@ class MiniAppBridge(
         if (p.startsWith(activity.filesDir.canonicalPath) || p.startsWith("/data/data/")) {
             throw SecurityException("禁止访问应用私有目录: $p")
         }
+    }
+
+    /** 列出内部储存某目录的文件列表（不递归，需 fs.external + 系统存储权限）。 */
+    private suspend fun listExternal(dir: String): String = withContext(Dispatchers.IO) {
+        val granted = permissionManager.ensurePermission(
+            activity, appInfo.appKey, appInfo.permissions, PermissionScope.FS_EXTERNAL
+        )
+        if (!granted) throw SecurityException("permission denied: fs.external")
+        ensureSystemStoragePermission()
+        val f = java.io.File(dir)
+        assertExternalPath(f)
+        if (!f.exists()) throw java.io.FileNotFoundException("目录不存在: $dir")
+        if (!f.isDirectory) throw java.io.IOException("目标不是目录: $dir")
+        val arr = JSONArray()
+        f.listFiles()?.sortedBy { it.name }?.forEach {
+            arr.put(JSONObject()
+                .put("name", it.name)
+                .put("isDir", it.isDirectory)
+                .put("size", it.length()))
+        }
+        arr.toString()
     }
 
     /**

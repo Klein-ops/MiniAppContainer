@@ -13,7 +13,8 @@ data class AppManifest(
     val entry: String,
     val wasm: List<String>,
     val permissions: List<String>,
-    val requiredPermissions: List<String>
+    val requiredPermissions: List<String>,
+    val icon: String = ""
 ) {
     companion object {
         fun parse(file: File): AppManifest? = try {
@@ -33,7 +34,8 @@ data class AppManifest(
                 entry = o.optStringOr("entry", "index.html"),
                 wasm = o.optStringList("wasm"),
                 permissions = o.optStringList("permissions"),
-                requiredPermissions = o.optStringList("requiredPermissions")
+                requiredPermissions = o.optStringList("requiredPermissions"),
+                icon = o.optStringOr("icon", "")
             )
         }
     }
