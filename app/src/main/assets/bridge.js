@@ -42,6 +42,9 @@
     info: function () { return B.call('app.info'); },
     system: function () { return B.call('system.info'); },
     toast: function (msg) { return B.call('ui.toast', { message: String(msg) }); },
+    ui: {
+      toast: function (msg) { return B.call('ui.toast', { message: String(msg) }); }
+    },
     fs: {
       read: function (p) { return B.call('fs.read', { path: p }); },
       readBytes: function (p) { return B.call('fs.readBytes', { path: p }); },

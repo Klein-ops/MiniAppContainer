@@ -79,12 +79,12 @@ class AppSettingsActivity : AppCompatActivity() {
         return try {
             val size = 96
             val bmp = if (info.icon.endsWith(".svg", ignoreCase = true)) {
-                val picture = SVG.getFromInputStream(iconFile.inputStream()).renderToPicture()
+                val svg = SVG.getFromInputStream(iconFile.inputStream())
+                svg.setDocumentWidth(size.toFloat())
+                svg.setDocumentHeight(size.toFloat())
+                val picture = svg.renderToPicture()
                 Bitmap.createBitmap(size, size, Bitmap.Config.ARGB_8888).also { b ->
-                    val c = Canvas(b)
-                    val scale = minOf(size.toFloat() / picture.width, size.toFloat() / picture.height)
-                    c.scale(scale, scale)
-                    picture.draw(c)
+                    picture.draw(Canvas(b))
                 }
             } else {
                 BitmapFactory.decodeFile(iconFile.absolutePath)
