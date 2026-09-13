@@ -4,7 +4,12 @@ import android.content.Intent
 import android.os.Bundle
 import android.widget.EditText
 import android.content.pm.ShortcutInfo
+import android.graphics.Bitmap
+import android.graphics.BitmapFactory
+import android.graphics.Canvas
 import android.graphics.drawable.Icon
+import com.caverock.androidsvg.SVG
+import java.io.File
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.lifecycle.lifecycleScope
@@ -58,11 +63,34 @@ class AppSettingsActivity : AppCompatActivity() {
         val shortcut = ShortcutInfo.Builder(this, "miniapp_${info.appKey}")
             .setShortLabel(label)
             .setLongLabel(label)
-            .setIcon(Icon.createWithResource(this, R.mipmap.ic_launcher))
+            .setIcon(loadAppIcon() ?: Icon.createWithResource(this, R.mipmap.ic_launcher))
             .setIntent(launchIntent)
             .build()
         sm.requestPinShortcut(shortcut, null)
         toast("已请求创建快捷方式")
+    }
+
+    /** 加载小程序自有图标（SVG/PNG → Bitmap → Icon），无图标返回 null。 */
+    private fun loadAppIcon(): Icon? {
+        if (info.icon.isBlank()) return null
+        val sandbox = File(filesDir, "miniapps/${'$'}{info.uid}_${'$'}{info.uname}")
+        val iconFile = File(sandbox, "app/${'$'}{info.icon}")
+        if (!iconFile.exists()) return null
+        return try {
+            val size = 96
+            val bmp = if (info.icon.endsWith(".svg", ignoreCase = true)) {
+                val picture = SVG.getFromInputStream(iconFile.inputStream()).renderToPicture()
+                Bitmap.createBitmap(size, size, Bitmap.Config.ARGB_8888).also { b ->
+                    val c = Canvas(b)
+                    val scale = minOf(size.toFloat() / picture.width, size.toFloat() / picture.height)
+                    c.scale(scale, scale)
+                    picture.draw(c)
+                }
+            } else {
+                BitmapFactory.decodeFile(iconFile.absolutePath)
+            } ?: return null
+            Icon.createWithBitmap(bmp)
+        } catch (_: Exception) { null }
     }
 
     private fun showRename() {
@@ -78,6 +106,7 @@ class AppSettingsActivity : AppCompatActivity() {
             .setPositiveButton("确定") { _, _ ->
                 val name = input.text.toString().trim()
                 hostApp.registry.put(info.copy(displayName = name))
+                hostApp.registry.save()
                 info = hostApp.registry.get(info.appKey) ?: return@setPositiveButton
                 findViewById<android.widget.TextView>(R.id.tv_app_info).text =
                     "${info.displayName.ifBlank { info.uname }}\n版本 ${info.version}\n${info.appKey}"
