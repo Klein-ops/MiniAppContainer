@@ -61,7 +61,12 @@
       // 静默读写内部储存（需 fs.external 权限 + 系统所有文件访问）
       readExternalFile: function (absPath) { return B.call('fs.readExternalFile', { path: absPath }); },
       writeExternalFile: function (absPath, base64) { return B.call('fs.writeExternalFile', { path: absPath, base64: base64 }); },
-      listExternal: function (dir) { return B.call('fs.listExternal', { dir: dir }); }
+      listExternal: function (dir) { return B.call('fs.listExternal', { dir: dir }); },
+      existsExternal: function (p) { return B.call('fs.existsExternal', { path: p }); },
+      statExternal: function (p) { return B.call('fs.statExternal', { path: p }); },
+      mkdirExternal: function (dir) { return B.call('fs.mkdirExternal', { dir: dir }); },
+      removeExternal: function (p) { return B.call('fs.removeExternal', { path: p }); },
+      renameExternal: function (from, to) { return B.call('fs.renameExternal', { from: from, to: to }); }
     },
     wasm: {
       // 利用 WebView 内置 WebAssembly JIT 引擎（高性能，支持二进制/Memory/import）

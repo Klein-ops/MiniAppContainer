@@ -94,6 +94,11 @@ class MiniAppBridge(
         "fs.readExternalFile" -> readExternalFile(p.optStringOr("path"))
         "fs.writeExternalFile" -> writeExternalFile(p.optStringOr("path"), p.optStringOr("base64"))
         "fs.listExternal" -> listExternal(p.optStringOr("dir"))
+        "fs.existsExternal" -> existsExternal(p.optStringOr("path"))
+        "fs.statExternal" -> statExternal(p.optStringOr("path"))
+        "fs.mkdirExternal" -> mkdirExternal(p.optStringOr("dir"))
+        "fs.removeExternal" -> removeExternal(p.optStringOr("path"))
+        "fs.renameExternal" -> renameExternal(p.optStringOr("from"), p.optStringOr("to"))
         "net.httpGet" -> netHttpGet(p.optStringOr("url"))
         "net.httpRequest" -> httpRequest(p)
         "cb.read" -> readClipboard()
@@ -259,13 +264,8 @@ class MiniAppBridge(
 
     /** 静默读取内部储存文件（需 fs.external 权限 + 系统所有文件访问）。 */
     private suspend fun readExternalFile(absPath: String): String = withContext(Dispatchers.IO) {
-        val granted = permissionManager.ensurePermission(
-            activity, appInfo.appKey, appInfo.permissions, PermissionScope.FS_EXTERNAL
-        )
-        if (!granted) throw SecurityException("permission denied: fs.external")
-        ensureSystemStoragePermission()
         val f = java.io.File(absPath)
-        assertExternalPath(f)
+        assertExternalGranted(f)
         if (!f.exists()) throw java.io.FileNotFoundException("文件不存在: $absPath")
         if (f.isDirectory) throw java.io.IOException("目标是目录: $absPath")
         JSONObject.quote(com.miniapp.container.util.IoUtil.toBase64(com.miniapp.container.util.IoUtil.readBytes(f)))
@@ -273,13 +273,8 @@ class MiniAppBridge(
 
     /** 静默写入内部储存文件（需 fs.external 权限 + 系统所有文件访问）。 */
     private suspend fun writeExternalFile(absPath: String, base64: String): String = withContext(Dispatchers.IO) {
-        val granted = permissionManager.ensurePermission(
-            activity, appInfo.appKey, appInfo.permissions, PermissionScope.FS_EXTERNAL
-        )
-        if (!granted) throw SecurityException("permission denied: fs.external")
-        ensureSystemStoragePermission()
         val f = java.io.File(absPath)
-        assertExternalPath(f)
+        assertExternalGranted(f)
         f.parentFile?.mkdirs()
         com.miniapp.container.util.IoUtil.writeBytes(f, com.miniapp.container.util.IoUtil.fromBase64(base64))
         "true"
@@ -293,15 +288,65 @@ class MiniAppBridge(
         }
     }
 
-    /** 列出内部储存某目录的文件列表（不递归，需 fs.external + 系统存储权限）。 */
-    private suspend fun listExternal(dir: String): String = withContext(Dispatchers.IO) {
+    /** 内部储存操作前置：fs.external 权限 + 系统存储权限 + 路径防私有目录。 */
+    private suspend fun assertExternalGranted(f: java.io.File) {
         val granted = permissionManager.ensurePermission(
             activity, appInfo.appKey, appInfo.permissions, PermissionScope.FS_EXTERNAL
         )
         if (!granted) throw SecurityException("permission denied: fs.external")
         ensureSystemStoragePermission()
-        val f = java.io.File(dir)
         assertExternalPath(f)
+    }
+
+    /** 内部储存是否存在（需 fs.external）。 */
+    private suspend fun existsExternal(path: String): String = withContext(Dispatchers.IO) {
+        val f = java.io.File(path)
+        assertExternalGranted(f)
+        if (f.exists()) "true" else "false"
+    }
+
+    /** 内部储存文件信息（需 fs.external）。 */
+    private suspend fun statExternal(path: String): String = withContext(Dispatchers.IO) {
+        val f = java.io.File(path)
+        assertExternalGranted(f)
+        JSONObject()
+            .put("exists", f.exists())
+            .put("isDir", f.isDirectory)
+            .put("size", if (f.isFile) f.length() else 0)
+            .put("name", f.name)
+            .put("canRead", f.canRead())
+            .put("canWrite", f.canWrite())
+            .put("lastModified", f.lastModified())
+            .toString()
+    }
+
+    /** 内部储存创建目录（需 fs.external）。 */
+    private suspend fun mkdirExternal(dir: String): String = withContext(Dispatchers.IO) {
+        val f = java.io.File(dir)
+        assertExternalGranted(f)
+        (f.exists() || f.mkdirs()).toString()
+    }
+
+    /** 内部储存删除文件或空目录（需 fs.external）。 */
+    private suspend fun removeExternal(path: String): String = withContext(Dispatchers.IO) {
+        val f = java.io.File(path)
+        assertExternalGranted(f)
+        (if (f.exists()) f.delete() else false).toString()
+    }
+
+    /** 内部储存重命名/移动文件（需 fs.external）。 */
+    private suspend fun renameExternal(from: String, to: String): String = withContext(Dispatchers.IO) {
+        val src = java.io.File(from)
+        val dst = java.io.File(to)
+        assertExternalGranted(src)
+        assertExternalGranted(dst)
+        src.renameTo(dst).toString()
+    }
+
+    /** 列出内部储存某目录的文件列表（不递归，需 fs.external + 系统存储权限）。 */
+    private suspend fun listExternal(dir: String): String = withContext(Dispatchers.IO) {
+        val f = java.io.File(dir)
+        assertExternalGranted(f)
         if (!f.exists()) throw java.io.FileNotFoundException("目录不存在: $dir")
         if (!f.isDirectory) throw java.io.IOException("目标不是目录: $dir")
         val arr = JSONArray()
