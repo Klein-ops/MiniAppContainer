@@ -3,6 +3,9 @@ package com.miniapp.container.ui
 import android.content.Intent
 import android.os.Bundle
 import android.widget.EditText
+import android.content.pm.ShortcutInfo
+import android.graphics.drawable.Icon
+import android.content.Intent
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.lifecycle.lifecycleScope
@@ -33,11 +36,34 @@ class AppSettingsActivity : AppCompatActivity() {
                 .putExtra(PermissionManageActivity.EXTRA_APP_KEY, appKey))
         }
         findViewById<MaterialButton>(R.id.btn_move_category).setOnClickListener { showMoveToCategory() }
+        findViewById<MaterialButton>(R.id.btn_shortcut).setOnClickListener { createDesktopShortcut() }
         findViewById<MaterialButton>(R.id.btn_clear_data).setOnClickListener { confirmClearData() }
         findViewById<MaterialButton>(R.id.btn_uninstall).setOnClickListener { confirmUninstall() }
 
         findViewById<android.widget.TextView>(R.id.tv_app_info).text =
             "${info.uname}\n版本 ${info.version}\n${info.appKey}"
+    }
+
+    private fun createDesktopShortcut() {
+        val sm = getSystemService(android.content.Context.SHORTCUT_SERVICE)
+            as android.content.pm.ShortcutManager
+        // 提前检查桌面是否支持快捷方式功能（国产 ROM 可能禁用）
+        if (!sm.isRequestPinShortcutSupported) {
+            toast("当前桌面不支持创建快捷方式")
+            return
+        }
+        val launchIntent = Intent(this, com.miniapp.container.ui.MiniAppActivity::class.java)
+            .setAction(Intent.ACTION_VIEW)
+            .putExtra(com.miniapp.container.ui.MiniAppActivity.EXTRA_APP_KEY, info.appKey)
+        val label = info.displayName.ifBlank { info.uname }
+        val shortcut = ShortcutInfo.Builder(this, "miniapp_${info.appKey}")
+            .setShortLabel(label)
+            .setLongLabel(label)
+            .setIcon(Icon.createWithResource(this, R.mipmap.ic_launcher))
+            .setIntent(launchIntent)
+            .build()
+        sm.requestPinShortcut(shortcut, null)
+        toast("已请求创建快捷方式")
     }
 
     private fun showRename() {

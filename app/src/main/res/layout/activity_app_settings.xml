@@ -60,6 +60,18 @@
         app:iconTint="@color/brand_primary" />
 
     <com.google.android.material.button.MaterialButton
+        android:id="@+id/btn_shortcut"
+        style="@style/Widget.MaterialComponents.Button.TextButton"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:gravity="start|center_vertical"
+        android:paddingHorizontal="20dp"
+        android:text="创建桌面快捷方式"
+        android:textColor="@color/text_primary"
+        app:icon="@android:drawable/ic_menu_add"
+        app:iconTint="@color/brand_primary" />
+
+    <com.google.android.material.button.MaterialButton
         android:id="@+id/btn_clear_data"
         style="@style/Widget.MaterialComponents.Button.TextButton"
         android:layout_width="match_parent"

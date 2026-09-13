@@ -95,6 +95,9 @@ class MiniAppBridge(
         "fs.writeExternalFile" -> writeExternalFile(p.optStringOr("path"), p.optStringOr("base64"))
         "fs.listExternal" -> listExternal(p.optStringOr("dir"))
         "net.httpGet" -> netHttpGet(p.optStringOr("url"))
+        "net.httpRequest" -> httpRequest(p)
+        "cb.read" -> readClipboard()
+        "cb.write" -> writeClipboard(p.optStringOr("text"))
         "sys.openUrl" -> openUrl(p.optStringOr("url"))
         "perm.request" -> {
             val scope = p.optStringOr("scope")
@@ -145,25 +148,65 @@ class MiniAppBridge(
         return "true"
     }
 
-    private suspend fun netHttpGet(url: String): String = withContext(Dispatchers.IO) {
+    /** 兼容旧接口：GET 请求复用 httpRequest。 */
+    private suspend fun netHttpGet(url: String): String =
+        httpRequest(JSONObject().put("url", url).put("method", "GET"))
+
+    /** 通用 HTTP 请求（GET/POST/PUT/DELETE/PATCH 等）。 */
+    private suspend fun httpRequest(p: org.json.JSONObject): String = withContext(Dispatchers.IO) {
         val granted = permissionManager.ensurePermission(
             activity, appInfo.appKey, appInfo.permissions, PermissionScope.NET
         )
         if (!granted) throw SecurityException("permission denied: net")
-        val conn = (URL(url).openConnection() as HttpURLConnection).apply {
+        val url = p.optStringOr("url")
+        val method = p.optStringOr("method", "GET").uppercase()
+        val body = p.optStringOr("body")
+        val conn = (java.net.URL(url).openConnection() as HttpURLConnection).apply {
             connectTimeout = 15000
             readTimeout = 15000
-            requestMethod = "GET"
+            requestMethod = method
             instanceFollowRedirects = true
+        }
+        // 自定义请求头
+        p.optJSONObject("headers")?.let { h ->
+            for (k in h.keys()) conn.setRequestProperty(k, h.optString(k))
+        }
+        if (body.isNotBlank() && method != "GET" && method != "HEAD") {
+            conn.doOutput = true
+            conn.outputStream?.use { it.write(body.toByteArray(Charsets.UTF_8)) }
         }
         try {
             val code = conn.responseCode
-            val body = (if (code in 200..299) conn.inputStream else conn.errorStream)
+            val respBody = (if (code in 200..299) conn.inputStream else conn.errorStream)
                 ?.bufferedReader()?.use { it.readText() } ?: ""
-            JSONObject().put("status", code).put("body", body).toString()
+            JSONObject().put("status", code).put("body", respBody).toString()
         } finally {
             conn.disconnect()
         }
+    }
+
+    /** 读取剪贴板（需 clipboard 权限）。 */
+    private suspend fun readClipboard(): String = withContext(Dispatchers.Main) {
+        val granted = permissionManager.ensurePermission(
+            activity, appInfo.appKey, appInfo.permissions, PermissionScope.CLIPBOARD
+        )
+        if (!granted) throw SecurityException("permission denied: clipboard")
+        val cm = activity.getSystemService(android.content.Context.CLIPBOARD_SERVICE)
+            as android.content.ClipboardManager
+        val text = cm.primaryClip?.getItemAt(0)?.text?.toString() ?: ""
+        JSONObject.quote(text)
+    }
+
+    /** 写入剪贴板（需 clipboard 权限）。 */
+    private suspend fun writeClipboard(text: String): String = withContext(Dispatchers.Main) {
+        val granted = permissionManager.ensurePermission(
+            activity, appInfo.appKey, appInfo.permissions, PermissionScope.CLIPBOARD
+        )
+        if (!granted) throw SecurityException("permission denied: clipboard")
+        val cm = activity.getSystemService(android.content.Context.CLIPBOARD_SERVICE)
+            as android.content.ClipboardManager
+        cm.setPrimaryClip(android.content.ClipData.newPlainText("miniapp", text))
+        "true"
     }
 
     private suspend fun readExternal(uri: String): String = withContext(Dispatchers.IO) {

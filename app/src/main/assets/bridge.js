@@ -93,7 +93,23 @@
         return mem;
       }
     },
-    net: { get: function (u) { return B.call('net.httpGet', { url: u }); } },
+    net: {
+      get: function (u) { return B.call('net.httpRequest', { method: 'GET', url: u }); },
+      post: function (u, body) { return B.call('net.httpRequest', { method: 'POST', url: u, body: body }); },
+      put: function (u, body) { return B.call('net.httpRequest', { method: 'PUT', url: u, body: body }); },
+      'delete': function (u) { return B.call('net.httpRequest', { method: 'DELETE', url: u }); },
+      request: function (method, url, opts) {
+        opts = opts || {};
+        return B.call('net.httpRequest', {
+          method: method, url: url,
+          headers: opts.headers, body: opts.body
+        });
+      }
+    },
+    clipboard: {
+      read: function () { return B.call('cb.read'); },
+      write: function (text) { return B.call('cb.write', { text: String(text) }); }
+    },
     sys: { openUrl: function (u) { return B.call('sys.openUrl', { url: u }); } },
     permission: { request: function (scope) { return B.call('perm.request', { scope: scope }); } }
   };

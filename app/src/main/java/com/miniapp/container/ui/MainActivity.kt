@@ -266,13 +266,54 @@ class MainActivity : AppCompatActivity() {
         )
     }
 
+    private fun showUrlInstallDialog() {
+        val input = EditText(this).apply {
+            hint = "https://example.com/app.zip"
+            inputType = android.text.InputType.TYPE_TEXT_VARIATION_URI
+        }
+        AlertDialog.Builder(this)
+            .setTitle("从 URL 安装")
+            .setMessage("输入 zip 文件直链")
+            .setView(input)
+            .setPositiveButton("下载安装") { _, _ ->
+                val url = input.text.toString().trim()
+                if (url.isNotEmpty()) lifecycleScope.launch { installFromUrl(url) }
+            }.setNegativeButton("取消", null).show()
+    }
+
+    private suspend fun installFromUrl(url: String) {
+        val zipFile = java.io.File(cacheDir, "remote_${System.currentTimeMillis()}.zip")
+        try {
+            Toast.makeText(this, "下载中…", Toast.LENGTH_SHORT).show()
+            withContext(Dispatchers.IO) {
+                val conn = (java.net.URL(url).openConnection() as java.net.HttpURLConnection).apply {
+                    connectTimeout = 30000
+                    readTimeout = 60000
+                    instanceFollowRedirects = true
+                }
+                conn.inputStream.use { input ->
+                    zipFile.outputStream().use { input.copyTo(it) }
+                }
+                conn.disconnect()
+            }
+            val result = hostApp.installer.installFromZip(zipFile)
+            Toast.makeText(this, result.message, Toast.LENGTH_SHORT).show()
+        } catch (e: Exception) {
+            Toast.makeText(this, "下载失败: ${e.message}", Toast.LENGTH_SHORT).show()
+        } finally {
+            zipFile.delete()
+        }
+        refresh()
+    }
+
     private fun showInstallOptions() {
         AlertDialog.Builder(this)
             .setTitle("安装")
-            .setItems(arrayOf("安装应用包（zip）", "安装内置示例")) { _, which ->
+            .setItems(arrayOf("安装应用包（zip）", "安装内置示例", "从 URL 安装")) { _, which ->
                 when (which) {
                     0 -> pickZip.launch(arrayOf("application/zip", "application/octet-stream", "*/*"))
                     1 -> lifecycleScope.launch { installSample() }
+                    2 -> showUrlInstallDialog()
                 }
             }.show()
     }
