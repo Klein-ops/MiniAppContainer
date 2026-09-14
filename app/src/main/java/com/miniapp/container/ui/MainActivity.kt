@@ -103,6 +103,17 @@ class MainActivity : AppCompatActivity() {
     }
 
     override fun onOptionsItemSelected(item: MenuItem): Boolean = when (item.itemId) {
+        R.id.action_debug_toggle -> {
+            com.miniapp.container.debug.DebugBus.setEnabled(
+                !com.miniapp.container.debug.DebugBus.enabled
+            )
+            toast(if (com.miniapp.container.debug.DebugBus.enabled) "调试模式已开启" else "调试模式已关闭")
+            true
+        }
+        R.id.action_debug_log -> {
+            startActivity(android.content.Intent(this, DebugActivity::class.java))
+            true
+        }
         R.id.action_backup -> {
             startActivity(android.content.Intent(this, BackupActivity::class.java))
             true

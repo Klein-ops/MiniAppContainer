@@ -64,6 +64,7 @@ class MiniAppBridge(
     @JavascriptInterface
     fun call(reqId: String, method: String, paramsJson: String) {
         activity.lifecycleScope.launch {
+            val t0 = System.currentTimeMillis()
             val out = try {
                 val params =
                     if (paramsJson.isBlank()) JSONObject() else JSONObject(paramsJson)
@@ -72,6 +73,13 @@ class MiniAppBridge(
                 if (e is kotlinx.coroutines.CancellationException) throw e
                 Log.w(TAG, "bridge call '$method' failed", e)
                 BridgeOut(false, e.message ?: e.javaClass.simpleName)
+            }
+            if (com.miniapp.container.debug.DebugBus.enabled) {
+                val ms = System.currentTimeMillis() - t0
+                val result = if (out.ok) "← 返回: ${out.payload}" else "✗ 错误: ${out.payload}"
+                com.miniapp.container.debug.DebugBus.log(
+                    "→ $method\n参数: $paramsJson\n$result\n耗时: ${ms}ms"
+                )
             }
             respond(reqId, out)
         }
@@ -109,6 +117,7 @@ class MiniAppBridge(
         "cb.write" -> writeClipboard(p.optStringOr("text"))
         "notify.show" -> notifyShow(p.optStringOr("title"), p.optStringOr("body"))
         "notify.cancel" -> notifyCancel()
+        "dex.run" -> dexRun(p)
         "sys.openUrl" -> openUrl(p.optStringOr("url"))
         "perm.request" -> {
             val scope = p.optStringOr("scope")
@@ -264,6 +273,37 @@ class MiniAppBridge(
         val nm = activity.getSystemService(NotificationManager::class.java)
         nm.cancel(appInfo.appKey.hashCode())
         "true"
+    }
+
+    /**
+     * 在隔离进程执行 Dex 字节码（需 dex 权限）。
+     * dex / input / output 路径相对沙箱根；隔离进程仅能通过 FD 读写，无法访问沙箱其他内容。
+     */
+    private suspend fun dexRun(p: JSONObject): String = withContext(Dispatchers.IO) {
+        val granted = permissionManager.ensurePermission(
+            activity, appInfo.appKey, appInfo.permissions, PermissionScope.DEX
+        )
+        if (!granted) throw SecurityException("permission denied: dex")
+        val dexPath = p.optStringOr("dex")
+        val className = p.optStringOr("className")
+        if (dexPath.isEmpty()) throw IllegalArgumentException("dex 路径不能为空")
+        if (className.isEmpty()) throw IllegalArgumentException("className 不能为空")
+        val dexFile = com.miniapp.container.core.PathGuard.resolveUnderRoot(sandboxRoot, dexPath)
+        if (!dexFile.isFile) throw java.io.FileNotFoundException("dex 文件不存在: $dexPath")
+        val inputPath = p.optStringOr("input")
+        val outputPath = p.optStringOr("output")
+        val input = if (inputPath.isNotEmpty())
+            com.miniapp.container.core.PathGuard.resolveUnderRoot(sandboxRoot, inputPath) else null
+        val output = if (outputPath.isNotEmpty())
+            com.miniapp.container.core.PathGuard.resolveUnderRoot(sandboxRoot, outputPath) else null
+        val params = android.os.Bundle()
+        p.optJSONObject("params")?.let { o -> for (k in o.keys()) params.putString(k, o.optString(k)) }
+        params.putString("className", className)
+        params.putString("methodName", p.optStringOr("methodName", "run"))
+        val result = com.miniapp.container.dex.DexRunner(activity).run(dexFile, input, output, params)
+        val out = JSONObject()
+        result.keySet().forEach { k -> out.put(k, result.get(k)?.toString()) }
+        out.toString()
     }
 
     private suspend fun readExternal(uri: String): String = withContext(Dispatchers.IO) {

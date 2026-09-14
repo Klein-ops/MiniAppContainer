@@ -45,6 +45,12 @@
             android:theme="@style/Theme.MiniApp" />
 
         <activity
+            android:name=".ui.DebugActivity"
+            android:exported="false"
+            android:label="调用日志"
+            android:theme="@style/Theme.MiniApp" />
+
+        <activity
             android:name=".ui.BackupActivity"
             android:exported="false"
             android:label="备份与恢复"
@@ -55,6 +61,22 @@
             android:exported="false"
             android:label="应用设置"
             android:theme="@style/Theme.MiniApp" />
+
+        <provider
+            android:name=".provider.MiniAppDocumentsProvider"
+            android:authorities="${applicationId}.docs"
+            android:exported="true"
+            android:grantUriPermissions="true"
+            android:permission="android.permission.MANAGE_DOCUMENTS">
+            <intent-filter>
+                <action android:name="android.content.action.DOCUMENTS_PROVIDER" />
+            </intent-filter>
+        </provider>
+
+        <service
+            android:name=".dex.DexService"
+            android:isolatedProcess="true"
+            android:exported="false" />
 
     </application>
 

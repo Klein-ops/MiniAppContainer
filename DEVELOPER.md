@@ -320,6 +320,53 @@ await MiniApp.sys.openUrl('https://example.com');  // boolean true
 const granted = await MiniApp.permission.request('net');  // boolean
 ```
 
+### 4.9 Dex 执行（需审批）
+
+| 接口 | 返回类型 | 返回值 |
+|---|---|---|
+| `dex.run(opts)` | `object` | dex 内 `run` 方法返回的 `Bundle` 键值（值转为字符串），并含 `ok: "true"`；失败时含 `error` |
+
+`opts` 字段：
+
+| 字段 | 类型 | 必填 | 说明 |
+|---|---|---|---|
+| `dex` | `string` | 是 | dex 文件路径（相对沙箱根，如 `data/plugin.dex`） |
+| `className` | `string` | 是 | 入口类全名 |
+| `methodName` | `string` | 否 | 静态方法名，默认 `run` |
+| `params` | `object` | 否 | 传入参数（键值均按字符串传入 Bundle） |
+| `input` | `string` | 否 | 输入文件路径（相对沙箱根） |
+| `output` | `string` | 否 | 输出文件路径（相对沙箱根） |
+
+```js
+const result = await MiniApp.dex.run({
+  dex: 'data/plugin.dex',
+  className: 'com.example.Plugin',
+  methodName: 'run',
+  params: { mode: 'fast' },
+  input: 'data/in.bin',
+  output: 'data/out.bin'
+});
+// → { ok: "true", /* dex 返回的键值 */ }
+```
+
+需声明 `"dex"`。执行发生在 **isolatedProcess 隔离进程**中：
+
+- 独立 UID + SELinux `isolated_app` 域，**不继承宿主任何权限**：无网络、无路径访问、无系统服务、不能加载 native 库。
+- dex 内**只能使用 Android 框架类与 Java 标准库**；不能引用蜗壳的自定义类。
+- 与宿主的唯一通道是 Binder：dex 只能读写主进程通过 FD 传入的 `input`/`output` 文件，**无法主动打开任何路径**，因此不会破坏沙箱。
+- dex 内约定的入口方法签名：
+
+```java
+public static android.os.Bundle run(
+    android.os.Bundle params,
+    android.os.ParcelFileDescriptor inputFd,   // 可能为 null
+    android.os.ParcelFileDescriptor outputFd   // 可能为 null
+);
+```
+
+- 能力边界：确定可行——Dex 加载、反射调用、FD 读写、Java 库（压缩/加密/正则/时间）、多线程、Bundle 通信；确定不可行——加载 native 库、执行 ELF、主动 open 路径、网络、系统服务、访问宿主或其他沙箱。
+- 性能：无 AOT，首次解释执行；热点 JIT 后接近普通 Java；数值计算慢于 WASM，适合结构化逻辑、加密压缩等场景。
+
 ## 五、权限模型
 
 ### 5.1 两种权限
@@ -339,6 +386,7 @@ const granted = await MiniApp.permission.request('net');  // boolean
 | `fs.external` | 静默操作内部储存：读写/列目录/查存在/查信息/建目录/删除/重命名 + 读取外部 content:// | 拒绝 |
 | `clipboard` | 读写系统剪贴板 | 拒绝 |
 | `notification` | 发送状态栏通知 | 拒绝 |
+| `dex` | 在隔离进程执行 Dex 字节码 | 拒绝 |
 
 ### 5.3 审批流程
 

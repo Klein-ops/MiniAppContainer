@@ -37,7 +37,11 @@ Android Studio：`Open` 项目根目录 → Sync → Run。
    - **从 URL 安装**：输入 zip 直链，下载后安装并清理临时包。
 3. 点击列表项启动小程序，进入全屏 WebView 容器。
 4. 应用设置页支持：重命名 / 权限管理 / 移动分类 / 创建桌面快捷方式 / 清空数据 / 卸载。
-5. 右上角菜单「**备份与恢复**」：导出/导入全部小程序数据（zip），支持备份到 WebDAV 及从 WebDAV 恢复。
+5. 右上角菜单：
+   - **调试模式**（开关）：开启后记录所有小程序接口调用（方法/参数/返回值/耗时）。
+   - **查看调用日志**：实时查看调试记录。
+   - **备份与恢复**：导出/导入全部小程序数据（zip），支持备份到 WebDAV 及从 WebDAV 恢复。
+6. **数据开放**：内置 SAF DocumentsProvider，其他应用可通过系统文件选择器（SAF）在用户授权后浏览蜗壳的数据目录。
 
 ---
 
@@ -128,6 +132,8 @@ MiniApp.net.get(url) / post(url, body) / request(method, url, opts)
 MiniApp.clipboard.read() / write(text)
 // 通知（需 notification 权限）
 MiniApp.notification.show(title, body) / cancel()
+// Dex 执行（需 dex 权限，隔离进程内运行）
+MiniApp.dex.run({ dex, className, methodName, params, input, output })
 // 打开外部链接（需 sys.openUrl 权限）
 MiniApp.sys.openUrl(url)
 // 预请求权限

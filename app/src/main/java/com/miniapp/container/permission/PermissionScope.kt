@@ -7,6 +7,7 @@ object PermissionScope {
     const val OPEN_URL = "sys.openUrl"
     const val CLIPBOARD = "clipboard"
     const val NOTIFICATION = "notification"
+    const val DEX = "dex"
 
     fun label(scope: String): String = when (scope) {
         NET -> "网络访问"
@@ -14,6 +15,7 @@ object PermissionScope {
         OPEN_URL -> "打开外部链接"
         CLIPBOARD -> "读写剪贴板"
         NOTIFICATION -> "发送通知"
+        DEX -> "执行 Dex 字节码"
         else -> scope
     }
 
@@ -23,6 +25,7 @@ object PermissionScope {
         OPEN_URL -> "该小程序请求打开外部链接（跳转到系统浏览器）。"
         CLIPBOARD -> "该小程序请求读写剪贴板。"
         NOTIFICATION -> "该小程序请求发送状态栏通知。"
+        DEX -> "该小程序请求在隔离进程中执行 Dex 字节码。"
         else -> "该小程序请求权限：$scope"
     }
 }

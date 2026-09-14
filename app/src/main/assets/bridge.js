@@ -122,6 +122,17 @@
       show: function (title, body) { return B.call('notify.show', { title: String(title), body: String(body) }); },
       cancel: function () { return B.call('notify.cancel'); }
     },
+    dex: {
+      // 在隔离进程执行 Dex 字节码（需 dex 权限）
+      run: function (opts) {
+        opts = opts || {};
+        return B.call('dex.run', {
+          dex: opts.dex, className: opts.className,
+          methodName: opts.methodName || 'run',
+          params: opts.params, input: opts.input, output: opts.output
+        });
+      }
+    },
     sys: { openUrl: function (u) { return B.call('sys.openUrl', { url: u }); } },
     permission: { request: function (scope) { return B.call('perm.request', { scope: scope }); } }
   };
