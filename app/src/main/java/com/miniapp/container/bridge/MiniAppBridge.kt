@@ -197,8 +197,9 @@ class MiniAppBridge(
         val output = if (outputPath.isNotEmpty()) PathGuard.resolveUnderRoot(sandboxRoot, outputPath) else null
         val params = Bundle()
         p.optJSONObject("params")?.let { o -> for (k in o.keys()) params.putString(k, o.optString(k)) }
-        params.putString("className", className)
-        params.putString("methodName", p.optStringOr("methodName", "run"))
+        // 用内部保留键传递入口信息，不污染调用方传入的 params
+        params.putString("__className", className)
+        params.putString("__methodName", p.optStringOr("methodName", "run"))
         val result = com.miniapp.container.dex.DexRunner(activity).run(dexFile, input, output, params)
         val out = JSONObject()
         result.keySet().forEach { k -> out.put(k, result.get(k)?.toString()) }

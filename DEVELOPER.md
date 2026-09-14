@@ -156,7 +156,7 @@ const ok = await MiniApp.ui.toast('提示'); // boolean true
 | `fs.writeBytes(path, base64)` | `boolean` | 成功 `true` |
 | `fs.list(dir)` | `array` | `[{ name: string, isDir: boolean, size: number }]` |
 | `fs.exists(path)` | `boolean` | 存在 `true`，不存在 `false` |
-| `fs.stat(path)` | `object` | `{ exists: boolean, isDir: boolean, size: number, name: string, canRead: boolean, canWrite: boolean, lastModified: number }`（`lastModified` 为 Unix 毫秒时间戳） |
+| `fs.stat(path)` | `object` | `{ exists: boolean, isDir: boolean, size: number, name: string, canRead: boolean, canWrite: boolean, lastModified: number }`（`lastModified` 为 Unix **毫秒**时间戳；**精度取决于底层文件系统**，多数 Android 文件系统为秒级，末三位可能恒为 `000`） |
 | `fs.mkdir(path)` | `boolean` | 成功 `true` |
 | `fs.remove(path)` | `boolean` | 成功 `true`（目录递归删除），失败 `false` |
 
@@ -199,7 +199,7 @@ await MiniApp.fs.exportFile('data/report.txt');    // boolean true
 | `fs.writeExternalFile(absPath, base64)` | `boolean` | 成功 `true` |
 | `fs.listExternal(dir)` | `array` | `[{ name: string, isDir: boolean, size: number }]`（不递归） |
 | `fs.existsExternal(absPath)` | `boolean` | 存在 `true`，不存在 `false` |
-| `fs.statExternal(absPath)` | `object` | 同 `fs.stat` 的字段 |
+| `fs.statExternal(absPath)` | `object` | 同 `fs.stat` 的字段（`lastModified` 精度同样取决于文件系统） |
 | `fs.mkdirExternal(dir)` | `boolean` | 成功 `true`；已存在 `true` |
 | `fs.removeExternal(absPath)` | `boolean` | 成功 `true`（目录递归删除），失败 `false` |
 | `fs.renameExternal(from, to)` | `boolean` | 成功 `true`，失败 `false` |
@@ -226,10 +226,16 @@ await MiniApp.fs.renameExternal('/storage/emulated/0/a.txt', '/storage/emulated/
 | `wasm.createMemory(pages, maxPages)` | `WebAssembly.Memory` | 共享内存对象 |
 
 > **重要**：运行在 `file://` 协议下，`fetch('x.wasm')` 会被沙箱拦截。
-> 推荐先通过 `MiniApp.fs.readBytes` 读取字节再实例化；`instantiate` 传路径字符串时内部会自动读取。
+> `instantiate` 传路径字符串时，**内部通过 JS Bridge `fs.readBytes` 读取**（不走 `fetch`），可直接使用。
+> 也可自行先 `MiniApp.fs.readBytes` 读取字节再实例化。
 
 ```js
-// 推荐：读取字节后实例化（路径相对沙箱根）
+// 方式 A：直接传路径（内部经 Bridge 读取，路径相对沙箱根）
+const instance = await MiniApp.wasm.instantiate('app/heavy.wasm', imports);
+```
+
+```js
+// 方式 B：自行读取字节后实例化（路径相对沙箱根）
 const b64 = await MiniApp.fs.readBytes('app/heavy.wasm');   // string (base64)
 const bin = atob(b64);
 const bytes = new Uint8Array(bin.length);
@@ -259,6 +265,16 @@ instance.exports.compute(42);
 | `net.request(method, url, opts)` | `object` | 同上 |
 
 `status` 为 HTTP 状态码（整数），`body` 为响应文本（字符串）。`opts` 为 `{ headers: object, body: string }`。支持 GET/POST/PUT/DELETE/PATCH 等任意方法。
+
+**Content-Type 行为**：宿主**不会**自动添加 `Content-Type`。若不通过 `headers` 显式指定，底层 `HttpURLConnection` 的默认值为 `application/x-www-form-urlencoded`（这是 Android 平台的默认行为，可能导致服务端按表单而非 JSON 解析请求体）。因此发送 JSON 时**必须显式指定**：
+
+```js
+await MiniApp.net.post(url, JSON.stringify({ hello: '蜗壳' }), {
+  headers: { 'Content-Type': 'application/json' }
+});
+```
+
+> 注：`net.post(url, body)` / `net.put(url, body)` 便捷方法不接受 headers 参数。需要自定义请求头时请用 `net.request(method, url, opts)`。
 
 需声明 `"net"`；首次调用弹窗审批，授权持久化。
 
@@ -333,7 +349,7 @@ const granted = await MiniApp.permission.request('net');  // boolean
 | `dex` | `string` | 是 | dex 文件路径（相对沙箱根，如 `data/plugin.dex`） |
 | `className` | `string` | 是 | 入口类全名 |
 | `methodName` | `string` | 否 | 静态方法名，默认 `run` |
-| `params` | `object` | 否 | 传入参数（键值均按字符串传入 Bundle） |
+| `params` | `object` | 否 | 传入参数（键值均按字符串传入 Bundle）**不会**被宿主注入额外键 |
 | `input` | `string` | 否 | 输入文件路径（相对沙箱根） |
 | `output` | `string` | 否 | 输出文件路径（相对沙箱根） |
 
@@ -349,7 +365,11 @@ const result = await MiniApp.dex.run({
 // → { ok: "true", /* dex 返回的键值 */ }
 ```
 
-需声明 `"dex"`。执行发生在 **isolatedProcess 隔离进程**中：
+需声明 `"dex"`。
+
+> `className` / `methodName` 由宿主通过内部保留键（`__className` / `__methodName`）传递，**不会**出现在 `params` 中，也不会覆盖调用方同名的 `params` 键。
+
+执行发生在 **isolatedProcess 隔离进程**中：
 
 - 独立 UID + SELinux `isolated_app` 域，**不继承宿主任何权限**：无网络、无路径访问、无系统服务、不能加载 native 库。
 - dex 内**只能使用 Android 框架类与 Java 标准库**；不能引用蜗壳的自定义类。
@@ -600,12 +620,13 @@ console.log('WASM time:', performance.now() - t0);
 
 ### 7.3 日志标签
 
-- `MiniAppJS`：前端 console 输出
-- `MiniAppBridge`：Bridge 调用与错误
-- `MiniAppWasm`：WASM 加载/调用
+- `MiniAppBridge`：Bridge 调用与错误（Tag 为 `MiniAppBridge`）
+- 前端 `console.*` 输出：由 WebChromeClient 转发为 `MiniAppJS`；未接转发时仅出现在 WebView 控制台
+
+> **WASM 不产生宿主日志**：`wasm.instantiate` / `wasm.createMemory` 是 `bridge.js` 中的纯 JS 实现，**不经过 JS Bridge**，因此不会出现在 Bridge 调用日志（调试模式）中。WASM 相关输出请在页面 `console` 查看（`bridge.js` 会输出 `[MiniApp.wasm] instantiated` / `[MiniApp.wasm] instantiate failed:` 前缀的日志）。
 
 ```bash
-adb logcat -s MiniAppJS MiniAppBridge MiniAppWasm
+adb logcat -s MiniAppJS MiniAppBridge
 ```
 
 ### 7.4 常见错误

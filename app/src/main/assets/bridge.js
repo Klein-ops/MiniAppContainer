@@ -74,17 +74,20 @@
         try {
           let bytes;
           if (typeof pathOrBytes === 'string') {
-            // 路径模式：fetch（注意：file:// 下可能被 WebView 拦截，见开发者手册 6.3）
-            const resp = await fetch(pathOrBytes);
-            if (!resp.ok) throw new Error('WASM load failed: HTTP ' + resp.status);
-            bytes = await resp.arrayBuffer();
+            // 路径模式：通过 Bridge 读取字节（file:// 下 fetch 会被沙箱拦截，故不走 fetch）；
+            // 路径相对沙箱根，如 'app/heavy.wasm'
+            const b64 = await B.call('fs.readBytes', { path: pathOrBytes });
+            const bin = atob(b64);
+            bytes = new Uint8Array(bin.length);
+            for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
           } else if (pathOrBytes && (typeof pathOrBytes === 'object') && (pathOrBytes.buffer instanceof ArrayBuffer || pathOrBytes instanceof Uint8Array || pathOrBytes instanceof Uint32Array)) {
-            // 直接传入 ArrayBuffer / TypedArray（推荐，避免 file:// fetch 问题）
+            // 直接传入 ArrayBuffer / TypedArray（推荐）
             bytes = pathOrBytes;
           } else {
             throw new Error('instantiate: 需要路径字符串或 ArrayBuffer/TypedArray');
           }
           const { instance } = await WebAssembly.instantiate(bytes, imports || {});
+          console.log('[MiniApp.wasm] instantiated');
           return instance;
         } catch (e) {
           console.error('[MiniApp.wasm] instantiate failed:', e);

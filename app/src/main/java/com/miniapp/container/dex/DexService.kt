@@ -34,9 +34,9 @@ class DexService : Service() {
                     result.putString("error", "缺少 params 或 dexFd")
                     return result
                 }
-                val className = params.getString("className")
+                val className = params.getString("__className")
                     ?: return result.apply { putString("error", "缺少 className") }
-                val methodName = params.getString("methodName") ?: "run"
+                val methodName = params.getString("__methodName") ?: "run"
 
                 // 读取 dex 字节（仅通过传入 FD，无法主动打开路径）
                 val dexBytes = java.io.FileInputStream(dexFd.fileDescriptor).use { it.readBytes() }
