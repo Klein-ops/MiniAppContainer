@@ -277,7 +277,17 @@ await MiniApp.clipboard.write('复制内容');     // → "true"
 
 需声明 `"clipboard"`；首次读写弹窗审批。
 
-### 4.6 打开外部链接（需审批）
+### 4.6 通知（需审批）
+
+```js
+await MiniApp.notification.show('标题', '内容');  // → "true"
+await MiniApp.notification.cancel();              // → "true"
+```
+
+需声明 `"notification"`。通知栏以 `[小程序名] 标题` 标注发送来源；每个小程序独立通知渠道。
+Android 13+ 首次会额外申请系统通知权限（POST_NOTIFICATIONS）。
+
+### 4.7 打开外部链接（需审批）
 
 ```js
 await MiniApp.sys.openUrl('https://example.com');  // → "true"
@@ -285,7 +295,7 @@ await MiniApp.sys.openUrl('https://example.com');  // → "true"
 
 需声明 `"sys.openUrl"`。
 
-### 4.7 预请求权限
+### 4.8 预请求权限
 
 ```js
 var granted = await MiniApp.permission.request('net');  // → true / false
@@ -311,6 +321,7 @@ var granted = await MiniApp.permission.request('net');  // → true / false
 | `sys.openUrl` | 打开外部链接 | 拒绝 |
 | `fs.external` | 静默操作内部储存：读写/列目录/查存在/查信息/建目录/删除/重命名 + 读取外部 content:// | 拒绝 |
 | `clipboard` | 读写系统剪贴板 | 拒绝 |
+| `notification` | 发送状态栏通知 | 拒绝 |
 
 ### 5.3 审批流程
 

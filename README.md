@@ -37,6 +37,7 @@ Android Studio：`Open` 项目根目录 → Sync → Run。
    - **从 URL 安装**：输入 zip 直链，下载后安装并清理临时包。
 3. 点击列表项启动小程序，进入全屏 WebView 容器。
 4. 应用设置页支持：重命名 / 权限管理 / 移动分类 / 创建桌面快捷方式 / 清空数据 / 卸载。
+5. 右上角菜单「**备份与恢复**」：导出/导入全部小程序数据（zip），支持备份到 WebDAV 及从 WebDAV 恢复。
 
 ---
 
@@ -125,6 +126,8 @@ MiniApp.wasm.instantiate(bytesOrPath, imports)  // 实例化
 MiniApp.net.get(url) / post(url, body) / request(method, url, opts)
 // 剪贴板（需 clipboard 权限）
 MiniApp.clipboard.read() / write(text)
+// 通知（需 notification 权限）
+MiniApp.notification.show(title, body) / cancel()
 // 打开外部链接（需 sys.openUrl 权限）
 MiniApp.sys.openUrl(url)
 // 预请求权限
