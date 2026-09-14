@@ -202,7 +202,7 @@ class MiniAppBridge(
         val result = com.miniapp.container.dex.DexRunner(activity).run(dexFile, input, output, params)
         val out = JSONObject()
         result.keySet().forEach { k -> out.put(k, result.get(k)?.toString()) }
-        out.toString()
+        return out.toString()
     }
 
     private fun respond(reqId: String, out: BridgeOut) {
