@@ -13,7 +13,7 @@ import android.widget.TextView
 import android.widget.EditText
 import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.appcompat.app.AlertDialog
+import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import androidx.appcompat.app.AppCompatActivity
 import androidx.appcompat.widget.PopupMenu
 import androidx.appcompat.widget.Toolbar
@@ -164,7 +164,7 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun confirmDeleteCategory(cat: String) {
-        AlertDialog.Builder(this)
+        MaterialAlertDialogBuilder(this)
             .setTitle("删除分类")
             .setMessage("删除分类「$cat」？\n其中的小程序将移回「默认」。")
             .setPositiveButton("删除") { _, _ ->
@@ -181,7 +181,7 @@ class MainActivity : AppCompatActivity() {
         val input = android.widget.EditText(this).apply {
             hint = "分类名称"
         }
-        AlertDialog.Builder(this)
+        MaterialAlertDialogBuilder(this)
             .setTitle("新建分类")
             .setView(input)
             .setPositiveButton("创建") { _, _ ->
@@ -201,7 +201,7 @@ class MainActivity : AppCompatActivity() {
     private fun showMoveToCategory(info: MiniAppInfo) {
         val cats = hostApp.categoryManager.listCategories().toMutableList()
         cats.add("＋ 新建分类…")
-        AlertDialog.Builder(this)
+        MaterialAlertDialogBuilder(this)
             .setTitle("移动 ${info.uname} 到分类")
             .setItems(cats.toTypedArray()) { _, which ->
                 if (which == cats.size - 1) {
@@ -217,7 +217,7 @@ class MainActivity : AppCompatActivity() {
 
     private fun showAddCategoryAndMove(info: MiniAppInfo) {
         val input = android.widget.EditText(this).apply { hint = "分类名称" }
-        AlertDialog.Builder(this)
+        MaterialAlertDialogBuilder(this)
             .setTitle("新建分类并移入")
             .setView(input)
             .setPositiveButton("创建") { _, _ ->
@@ -263,7 +263,7 @@ class MainActivity : AppCompatActivity() {
         }
         val msg = "该小程序需要以下权限才能运行：\n" +
                 ungranted.joinToString("\n") { "• " + PermissionScope.label(it) }
-        AlertDialog.Builder(this)
+        MaterialAlertDialogBuilder(this)
             .setTitle("必要权限")
             .setMessage(msg)
             .setPositiveButton("允许") { _, _ ->
@@ -288,7 +288,7 @@ class MainActivity : AppCompatActivity() {
             hint = "https://example.com/app.zip"
             inputType = android.text.InputType.TYPE_TEXT_VARIATION_URI
         }
-        AlertDialog.Builder(this)
+        MaterialAlertDialogBuilder(this)
             .setTitle("从 URL 安装")
             .setMessage("输入 zip 文件直链")
             .setView(input)
@@ -324,7 +324,7 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun showInstallOptions() {
-        AlertDialog.Builder(this)
+        MaterialAlertDialogBuilder(this)
             .setTitle("安装")
             .setItems(arrayOf("安装应用包（zip）", "安装内置示例", "从 URL 安装")) { _, which ->
                 when (which) {
@@ -347,7 +347,7 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun confirmUninstall(info: MiniAppInfo) {
-        AlertDialog.Builder(this)
+        MaterialAlertDialogBuilder(this)
             .setTitle("卸载")
             .setMessage("卸载 ${info.uname}？\n沙箱数据与权限记录将被清除。")
             .setPositiveButton("卸载") { _, _ ->

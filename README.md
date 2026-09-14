@@ -69,6 +69,10 @@ MiniAppContainer/
          ├─ core/               应用包管理、注册表、清单、路径防护
          ├─ bridge/             JS Bridge（唯一通信通道）+ 方法分发
          ├─ file/               沙箱内文件服务
+         ├─ service/            沙箱外能力服务（外部储存/网络/剪贴板/通知）
+         ├─ dex/                隔离进程 Dex 执行（AIDL + Service + Runner）
+         ├─ debug/              调试模式调用日志总线
+         ├─ provider/           SAF DocumentsProvider（数据开放）
          ├─ permission/         权限声明/审批/记录
          ├─ sys/                系统信息
          ├─ util/               IO/工具

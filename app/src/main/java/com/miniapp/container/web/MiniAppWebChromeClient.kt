@@ -5,7 +5,7 @@ import android.webkit.ConsoleMessage
 import android.webkit.JsResult
 import android.webkit.WebChromeClient
 import android.webkit.WebView
-import androidx.appcompat.app.AlertDialog
+import com.google.android.material.dialog.MaterialAlertDialogBuilder
 
 class MiniAppWebChromeClient(
     private val onProgress: (Int) -> Unit = {},
@@ -21,7 +21,7 @@ class MiniAppWebChromeClient(
     }
 
     override fun onJsAlert(view: WebView?, url: String?, message: String?, result: JsResult): Boolean {
-        AlertDialog.Builder(view?.context ?: return false)
+        MaterialAlertDialogBuilder(view?.context ?: return false)
             .setMessage(message ?: "")
             .setOnCancelListener { result.cancel() }
             .setPositiveButton(android.R.string.ok) { _, _ -> result.confirm() }

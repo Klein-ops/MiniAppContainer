@@ -10,7 +10,7 @@ import android.graphics.Canvas
 import android.graphics.drawable.Icon
 import com.caverock.androidsvg.SVG
 import java.io.File
-import androidx.appcompat.app.AlertDialog
+import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import androidx.appcompat.app.AppCompatActivity
 import androidx.lifecycle.lifecycleScope
 import com.google.android.material.appbar.MaterialToolbar
@@ -100,7 +100,7 @@ class AppSettingsActivity : AppCompatActivity() {
             setSelection(text.length)
             hint = "显示名称"
         }
-        AlertDialog.Builder(this)
+        MaterialAlertDialogBuilder(this)
             .setTitle("重命名")
             .setMessage("仅影响显示，不影响应用身份（${info.uid}_${info.uname}）")
             .setView(input)
@@ -119,7 +119,7 @@ class AppSettingsActivity : AppCompatActivity() {
         val cm = hostApp.categoryManager
         val cats = cm.listCategories().toMutableList()
         cats.add("＋ 新建分类…")
-        AlertDialog.Builder(this)
+        MaterialAlertDialogBuilder(this)
             .setTitle("移动到分类")
             .setItems(cats.toTypedArray()) { _, which ->
                 if (which == cats.size - 1) showAddCategoryAndMove()
@@ -132,7 +132,7 @@ class AppSettingsActivity : AppCompatActivity() {
 
     private fun showAddCategoryAndMove() {
         val input = android.widget.EditText(this).apply { hint = "分类名称" }
-        AlertDialog.Builder(this)
+        MaterialAlertDialogBuilder(this)
             .setTitle("新建分类并移入")
             .setView(input)
             .setPositiveButton("创建") { _, _ ->
@@ -145,7 +145,7 @@ class AppSettingsActivity : AppCompatActivity() {
     }
 
     private fun confirmClearData() {
-        AlertDialog.Builder(this)
+        MaterialAlertDialogBuilder(this)
             .setTitle("清空数据")
             .setMessage("将清空 ${info.uname} 的沙箱数据（data/ 和 tmp/），应用资源不受影响。")
             .setPositiveButton("清空") { _, _ ->
@@ -158,7 +158,7 @@ class AppSettingsActivity : AppCompatActivity() {
     }
 
     private fun confirmUninstall() {
-        AlertDialog.Builder(this)
+        MaterialAlertDialogBuilder(this)
             .setTitle("卸载")
             .setMessage("卸载 ${info.uname}？沙箱与权限记录将被清除。")
             .setPositiveButton("卸载") { _, _ ->

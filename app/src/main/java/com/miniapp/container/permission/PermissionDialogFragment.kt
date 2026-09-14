@@ -3,7 +3,7 @@ package com.miniapp.container.permission
 import android.app.Dialog
 import android.os.Bundle
 import android.widget.TextView
-import androidx.appcompat.app.AlertDialog
+import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import androidx.fragment.app.DialogFragment
 import com.google.android.material.button.MaterialButton
 import com.miniapp.container.MiniAppApp
@@ -40,10 +40,9 @@ class PermissionDialogFragment : DialogFragment() {
         view.findViewById<MaterialButton>(R.id.btn_deny).setOnClickListener { submit(PermAction.DENY) }
         view.findViewById<MaterialButton>(R.id.btn_deny_forever).setOnClickListener { submit(PermAction.DENY_FOREVER) }
 
-        // 触摸外部不取消（强制选择）；window 透明让 view 的圆角背景完整显示
-        val dialog = AlertDialog.Builder(requireContext()).setView(view).create()
+        // 触摸外部不取消（强制选择）；圆角由 MaterialAlertDialogBuilder 提供
+        val dialog = MaterialAlertDialogBuilder(requireContext()).setView(view).create()
         dialog.setCanceledOnTouchOutside(false)
-        dialog.window?.setBackgroundDrawableResource(android.R.color.transparent)
         return dialog
     }
 

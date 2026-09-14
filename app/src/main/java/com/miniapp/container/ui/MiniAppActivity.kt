@@ -10,7 +10,7 @@ import android.webkit.WebSettings
 import android.webkit.WebView
 import android.widget.ProgressBar
 import android.widget.Toast
-import androidx.appcompat.app.AlertDialog
+import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import androidx.appcompat.app.AppCompatActivity
 import com.miniapp.container.MiniAppApp
 import com.miniapp.container.R
@@ -123,7 +123,7 @@ class MiniAppActivity : AppCompatActivity() {
 
         val entryFile = File(File(sandboxRoot, "app"), appInfo.entry)
         if (!entryFile.exists()) {
-            AlertDialog.Builder(this)
+            MaterialAlertDialogBuilder(this)
                 .setTitle("错误")
                 .setMessage("入口文件不存在: ${appInfo.entry}")
                 .setOnDismissListener { finish() }
