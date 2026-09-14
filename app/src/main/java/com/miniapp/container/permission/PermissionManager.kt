@@ -24,6 +24,9 @@ class PermissionManager(context: Context) {
     private val tempGrants = ConcurrentHashMap<String, MutableSet<String>>()
     private val pending = ConcurrentHashMap<String, kotlinx.coroutines.CancellableContinuation<Boolean>>()
 
+    /** 导入备份后重新加载授权记录。 */
+    fun reload() = store.load()
+
     fun isGranted(appKey: String, scope: String): Boolean =
         store.isGranted(appKey, scope) || (tempGrants[appKey]?.contains(scope) == true)
 

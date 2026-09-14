@@ -27,7 +27,7 @@ class CategoryManager(private val file: File) {
         load()
     }
 
-    private fun load() {
+    fun load() {
         if (!file.isFile) {
             ensureDefault()
             return

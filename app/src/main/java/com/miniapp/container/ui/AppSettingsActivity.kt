@@ -17,6 +17,7 @@ import com.google.android.material.appbar.MaterialToolbar
 import com.google.android.material.button.MaterialButton
 import com.miniapp.container.MiniAppApp
 import com.miniapp.container.R
+import com.miniapp.container.util.toast
 import com.miniapp.container.core.CategoryManager
 import com.miniapp.container.core.MiniAppInfo
 import kotlinx.coroutines.launch
@@ -169,8 +170,6 @@ class AppSettingsActivity : AppCompatActivity() {
             }.setNegativeButton("取消", null).show()
     }
 
-    private fun toast(msg: String) =
-        android.widget.Toast.makeText(this, msg, android.widget.Toast.LENGTH_SHORT).show()
 
     companion object { const val EXTRA_APP_KEY = "appKey" }
 }

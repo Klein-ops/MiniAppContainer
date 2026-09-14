@@ -24,6 +24,7 @@ import androidx.recyclerview.widget.RecyclerView
 import com.google.android.material.floatingactionbutton.FloatingActionButton
 import com.miniapp.container.MiniAppApp
 import com.miniapp.container.R
+import com.miniapp.container.util.toast
 import com.miniapp.container.core.MiniAppInfo
 import com.miniapp.container.permission.PermissionScope
 import com.miniapp.container.util.IoUtil
@@ -102,6 +103,10 @@ class MainActivity : AppCompatActivity() {
     }
 
     override fun onOptionsItemSelected(item: MenuItem): Boolean = when (item.itemId) {
+        R.id.action_backup -> {
+            startActivity(android.content.Intent(this, BackupActivity::class.java))
+            true
+        }
         R.id.action_clean_storage -> {
             cleanStorage()
             true
@@ -374,7 +379,4 @@ class MainActivity : AppCompatActivity() {
         toast("已清理 WebView 缓存与存储")
     }
 
-    private fun toast(msg: String) {
-        Toast.makeText(this, msg, Toast.LENGTH_SHORT).show()
-    }
 }

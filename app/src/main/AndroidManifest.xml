@@ -45,6 +45,12 @@
             android:theme="@style/Theme.MiniApp" />
 
         <activity
+            android:name=".ui.BackupActivity"
+            android:exported="false"
+            android:label="备份与恢复"
+            android:theme="@style/Theme.MiniApp" />
+
+        <activity
             android:name=".ui.AppSettingsActivity"
             android:exported="false"
             android:label="应用设置"

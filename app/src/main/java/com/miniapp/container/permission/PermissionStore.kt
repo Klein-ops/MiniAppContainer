@@ -17,7 +17,9 @@ class PermissionStore(private val file: File) {
         load()
     }
 
-    private fun load() {
+    fun load() {
+        grants.clear()
+        deniedForever.clear()
         if (!file.isFile) return
         try {
             val root = JSONObject(file.readText(Charsets.UTF_8))
