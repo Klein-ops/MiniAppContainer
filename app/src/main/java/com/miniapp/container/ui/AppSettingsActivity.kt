@@ -74,8 +74,8 @@ class AppSettingsActivity : AppCompatActivity() {
     /** 加载小程序自有图标（SVG/PNG → Bitmap → Icon），无图标返回 null。 */
     private fun loadAppIcon(): Icon? {
         if (info.icon.isBlank()) return null
-        val sandbox = File(filesDir, "miniapps/${'$'}{info.uid}_${'$'}{info.uname}")
-        val iconFile = File(sandbox, "app/${'$'}{info.icon}")
+        val sandbox = File(filesDir, "miniapps/${info.uid}_${info.uname}")
+        val iconFile = File(sandbox, "app/${info.icon}")
         if (!iconFile.exists()) return null
         return try {
             val size = 96

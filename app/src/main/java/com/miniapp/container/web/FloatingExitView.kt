@@ -12,7 +12,7 @@ import kotlin.math.abs
  * 可拖动、贴边、闲置半透明的悬浮退出按钮。
  * - 点击（位移小于阈值）→ 回调 [onExit]
  * - 拖动 → 跟随手指；松手 → 贴边
- * - 闲置 2.5s 后向屏幕边缘滑出，只露出一小段（约 18%）；触摸时滑回完全可见
+ * - 贴边后闲置 2.5s 向屏幕边缘滑出，保留约 40% 可见；触摸时滑回完全可见
  */
 class FloatingExitView @JvmOverloads constructor(
     context: Context,
@@ -45,14 +45,14 @@ class FloatingExitView @JvmOverloads constructor(
         postDelayed(idleHideRunnable, 2500)
     }
 
-    /** 向边缘滑出，只露出约 18%。 */
+    /** 向边缘滑出，保留约 40% 可见（保证全面屏手势下仍可点击）。 */
     private fun collapse() {
         if (collapsed) return
         collapsed = true
         val parent = parent as? View ?: return
-        val isLeft = stickX + width / 2 < parent.width / 2
-        val hiddenX = if (isLeft) -width * 0.82f
-        else (parent.width - width * 0.18f).toFloat()
+        val visible = width * 0.40f          // 保留可见宽度
+        val isLeft = x + width / 2 < parent.width / 2
+        val hiddenX = if (isLeft) -width + visible else (parent.width - visible).toFloat()
         animate().x(hiddenX).setDuration(220).start()
     }
 

@@ -58,23 +58,33 @@ class AppListAdapter : RecyclerView.Adapter<AppListAdapter.VH>() {
         }
     }
 
-    /** 加载应用图标（支持 SVG/PNG，无图标用默认）。 */
+    /** 加载应用图标（支持 SVG/PNG，无图标或失败时重置为默认）。 */
     private fun loadIcon(holder: VH, info: MiniAppInfo) {
-        if (info.icon.isBlank()) return
+        val default = android.R.drawable.sym_def_app_icon
+        // 无图标：必须重置，否则 RecyclerView 复用会残留上一个小程序的图标
+        if (info.icon.isBlank()) {
+            holder.imgIcon.setImageResource(default)
+            return
+        }
         val ctx = holder.itemView.context
         val sandbox = File(ctx.filesDir, "miniapps/${info.uid}_${info.uname}")
         val iconFile = File(sandbox, "app/${info.icon}")
-        if (!iconFile.exists()) return
+        if (!iconFile.exists()) {
+            holder.imgIcon.setImageResource(default)
+            return
+        }
         try {
             if (info.icon.endsWith(".svg", ignoreCase = true)) {
                 val svg = SVG.getFromInputStream(iconFile.inputStream())
                 holder.imgIcon.setImageDrawable(PictureDrawable(svg.renderToPicture()))
             } else {
-                BitmapFactory.decodeFile(iconFile.absolutePath)?.let {
-                    holder.imgIcon.setImageBitmap(it)
-                }
+                val bmp = BitmapFactory.decodeFile(iconFile.absolutePath)
+                if (bmp != null) holder.imgIcon.setImageBitmap(bmp)
+                else holder.imgIcon.setImageResource(default)
             }
-        } catch (_: Exception) { /* 加载失败保持默认图标 */ }
+        } catch (_: Exception) {
+            holder.imgIcon.setImageResource(default)
+        }
     }
 
     override fun getItemCount(): Int = items.size

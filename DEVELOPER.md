@@ -114,115 +114,129 @@ MiniApp.fs.write('data/test.txt', 'Hello').then(function () {
 
 ## 四、JS Bridge API 完整清单
 
+### 4.0 返回值类型约定
+
+所有接口返回 **Promise**，`await` 后得到以下 JS 类型之一，**不存在其他形式**：
+
+| 类型 | 含义 |
+|---|---|
+| `boolean` | 操作是否成功，值为 `true` 或 `false` |
+| `string` | 文本（文件内容、base64、剪贴板文本） |
+| `object` | JSON 对象（如 `{ status, body }`） |
+| `array` | JSON 数组（目录列表） |
+
+调用失败时 Promise 被 reject，捕获到的 `Error.message` 为错误原因。
+
 ### 4.1 应用与系统
 
+| 接口 | 返回类型 | 返回值 |
+|---|---|---|
+| `MiniApp.info()` | `object` | `{ uid, uname, version, entry, permissions, appKey }` |
+| `MiniApp.system()` | `object` | `{ platform, model, manufacturer, brand, osVersion, sdk, hostAppVersion, density, densityDpi, widthPixels, heightPixels }`（`sdk`、`densityDpi`、`widthPixels`、`heightPixels` 为整数，`density` 为浮点数） |
+| `MiniApp.ui.toast(msg)` | `boolean` | 固定 `true` |
+
+`MiniApp.toast(msg)` 与 `MiniApp.ui.toast(msg)` 等价。
+
 ```js
-MiniApp.info()
-// → { uid, uname, version, entry, permissions, appKey }
-
-MiniApp.system()
-// → { platform, model, manufacturer, brand, osVersion, sdk, hostAppVersion, density, densityDpi, widthPixels, heightPixels }
-
-MiniApp.ui.toast('提示文本')     // → "true"
+const info = await MiniApp.info();       // object
+const ok = await MiniApp.ui.toast('提示'); // boolean true
 ```
 
-### 4.2 文件系统
+### 4.2 文件系统（沙箱内）
 
-路径**相对沙箱根**（即 `<沙箱>/`），不是相对应用根。
+路径**相对沙箱根**（`<沙箱>/`），不是相对应用根。
 
-**白名单规则**：写操作（write/writeBytes/mkdir/remove）只允许 `data/` 和 `tmp/` 目录，禁止写 `app/`（只读资源区）。读操作允许 `app/`、`data/`、`tmp/`。
+**白名单规则**：写操作（`write`/`writeBytes`/`mkdir`/`remove`）只允许 `data/` 和 `tmp/`，禁止写 `app/`（只读资源区）。读操作允许 `app/`、`data/`、`tmp/`。
+
+| 接口 | 返回类型 | 返回值 |
+|---|---|---|
+| `fs.read(path)` | `string` | 文件文本内容 |
+| `fs.readBytes(path)` | `string` | base64 编码的文件字节 |
+| `fs.write(path, content)` | `boolean` | 成功 `true` |
+| `fs.writeBytes(path, base64)` | `boolean` | 成功 `true` |
+| `fs.list(dir)` | `array` | `[{ name: string, isDir: boolean, size: number }]` |
+| `fs.exists(path)` | `boolean` | 存在 `true`，不存在 `false` |
+| `fs.stat(path)` | `object` | `{ exists: boolean, isDir: boolean, size: number, name: string, canRead: boolean, canWrite: boolean, lastModified: number }`（`lastModified` 为 Unix 毫秒时间戳） |
+| `fs.mkdir(path)` | `boolean` | 成功 `true` |
+| `fs.remove(path)` | `boolean` | 成功 `true`（目录递归删除），失败 `false` |
 
 ```js
-MiniApp.fs.read('data/test.txt')           // → "文件内容字符串"
-MiniApp.fs.write('data/test.txt', 'Hello') // → "true"
-MiniApp.fs.readBytes('app/image.png')      // → base64 字符串
-MiniApp.fs.writeBytes('data/avatar.b64', base64String) // → "true"
-MiniApp.fs.list('data')  // → [{ name, isDir, size }]
-MiniApp.fs.exists('data/test.txt')  // → "true" / "false"
-MiniApp.fs.stat('data/test.txt')  // → { exists, isDir, size, name, canRead, canWrite, lastModified }
-MiniApp.fs.mkdir('data/sub')  // → "true"
-MiniApp.fs.remove('data/tmp')  // → "true" / "false"
+const text = await MiniApp.fs.read('data/test.txt');        // string
+const b64  = await MiniApp.fs.readBytes('app/image.png');   // string (base64)
+const ok   = await MiniApp.fs.write('data/test.txt', 'Hi'); // boolean true
+const arr  = await MiniApp.fs.list('data');                 // array
+const has  = await MiniApp.fs.exists('data/test.txt');      // boolean
+const st   = await MiniApp.fs.stat('data/test.txt');        // object
+await MiniApp.fs.mkdir('data/sub');                         // boolean true
+await MiniApp.fs.remove('data/tmp');                        // boolean
 ```
 
 #### SAF 导入导出（无需权限）
 
-通过 Android 存储访问框架选择文件，不需要任何权限声明：
+| 接口 | 返回类型 | 返回值 |
+|---|---|---|
+| `fs.importFile(destPath)` | `boolean` | 导入成功 `true`；用户取消时 reject |
+| `fs.exportFile(path)` | `boolean` | 导出成功 `true`；用户取消时 reject |
 
 ```js
-// 导入：弹出系统文件选择器，选中后写入沙箱指定路径
-await MiniApp.fs.importFile('data/imported.bin');   // → "true" / ""
-
-// 导出：弹出系统保存对话框，将沙箱文件内容写出
-await MiniApp.fs.exportFile('data/report.txt');    // → "true" / ""
+await MiniApp.fs.importFile('data/imported.bin');  // boolean true
+await MiniApp.fs.exportFile('data/report.txt');    // boolean true
 ```
 
-#### 静默读写内部储存（需 `fs.external` 权限）
+#### 静默操作内部储存（需 `fs.external` 权限）
 
-声明 `fs.external` 后，可静默读写内部储存（`/storage/emulated/0`）。
+声明 `fs.external` 后，可静默操作内部储存（`/storage/emulated/0`）。
 
-**安全限制**：禁止访问应用私有目录（`/data/data/...`），防止篡改权限记录。
+**安全限制**：禁止访问应用私有目录（`/data/data/...`），防止篡改权限记录。路径为**绝对路径**。
 
-**权限适配**（蜗壳自动处理，开发者无需关心）：
+**权限适配**（蜗壳自动处理）：
 - Android 10 及以下：首次调用时蜗壳主动弹窗申请运行时存储权限。
-- Android 11+：`MANAGE_EXTERNAL_STORAGE` 是系统特殊权限，需在系统设置开启「所有文件访问」。蜗壳会自动跳转设置页，开启后返回重试。
+- Android 11+：`MANAGE_EXTERNAL_STORAGE` 需在系统设置开启「所有文件访问」，蜗壳会自动跳转设置页，开启后返回重试。
+
+| 接口 | 返回类型 | 返回值 |
+|---|---|---|
+| `fs.readExternalFile(absPath)` | `string` | base64 编码的文件字节 |
+| `fs.writeExternalFile(absPath, base64)` | `boolean` | 成功 `true` |
+| `fs.listExternal(dir)` | `array` | `[{ name: string, isDir: boolean, size: number }]`（不递归） |
+| `fs.existsExternal(absPath)` | `boolean` | 存在 `true`，不存在 `false` |
+| `fs.statExternal(absPath)` | `object` | 同 `fs.stat` 的字段 |
+| `fs.mkdirExternal(dir)` | `boolean` | 成功 `true`；已存在 `true` |
+| `fs.removeExternal(absPath)` | `boolean` | 成功 `true`（目录递归删除），失败 `false` |
+| `fs.renameExternal(from, to)` | `boolean` | 成功 `true`，失败 `false` |
+| `MiniApp.call('fs.readExternal', { uri })` | `string` | 读取 content:// URI，返回 base64 |
 
 ```js
-// 读取内部储存文件（返回 base64）
-const b64 = await MiniApp.fs.readExternalFile('/storage/emulated/0/Documents/note.txt');
-
-// 写入内部储存文件（base64）
-await MiniApp.fs.writeExternalFile('/storage/emulated/0/Documents/out.txt', base64String);
-
-// 列出内部储存某目录的文件列表（不递归）
-const files = await MiniApp.fs.listExternal('/storage/emulated/0/Documents');
-// → [{ name, isDir, size }, ...]
-
-// 检查文件/目录是否存在
-await MiniApp.fs.existsExternal('/storage/emulated/0/Documents/note.txt'); // → "true" / "false"
-
-// 查询文件信息
-await MiniApp.fs.statExternal('/storage/emulated/0/Documents/note.txt');
-// → { exists, isDir, size, name, canRead, canWrite, lastModified }
-
-// 创建目录（含父目录）
-await MiniApp.fs.mkdirExternal('/storage/emulated/0/Documents/sub'); // → "true" / "false"
-
-// 删除文件或目录（递归删除目录及其内容）
-await MiniApp.fs.removeExternal('/storage/emulated/0/Documents/old_dir'); // → "true" / "false"
-
-// 重命名/移动文件（同文件系统内）
-await MiniApp.fs.renameExternal(
-  '/storage/emulated/0/Documents/a.txt',
-  '/storage/emulated/0/Documents/b.txt'
-); // → "true" / "false"
-
-// 读取外部 content:// URI（如其他应用共享的文件，返回 base64）
-const b64 = await MiniApp.call('fs.readExternal', { uri: 'content://...' });
+const b64  = await MiniApp.fs.readExternalFile('/storage/emulated/0/Documents/a.txt'); // string
+await MiniApp.fs.writeExternalFile('/storage/emulated/0/Documents/b.txt', base64);     // boolean
+const arr  = await MiniApp.fs.listExternal('/storage/emulated/0/Documents');           // array
+const has  = await MiniApp.fs.existsExternal('/storage/emulated/0/Documents/a.txt');   // boolean
+const st   = await MiniApp.fs.statExternal('/storage/emulated/0/Documents/a.txt');     // object
+await MiniApp.fs.mkdirExternal('/storage/emulated/0/Documents/sub');                  // boolean
+await MiniApp.fs.removeExternal('/storage/emulated/0/Documents/old_dir');             // boolean
+await MiniApp.fs.renameExternal('/storage/emulated/0/a.txt', '/storage/emulated/0/b.txt'); // boolean
 ```
 
 ### 4.3 WASM 执行
 
-蜗壳 WASM 基于 **WebAssembly 原生**（WebView 内置 JIT 引擎），无额外解释层。
+蜗壳 WASM 基于 **WebView 内置 WebAssembly JIT**，无额外解释层。
+
+| 接口 | 返回类型 | 返回值 |
+|---|---|---|
+| `wasm.instantiate(pathOrBytes, imports)` | `Promise<WebAssembly.Instance>` | 异步返回实例 |
+| `wasm.createMemory(pages, maxPages)` | `WebAssembly.Memory` | 共享内存对象 |
 
 > **重要**：运行在 `file://` 协议下，`fetch('x.wasm')` 会被沙箱拦截。
-> **必须**先通过 `MiniApp.fs.readBytes` 读取文件字节后再实例化。
-> `MiniApp.wasm.instantiate` 也支持直接传路径字符串（内部自动读取字节）。
+> 推荐先通过 `MiniApp.fs.readBytes` 读取字节再实例化；`instantiate` 传路径字符串时内部会自动读取。
 
 ```js
-// 辅助函数：读取 WASM 文件（相对沙箱根，app/ 下）并实例化
-async function loadWasm(path, imports) {
-  const b64 = await MiniApp.fs.readBytes(path);   // 路径相对沙箱根，如 'app/heavy.wasm'
-  const bin = atob(b64);
-  const bytes = new Uint8Array(bin.length);
-  for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
-  return MiniApp.wasm.instantiate(bytes, imports || {});
-}
+// 推荐：读取字节后实例化（路径相对沙箱根）
+const b64 = await MiniApp.fs.readBytes('app/heavy.wasm');   // string (base64)
+const bin = atob(b64);
+const bytes = new Uint8Array(bin.length);
+for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
 
-// 1. 创建共享内存（WASM 与 JS 共用，零拷贝）
-const memory = MiniApp.wasm.createMemory(256); // 256 页 ≈ 16MB
-
-// 2. 准备宿主能力（import object）
-const imports = {
+const memory = MiniApp.wasm.createMemory(256);              // WebAssembly.Memory
+const instance = await MiniApp.wasm.instantiate(bytes, {
   env: {
     memory: memory,
     log: (ptr, len) => {
@@ -230,78 +244,81 @@ const imports = {
       console.log('[WASM]', new TextDecoder().decode(bytes));
     }
   }
-};
-
-// 3. 加载并实例化（传字节或路径均可）
-const instance = await loadWasm('app/heavy.wasm', imports);
-
-// 4. 直接调用导出函数（高性能，零拷贝）
+});
 instance.exports.compute(42);
-
-// 5. 通过 Memory 高效读写二进制
-const view = new Uint32Array(memory.buffer);
-view[0] = 1024;
-const result = view[1];
 ```
-
-**原生路径优势**：
-- **二进制高效传递**：`WebAssembly.Memory` 是 `ArrayBuffer`，JS 和 WASM 共享同一块内存，无需 base64 序列化
-- **性能**：WebView 内置 WASM JIT（TurboFan/Sparkplug），足以运行 SQLite、FFmpeg、llama.cpp 等真实库
-- **灵活性**：支持任意 import object，可注入文件/网络/日志等宿主能力
 
 ### 4.4 网络（需审批）
 
+| 接口 | 返回类型 | 返回值 |
+|---|---|---|
+| `net.get(url)` | `object` | `{ status: number, body: string }` |
+| `net.post(url, body)` | `object` | 同上 |
+| `net.put(url, body)` | `object` | 同上 |
+| `net.delete(url)` | `object` | 同上 |
+| `net.request(method, url, opts)` | `object` | 同上 |
+
+`status` 为 HTTP 状态码（整数），`body` 为响应文本（字符串）。`opts` 为 `{ headers: object, body: string }`。支持 GET/POST/PUT/DELETE/PATCH 等任意方法。
+
+需声明 `"net"`；首次调用弹窗审批，授权持久化。
+
 ```js
-// GET
-const res = await MiniApp.net.get('https://example.com/api');
-// → { status: 200, body: "响应文本" }
-
-// POST（带请求体）
-const res = await MiniApp.net.post('https://example.com/api', JSON.stringify({ key: 'value' }));
-
-// 通用请求（自定义方法 + 请求头）
-const res = await MiniApp.net.request('PATCH', 'https://example.com/api', {
-  headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer xxx' },
+const res = await MiniApp.net.get('https://example.com/api');  // { status, body }
+const res2 = await MiniApp.net.request('PATCH', url, {
+  headers: { 'Content-Type': 'application/json' },
   body: JSON.stringify({ patch: true })
 });
 ```
 
-支持 GET/POST/PUT/DELETE/PATCH 等任意方法及自定义请求头；必须声明 `"net"`；首次调用弹窗审批，授权持久化。
-
 ### 4.5 剪贴板（需审批）
 
-```js
-const text = await MiniApp.clipboard.read();   // → "剪贴板文本"
-await MiniApp.clipboard.write('复制内容');     // → "true"
-```
+| 接口 | 返回类型 | 返回值 |
+|---|---|---|
+| `clipboard.read()` | `string` | 剪贴板文本；剪贴板为空时返回 `""` |
+| `clipboard.write(text)` | `boolean` | 成功 `true` |
 
-需声明 `"clipboard"`；首次读写弹窗审批。
+需声明 `"clipboard"`。
+
+```js
+const text = await MiniApp.clipboard.read();   // string
+await MiniApp.clipboard.write('复制内容');     // boolean true
+```
 
 ### 4.6 通知（需审批）
 
-```js
-await MiniApp.notification.show('标题', '内容');  // → "true"
-await MiniApp.notification.cancel();              // → "true"
-```
+| 接口 | 返回类型 | 返回值 |
+|---|---|---|
+| `notification.show(title, body)` | `boolean` | 成功 `true` |
+| `notification.cancel()` | `boolean` | 成功 `true` |
 
-需声明 `"notification"`。通知栏以 `[小程序名] 标题` 标注发送来源；每个小程序独立通知渠道。
-Android 13+ 首次会额外申请系统通知权限（POST_NOTIFICATIONS）。
+需声明 `"notification"`。通知栏以 `[小程序名] 标题` 标注发送来源；每个小程序独立通知渠道。Android 13+ 首次会额外申请系统通知权限（`POST_NOTIFICATIONS`）。
+
+```js
+await MiniApp.notification.show('标题', '内容');  // boolean true
+await MiniApp.notification.cancel();              // boolean true
+```
 
 ### 4.7 打开外部链接（需审批）
 
-```js
-await MiniApp.sys.openUrl('https://example.com');  // → "true"
-```
+| 接口 | 返回类型 | 返回值 |
+|---|---|---|
+| `sys.openUrl(url)` | `boolean` | 成功 `true` |
 
 需声明 `"sys.openUrl"`。
 
-### 4.8 预请求权限
-
 ```js
-var granted = await MiniApp.permission.request('net');  // → true / false
+await MiniApp.sys.openUrl('https://example.com');  // boolean true
 ```
 
----
+### 4.8 预请求权限
+
+| 接口 | 返回类型 | 返回值 |
+|---|---|---|
+| `permission.request(scope)` | `boolean` | 已授权/刚授权 `true`，拒绝 `false` |
+
+```js
+const granted = await MiniApp.permission.request('net');  // boolean
+```
 
 ## 五、权限模型
 
