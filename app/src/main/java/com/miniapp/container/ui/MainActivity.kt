@@ -4,8 +4,6 @@ import android.content.Intent
 import android.net.Uri
 import android.os.Bundle
 import android.view.LayoutInflater
-import android.view.Menu
-import android.view.MenuItem
 import android.view.View
 import android.widget.HorizontalScrollView
 import android.widget.LinearLayout
@@ -21,7 +19,6 @@ import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.ItemTouchHelper
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
-import com.google.android.material.floatingactionbutton.FloatingActionButton
 import com.miniapp.container.MiniAppApp
 import com.miniapp.container.R
 import com.miniapp.container.util.toast
@@ -65,7 +62,14 @@ class MainActivity : AppCompatActivity() {
         adapter = AppListAdapter()
         adapter.onItemClick = { startMiniApp(it) }
         adapter.onSettingsClick = { openAppSettings(it.appKey) }
-        findViewById<FloatingActionButton>(R.id.fab_install).setOnClickListener { showInstallOptions() }
+        findViewById<View>(R.id.install_card).setOnClickListener { showInstallOptions() }
+        findViewById<com.google.android.material.bottomnavigation.BottomNavigationView>(R.id.bottom_nav)
+            .setOnItemSelectedListener { item ->
+                if (item.itemId == R.id.nav_settings) {
+                    startActivity(Intent(this, SettingsActivity::class.java))
+                    false   // 不切换选中态，设置是独立页面
+                } else true
+            }
         recycler.layoutManager = LinearLayoutManager(this)
         recycler.adapter = adapter
 
@@ -97,33 +101,7 @@ class MainActivity : AppCompatActivity() {
         refresh()
     }
 
-    override fun onCreateOptionsMenu(menu: Menu): Boolean {
-        menuInflater.inflate(R.menu.main_menu, menu)
-        return true
-    }
 
-    override fun onOptionsItemSelected(item: MenuItem): Boolean = when (item.itemId) {
-        R.id.action_debug_toggle -> {
-            com.miniapp.container.debug.DebugBus.setEnabled(
-                !com.miniapp.container.debug.DebugBus.enabled
-            )
-            toast(if (com.miniapp.container.debug.DebugBus.enabled) "调试模式已开启" else "调试模式已关闭")
-            true
-        }
-        R.id.action_debug_log -> {
-            startActivity(android.content.Intent(this, DebugActivity::class.java))
-            true
-        }
-        R.id.action_backup -> {
-            startActivity(android.content.Intent(this, BackupActivity::class.java))
-            true
-        }
-        R.id.action_clean_storage -> {
-            cleanStorage()
-            true
-        }
-        else -> super.onOptionsItemSelected(item)
-    }
 
     // ===== 分类栏 =====
     private fun refreshCategoryBar() {
@@ -382,12 +360,5 @@ class MainActivity : AppCompatActivity() {
         refresh()
     }
 
-    private fun cleanStorage() {
-        try {
-            android.webkit.WebStorage.getInstance().deleteAllData()
-            IoUtil.clearCache(this)
-        } catch (t: Throwable) { /* ignore */ }
-        toast("已清理 WebView 缓存与存储")
-    }
 
 }
