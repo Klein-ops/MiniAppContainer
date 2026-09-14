@@ -45,6 +45,12 @@
             android:theme="@style/Theme.MiniApp" />
 
         <activity
+            android:name=".ui.SettingsActivity"
+            android:exported="false"
+            android:label="设置"
+            android:theme="@style/Theme.MiniApp" />
+
+        <activity
             android:name=".ui.DebugActivity"
             android:exported="false"
             android:label="调用日志"
