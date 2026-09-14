@@ -30,17 +30,18 @@ Android Studio：`Open` 项目根目录 → Sync → Run。
 
 ## 三、运行
 
-1. 启动 App，进入应用列表（空）。
-2. 右下角 **「+」悬浮按钮**，三种安装方式：
+1. 启动 App，进入应用列表（空）。底部导航栏：**应用** / **设置**。
+2. 点击列表顶部的 **「安装新应用」卡片**，三种安装方式：
    - **安装应用包（zip）**：系统文件选择器选 zip 安装。
    - **安装内置示例**：安装 `assets/sample/sample_app.zip`（demo/hello），含手写 `sample.wasm`（add / fib）。
    - **从 URL 安装**：输入 zip 直链，下载后安装并清理临时包。
-3. 点击列表项启动小程序，进入全屏 WebView 容器。
-4. 应用设置页支持：重命名 / 权限管理 / 移动分类 / 创建桌面快捷方式 / 清空数据 / 卸载。
-5. 右上角菜单：
+3. 点击列表项启动小程序，进入全屏 WebView 容器（左上角悬浮球，闲置自动贴边收起）。
+4. 应用列表分类栏支持切换分类、长按分类删除、长按应用拖动排序；应用设置页支持：重命名 / 权限管理 / 移动分类 / 创建桌面快捷方式 / 清空数据 / 卸载。
+5. 底部导航「**设置**」页：
    - **调试模式**（开关）：开启后记录所有小程序接口调用（方法/参数/返回值/耗时）。
    - **查看调用日志**：实时查看调试记录。
    - **备份与恢复**：导出/导入全部小程序数据（zip），支持备份到 WebDAV 及从 WebDAV 恢复。
+   - **清理 WebView 缓存**。
 6. **数据开放**：内置 SAF DocumentsProvider，其他应用可通过系统文件选择器（SAF）在用户授权后浏览蜗壳的数据目录。
 
 ---
@@ -77,7 +78,8 @@ MiniAppContainer/
          ├─ sys/                系统信息
          ├─ util/               IO/工具
          ├─ web/                WebViewClient（隔离拦截）+ WebChromeClient
-         └─ ui/                 MainActivity（管理界面）+ MiniAppActivity（容器）+ AppSettingsActivity + 适配器
+         └─ ui/                 MainActivity（列表）+ SettingsActivity（设置）+ MiniAppActivity（容器）
+                                + AppSettingsActivity / PermissionManageActivity / BackupActivity / DebugActivity + 适配器
 ```
 
 ---
@@ -99,7 +101,7 @@ zip 内含 `manifest.json`（可在根目录或子目录，递归查找），以
 }
 ```
 
-- `uid` / `uname`：允许中文/英文/数字/点/下划线/连字符，禁止 `/`、`\`、控制字符、空串、`..`。
+- `uid` / `uname`：允许中文/英文/数字/点/下划线/连字符等任意字符（UTF-8），长度 ≤64，禁止 `/`、`\`、控制字符、空串，以及单独的 `.` 或 `..`。
 - `entry`：入口 HTML（相对应用根）。
 - `wasm`：WASM 模块路径列表（相对应用根）。
 - `icon`：应用图标（可选，SVG/PNG，相对应用根）。
@@ -154,7 +156,8 @@ MiniApp.permission.request(scope)
 - **路径穿越防护**：`PathGuard.resolveUnderRoot` 规范化并校验 canonical 路径未逃出沙箱。
 - **写白名单**：沙箱内写操作仅允许 `data/` 和 `tmp/`，禁止写 `app/`（只读资源区）。
 - **内部储存安全**：`fs.external` 操作禁止访问应用私有目录（`/data/data/...`），防篡改权限记录。
-- **权限审批**：`net` / `sys.openUrl` / `fs.external` / `clipboard` 调用前经 `PermissionManager` 审批，授权持久化到 `miniapps/permissions.json`。弹窗提供 4 种选择：允许 / 仅允许一次 / 拒绝 / 不再询问。
+- **权限审批**：`net` / `sys.openUrl` / `fs.external` / `clipboard` / `notification` / `dex` 调用前经 `PermissionManager` 审批，授权持久化到 `miniapps/permissions.json`。弹窗提供 4 种选择：允许 / 仅允许一次 / 拒绝 / 不再询问。
+- **Dex 隔离**：`dex.run` 在 `isolatedProcess` 独立进程中执行（独立 UID + SELinux `isolated_app` 域），无网络/无路径访问/无系统服务/不能加载 native 库；只能读写主进程通过 FD 传入的文件，无法主动打开路径。
 
 ---
 

@@ -20,7 +20,7 @@
 
 - **前端**：标准 HTML/CSS/JS，运行在系统 WebView 中。
 - **WASM**：基于 WebView 内置 WebAssembly JIT，支持二进制、Memory、import 注入。
-- **权限**：沙箱内读写无需审批；访问网络、打开外链、读写内部储存需审批。
+- **权限**：沙箱内读写无需审批；访问网络（`net`）、打开外链（`sys.openUrl`）、读写内部储存（`fs.external`）、剪贴板（`clipboard`）、通知（`notification`）、Dex（`dex`）需审批。
   分为**普通权限**（可拒绝仍能进入）和**必要权限**（拒绝则不进入）。
 
 ---
@@ -67,7 +67,7 @@ my_app/
 
 | 字段 | 说明 | 约束 |
 |---|---|---|
-| `uid` | 身份第一部分 | 允许中文/英文/数字/点/下划线/连字符，长度 ≤64，禁止 `/`、`\`、控制字符、空串、`..` |
+| `uid` | 身份第一部分 | 允许中文/英文/数字/点/下划线/连字符等任意字符（UTF-8），长度 ≤64（字符数），禁止 `/`、`\`、控制字符（ISO control）、空串，以及单独的 `.` 或 `..` |
 | `uname` | 身份第二部分 | 同上 |
 | `version` | 版本号 | 任意字符串 |
 | `entry` | 入口 HTML 路径 | 相对应用根，如 `index.html` 或 `pages/index.html` |
@@ -91,7 +91,8 @@ my_app/
 
 **限制**：
 - 不能使用 `file://` 协议主动请求沙箱外资源（跨沙箱请求被拦截，返回 403）。
-- `allowFileAccessFromFileURLs` / `allowUniversalAccessFromFileURLs` 已禁用。
+- `allowFileAccessFromFileURLs` / `allowUniversalAccessFromFileURLs` 已禁用；`allowContentAccess` 亦禁用（`content://` 需经 Bridge 的 `fs.readExternal`）。
+- WebView `cacheMode = LOAD_NO_CACHE`（无离线缓存）。
 - 沙箱内页面可直接引用同目录资源（`<script src="app.js">`、`<link href="style.css">`）。
 
 ### 3.2 JS Bridge 调用
@@ -275,6 +276,8 @@ await MiniApp.net.post(url, JSON.stringify({ hello: '蜗壳' }), {
 ```
 
 > 注：`net.post(url, body)` / `net.put(url, body)` 便捷方法不接受 headers 参数。需要自定义请求头时请用 `net.request(method, url, opts)`。
+>
+> 底层分发方法为 `net.httpRequest`。另有兼容别名 `net.httpGet`（等价于 `net.request('GET', url)`），仅供旧代码直接调用 `MiniApp.call('net.httpGet', { url })`，新代码请用 `net.get`。
 
 需声明 `"net"`；首次调用弹窗审批，授权持久化。
 
@@ -401,7 +404,7 @@ public static android.os.Bundle run(
 | 权限 scope | 能力 | 默认 |
 |---|---|---|
 | 沙箱内读写 `app/`/`data/`/`tmp/` | 文件操作（写仅 `data/`/`tmp/`） | **允许**，无需审批 |
-| `net` | HTTP GET 请求 | 拒绝 |
+| `net` | HTTP 请求（GET/POST/PUT/DELETE/PATCH 等） | 拒绝 |
 | `sys.openUrl` | 打开外部链接 | 拒绝 |
 | `fs.external` | 静默操作内部储存：读写/列目录/查存在/查信息/建目录/删除/重命名 + 读取外部 content:// | 拒绝 |
 | `clipboard` | 读写系统剪贴板 | 拒绝 |
@@ -501,7 +504,8 @@ const imports = {
   }
 };
 
-const instance = await loadWasm('app/app.wasm', imports);
+// 路径相对沙箱根；instantiate 内部经 Bridge 读取字节（不走 fetch）
+const instance = await MiniApp.wasm.instantiate('app/app.wasm', imports);
 ```
 
 ### 6.3 Import Shim 设计模式
@@ -598,8 +602,15 @@ self.onmessage = async (e) => {
 ```js
 MiniApp.info().then(console.log);
 MiniApp.system().then(console.log);
-try { await MiniApp.fs.read('data/missing.txt'); }
-catch (e) { console.error(e.message); }
+
+// 注意：await 必须在 async 函数内
+(async function () {
+  try {
+    await MiniApp.fs.read('data/missing.txt');
+  } catch (e) {
+    console.error(e.message);
+  }
+})();
 ```
 
 ### 7.2 WASM 调试
@@ -634,13 +645,20 @@ adb logcat -s MiniAppJS MiniAppBridge
 | 错误 | 原因 | 解决 |
 |---|---|---|
 | `未获得必要权限，无法运行` | 必要权限被拒 | 在弹窗允许，或去权限管理页授予 |
-| `WASM 模块不存在或非文件: xxx` | 路径不对 | `wasm` 路径相对应用根；确认 zip 含该文件 |
-| `WebAssembly.instantiate failed` | import 缺失或 WASM 格式错误 | 检查 import object 是否提供 `env.memory` 等必需项 |
-| `permission denied: net` | 未声明权限或用户拒绝 | manifest 声明 `"net"` 并允许 |
-| `unknown method` | 方法名拼写错误 | 对照本手册 API 清单 |
-| `写操作仅允许 data/ 和 tmp/ 目录` | 尝试写 `app/` | 写数据放 `data/` 或 `tmp/` |
-| `禁止访问应用私有目录` | fs.external 访问 `/data/data/` | 只访问内部储存 `/storage/emulated/0` |
-| `已跳转系统设置，请开启所有文件访问权限` | Android 11+ 未开 MANAGE_EXTERNAL_STORAGE | 在设置页开启后返回重试 |
+| `permission denied: net` | 未声明 `net` 或用户拒绝 | manifest 声明 `"net"` 并允许 |
+| `permission denied: fs.external` | 未声明 `fs.external` 或用户拒绝 | manifest 声明并允许 |
+| `permission denied: sys.openUrl` | 未声明 `sys.openUrl` 或用户拒绝 | manifest 声明并允许 |
+| `permission denied: clipboard` | 未声明 `clipboard` 或用户拒绝 | manifest 声明并允许 |
+| `permission denied: notification` | 未声明 `notification` 或用户拒绝 | manifest 声明并允许 |
+| `permission denied: dex` | 未声明 `dex` 或用户拒绝 | manifest 声明并允许 |
+| `写操作仅允许 data/ 和 tmp/ 目录: xxx` | 尝试写 `app/` | 写数据放 `data/` 或 `tmp/` |
+| `path escapes sandbox: xxx` | 路径含 `..` 逃出沙箱 | 使用沙箱内相对路径 |
+| `文件不存在: xxx` / `目录不存在: xxx` | 目标路径不存在 | 先用 `fs.exists` 判断或创建 |
+| `禁止访问应用私有目录: xxx` | `fs.external` 访问 `/data/data/` | 只访问内部储存 `/storage/emulated/0` |
+| `已跳转系统设置，请开启「所有文件访问权限」后重试` | Android 11+ 未开 `MANAGE_EXTERNAL_STORAGE` | 在设置页开启后返回重试 |
+| `[MiniApp.wasm] instantiate failed: ...` | WASM 格式错误或 import 缺失 | 检查 import object 是否提供 `env.memory` 等必需项 |
+| `unknown method: xxx` | 方法名拼写错误 | 对照本手册 API 清单 |
+| `dex 文件不存在: xxx` | `dex` 路径不对 | 路径相对沙箱根，确认 zip/`data/` 含该 dex |
 
 ---
 
@@ -686,7 +704,7 @@ zip -j ../../app/src/main/assets/sample/sample_app.zip \
 
 发布/测试前确认：
 - [ ] `manifest.json` 位于 zip 内（可在根目录或子目录），字段完整
-- [ ] `uid` / `uname` 不包含 `/`、`\`、控制字符、`..`
+- [ ] `uid` / `uname` 不含 `/`、`\`、控制字符，且不是空串、`.` 或 `..`，长度 ≤64
 - [ ] `entry` 指向的 HTML 文件存在
 - [ ] `wasm` 列出的模块文件存在且路径正确
 - [ ] `icon` 路径（若设置）指向存在的 SVG/PNG 文件
