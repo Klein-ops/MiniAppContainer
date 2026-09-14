@@ -8,19 +8,27 @@
         <item name="colorOnSecondary">@color/text_primary</item>
         <item name="android:windowBackground">@color/bg_window</item>
         <item name="android:statusBarColor" tools:targetApi="l">@color/brand_primary_dark</item>
-        <!-- 所有 AlertDialog 统一圆角 -->
+        <!-- 所有 AlertDialog 统一圆角（24dp 大弧度，显式指定避免 Material 默认小圆角） -->
         <item name="android:alertDialogTheme">@style/ThemeOverlay.MiniApp.RoundedDialog</item>
         <item name="alertDialogTheme">@style/ThemeOverlay.MiniApp.RoundedDialog</item>
-    </style>
+        <item name="materialAlertDialogTheme">@style/ThemeOverlay.MiniApp.RoundedDialog</item>
+</style>
 
-    <!-- 圆角对话框主题覆盖：用 Material 默认背景（自带 colorSurface 日夜适配 + 圆角 + 正确文字色） -->
-    <style name="ThemeOverlay.MiniApp.RoundedDialog" parent="ThemeOverlay.MaterialComponents.Dialog.Alert">
+<!-- 圆角对话框主题覆盖：显式指定 24dp 大圆角 + Material 配色 -->
+<style name="ThemeOverlay.MiniApp.RoundedDialog" parent="ThemeOverlay.MaterialComponents.Dialog.Alert">
         <item name="colorPrimary">@color/brand_primary</item>
         <item name="colorSecondary">@color/brand_accent</item>
+        <item name="shapeAppearanceOverlay">@style/ShapeAppearance.MiniApp.Dialog</item>
         <item name="buttonBarPositiveButtonStyle">@style/Widget.MiniApp.DialogButton</item>
         <item name="buttonBarNegativeButtonStyle">@style/Widget.MiniApp.DialogButton</item>
         <item name="buttonBarNeutralButtonStyle">@style/Widget.MiniApp.DialogButton</item>
-    </style>
+</style>
+
+<!-- 对话框圆角形状外观：24dp 大弧度 -->
+<style name="ShapeAppearance.MiniApp.Dialog" parent="">
+        <item name="cornerFamily">rounded</item>
+        <item name="cornerSize">24dp</item>
+</style>
 
     <style name="Widget.MiniApp.DialogButton" parent="Widget.MaterialComponents.Button.TextButton.Dialog">
         <item name="android:textColor">@color/brand_primary</item>

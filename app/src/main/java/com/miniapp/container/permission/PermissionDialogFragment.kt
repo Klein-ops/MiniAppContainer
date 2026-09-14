@@ -40,9 +40,10 @@ class PermissionDialogFragment : DialogFragment() {
         view.findViewById<MaterialButton>(R.id.btn_deny).setOnClickListener { submit(PermAction.DENY) }
         view.findViewById<MaterialButton>(R.id.btn_deny_forever).setOnClickListener { submit(PermAction.DENY_FOREVER) }
 
-        // 触摸外部不取消（强制选择）；圆角由 MaterialAlertDialogBuilder 提供
+        // 触摸外部不取消（强制选择）；window 透明让 view 的 24dp 圆角背景完整显示
         val dialog = MaterialAlertDialogBuilder(requireContext()).setView(view).create()
         dialog.setCanceledOnTouchOutside(false)
+        dialog.window?.setBackgroundDrawableResource(android.R.color.transparent)
         return dialog
     }
 
