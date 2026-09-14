@@ -87,7 +87,8 @@ class MiniAppActivity : AppCompatActivity() {
         webView = findViewById(R.id.webView)
         floatingExit = findViewById(R.id.floating_exit)
         floatingExit.onExit = { finish() }
-        // 打开时不自动收起，仅在用户拖动贴边后才进入闲置收起
+        // 打开时即安排闲置自动贴边收起（等待布局完成后再调度）
+        floatingExit.post { floatingExit.scheduleIdleHide() }
 
         val hostApp = application as MiniAppApp
         val sandboxRoot = hostApp.sandbox.appDir(appInfo.appKey)

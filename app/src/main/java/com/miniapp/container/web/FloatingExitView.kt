@@ -12,7 +12,7 @@ import kotlin.math.abs
  * 可拖动、贴边、闲置半透明的悬浮退出按钮。
  * - 点击（位移小于阈值）→ 回调 [onExit]
  * - 拖动 → 跟随手指；松手 → 贴边
- * - 贴边后闲置 2.5s 向屏幕边缘滑出，保留约 40% 可见；触摸时滑回完全可见
+ * - 打开/贴边后闲置 3s 向屏幕边缘平滑滑出，保留约 40% 可见；触摸时滑回完全可见
  */
 class FloatingExitView @JvmOverloads constructor(
     context: Context,
@@ -33,41 +33,52 @@ class FloatingExitView @JvmOverloads constructor(
 
     private val idleAlpha = 0.35f
     private val activeAlpha = 1f
+    private val idleDelay = 3000L      // 闲置多久后收起
+    private val collapseDuration = 320L // 滑出动画时长（平滑，不瞬移）
+    private val expandDuration = 200L
+
     private val idleHideRunnable = Runnable { animate().alpha(idleAlpha).setDuration(300).start() }
     private val collapseRunnable = Runnable { collapse() }
 
     init { alpha = idleAlpha }
 
+    /** 安排闲置后自动贴边收起（打开小程序、拖动贴边后调用）。 */
     fun scheduleIdleHide() {
         removeCallbacks(idleHideRunnable)
         removeCallbacks(collapseRunnable)
-        postDelayed(collapseRunnable, 2500)
-        postDelayed(idleHideRunnable, 2500)
+        postDelayed(collapseRunnable, idleDelay)
+        postDelayed(idleHideRunnable, idleDelay)
     }
+
+    /** 计算并记录贴边后的完全可见位置（供 [expand] 使用）。 */
+    private fun computeStickX(parent: View): Float =
+        if (x + width / 2 < parent.width / 2) 0f else (parent.width - width).toFloat()
 
     /** 向边缘滑出，保留约 40% 可见（保证全面屏手势下仍可点击）。 */
     private fun collapse() {
         if (collapsed) return
-        collapsed = true
         val parent = parent as? View ?: return
-        val visible = width * 0.40f          // 保留可见宽度
+        if (width == 0 || parent.width == 0) return   // 尚未完成布局，等下次调度
+        collapsed = true
+        stickX = computeStickX(parent)                 // 记录，保证 expand 能回到正确位置
+        val visible = width * 0.40f
         val isLeft = x + width / 2 < parent.width / 2
         val hiddenX = if (isLeft) -width + visible else (parent.width - visible).toFloat()
-        animate().x(hiddenX).setDuration(220).start()
+        animate().x(hiddenX).setDuration(collapseDuration).start()
     }
 
     /** 滑回完全可见的贴边位置。 */
     private fun expand() {
         if (!collapsed) return
         collapsed = false
-        animate().x(stickX).setDuration(180).start()
+        animate().x(stickX).setDuration(expandDuration).start()
     }
 
     private fun stickToEdge() {
         val parent = parent as? View ?: return
-        stickX = if (x + width / 2 < parent.width / 2) 0f else (parent.width - width).toFloat()
+        stickX = computeStickX(parent)
         val targetY = y.coerceIn(0f, (parent.height - height).toFloat())
-        animate().x(stickX).y(targetY).setDuration(180)
+        animate().x(stickX).y(targetY).setDuration(200)
             .withEndAction {
                 dragged = false   // 重置，允许后续 collapse
                 scheduleIdleHide()
