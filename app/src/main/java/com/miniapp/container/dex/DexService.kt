@@ -39,7 +39,7 @@ class DexService : Service() {
                 val methodName = params.getString("methodName") ?: "run"
 
                 // 读取 dex 字节（仅通过传入 FD，无法主动打开路径）
-                val dexBytes = dexFd.fileInputStream.use { it.readBytes() }
+                val dexBytes = java.io.FileInputStream(dexFd.fileDescriptor).use { it.readBytes() }
                 // parent 用 BootClassLoader：只能访问 Android 框架类 + Java 标准库
                 val loader = InMemoryDexClassLoader(
                     ByteBuffer.wrap(dexBytes),

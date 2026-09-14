@@ -42,9 +42,9 @@ class BackupActivity : AppCompatActivity() {
         supportActionBar?.setDisplayHomeAsUpEnabled(true)
         findViewById<MaterialToolbar>(R.id.toolbar).setNavigationOnClickListener { finish() }
 
-        etUrl = findViewById(R.id.et_webdav_url).also { it.setText(backup.webdavUrl) }
-        etUser = findViewById(R.id.et_webdav_user).also { it.setText(backup.webdavUser) }
-        etPass = findViewById(R.id.et_webdav_pass).also { it.setText(backup.webdavPass) }
+        etUrl = findViewById<EditText>(R.id.et_webdav_url).also { it.setText(backup.webdavUrl) }
+        etUser = findViewById<EditText>(R.id.et_webdav_user).also { it.setText(backup.webdavUser) }
+        etPass = findViewById<EditText>(R.id.et_webdav_pass).also { it.setText(backup.webdavPass) }
 
         findViewById<MaterialButton>(R.id.btn_save_webdav).setOnClickListener {
             saveWebdavSettings()

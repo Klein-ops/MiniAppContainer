@@ -62,7 +62,7 @@ class MiniAppDocumentsProvider : DocumentsProvider() {
 
     override fun queryRoots(projection: Array<out String>?): Cursor {
         val cursor = MatrixCursor(projection ?: DEFAULT_ROOT_PROJECTION)
-        cursor.addRow().apply {
+        cursor.newRow().apply {
             add(DocumentsContract.Root.COLUMN_ROOT_ID, ROOT_ID)
             add(DocumentsContract.Root.COLUMN_DOCUMENT_ID, ROOT_ID)
             add(DocumentsContract.Root.COLUMN_TITLE, "蜗壳应用数据")
@@ -121,7 +121,7 @@ class MiniAppDocumentsProvider : DocumentsProvider() {
         val flags = if (file.isDirectory)
             DocumentsContract.Document.FLAG_DIR_SUPPORTS_CREATE
         else DocumentsContract.Document.FLAG_SUPPORTS_WRITE
-        cursor.addRow().apply {
+        cursor.newRow().apply {
             add(DocumentsContract.Document.COLUMN_DOCUMENT_ID, docIdFor(file))
             add(DocumentsContract.Document.COLUMN_DISPLAY_NAME, file.name)
             add(DocumentsContract.Document.COLUMN_MIME_TYPE, getMimeType(file))

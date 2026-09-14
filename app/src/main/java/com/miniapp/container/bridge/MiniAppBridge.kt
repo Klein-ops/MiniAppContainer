@@ -1,5 +1,7 @@
 package com.miniapp.container.bridge
 
+import com.miniapp.container.R
+
 import android.content.Intent
 import android.net.Uri
 import android.os.Handler
@@ -489,7 +491,7 @@ class MiniAppBridge(
             ) needed.add(android.Manifest.permission.WRITE_EXTERNAL_STORAGE)
             if (needed.isEmpty()) return
             val result = suspendCancellableCoroutine<Map<String, Boolean>> { cont ->
-                activity.requestStoragePerms(needed.toTypedArray()) { r ->
+                activity.requestRuntimePerms(needed.toTypedArray()) { r ->
                     if (cont.isActive) cont.resume(r)
                 }
             }
