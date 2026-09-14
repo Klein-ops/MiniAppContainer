@@ -25,6 +25,10 @@ import org.json.JSONArray
 import org.json.JSONObject
 import java.lang.ref.WeakReference
 import java.net.HttpURLConnection
+import android.app.NotificationChannel
+import android.app.NotificationManager
+import android.os.Build
+import androidx.core.app.NotificationCompat
 import java.net.URL
 
 private data class BridgeOut(val ok: Boolean, val payload: String)
@@ -103,6 +107,8 @@ class MiniAppBridge(
         "net.httpRequest" -> httpRequest(p)
         "cb.read" -> readClipboard()
         "cb.write" -> writeClipboard(p.optStringOr("text"))
+        "notify.show" -> notifyShow(p.optStringOr("title"), p.optStringOr("body"))
+        "notify.cancel" -> notifyCancel()
         "sys.openUrl" -> openUrl(p.optStringOr("url"))
         "perm.request" -> {
             val scope = p.optStringOr("scope")
@@ -211,6 +217,52 @@ class MiniAppBridge(
         val cm = activity.getSystemService(android.content.Context.CLIPBOARD_SERVICE)
             as android.content.ClipboardManager
         cm.setPrimaryClip(android.content.ClipData.newPlainText("miniapp", text))
+        "true"
+    }
+
+    /** 确保通知权限（蜗壳审批 + Android 13+ 运行时权限）。 */
+    private suspend fun ensureNotificationPermission() {
+        val granted = permissionManager.ensurePermission(
+            activity, appInfo.appKey, appInfo.permissions, PermissionScope.NOTIFICATION
+        )
+        if (!granted) throw SecurityException("permission denied: notification")
+        if (Build.VERSION.SDK_INT >= 33) {
+            if (activity.checkSelfPermission(android.Manifest.permission.POST_NOTIFICATIONS)
+                == android.content.pm.PackageManager.PERMISSION_GRANTED) return
+            val result = suspendCancellableCoroutine<Map<String, Boolean>> { cont ->
+                activity.requestRuntimePerms(arrayOf(android.Manifest.permission.POST_NOTIFICATIONS)) { r ->
+                    if (cont.isActive) cont.resume(r)
+                }
+            }
+            if (!result.values.all { it }) throw SecurityException("通知权限被拒绝")
+        }
+    }
+
+    /** 发送状态栏通知（title 标注来源小程序，需 notification 权限）。 */
+    private suspend fun notifyShow(title: String, body: String): String = withContext(Dispatchers.Main) {
+        ensureNotificationPermission()
+        val nm = activity.getSystemService(NotificationManager::class.java)
+        val label = appInfo.displayName.ifBlank { appInfo.uname }
+        val channelId = "miniapp_${appInfo.appKey}"
+        if (Build.VERSION.SDK_INT >= 26) {
+            nm.createNotificationChannel(
+                NotificationChannel(channelId, label, NotificationManager.IMPORTANCE_DEFAULT)
+            )
+        }
+        val notif = NotificationCompat.Builder(activity, channelId)
+            .setSmallIcon(R.mipmap.ic_launcher)
+            .setContentTitle("[$label] $title")
+            .setContentText(body)
+            .setAutoCancel(true)
+            .build()
+        nm.notify(appInfo.appKey.hashCode(), notif)
+        "true"
+    }
+
+    /** 取消该小程序的通知。 */
+    private suspend fun notifyCancel(): String = withContext(Dispatchers.Main) {
+        val nm = activity.getSystemService(NotificationManager::class.java)
+        nm.cancel(appInfo.appKey.hashCode())
         "true"
     }
 

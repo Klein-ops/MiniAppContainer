@@ -118,6 +118,10 @@
       read: function () { return B.call('cb.read'); },
       write: function (text) { return B.call('cb.write', { text: String(text) }); }
     },
+    notification: {
+      show: function (title, body) { return B.call('notify.show', { title: String(title), body: String(body) }); },
+      cancel: function () { return B.call('notify.cancel'); }
+    },
     sys: { openUrl: function (u) { return B.call('sys.openUrl', { url: u }); } },
     permission: { request: function (scope) { return B.call('perm.request', { scope: scope }); } }
   };

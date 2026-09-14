@@ -68,7 +68,7 @@ class MiniAppActivity : AppCompatActivity() {
     ) { result -> permCallback?.invoke(result); permCallback = null }
 
     /** 主动申请运行时存储权限（Android 10 及以下弹窗）。 */
-    fun requestStoragePerms(permissions: Array<String>, cb: (Map<String, Boolean>) -> Unit) {
+    fun requestRuntimePerms(permissions: Array<String>, cb: (Map<String, Boolean>) -> Unit) {
         permCallback = cb
         permLauncher.launch(permissions)
     }
