@@ -5,7 +5,7 @@
     <string name="action_install_sample">安装内置示例</string>
     <string name="action_uninstall">卸载</string>
     <string name="action_permissions">权限管理</string>
-    <string name="empty_apps">还没有小程序，点击右上角安装</string>
+    <string name="empty_apps">还没有小程序，请安装</string>
     <string name="perm_title">权限审批</string>
     <string name="perm_allow">允许</string>
     <string name="perm_deny">拒绝</string>
