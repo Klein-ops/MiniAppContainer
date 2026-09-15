@@ -28,6 +28,9 @@ class CategoryManager(private val file: File) {
     }
 
     fun load() {
+        // 必须先清空，否则（如导入备份后）重复 load 会累积出多个"默认"
+        order.clear()
+        categories.clear()
         if (!file.isFile) {
             ensureDefault()
             return

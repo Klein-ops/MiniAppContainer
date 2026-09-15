@@ -29,7 +29,7 @@ class NotificationService(
     suspend fun show(title: String, body: String): String = withContext(Dispatchers.Main) {
         ensurePermission()
         val nm = activity.getSystemService(NotificationManager::class.java)
-        val channelId = "miniapp_${appInfo.appKey}"
+        val channelId = appInfo.appKey   // 渠道名 = uid_uname，便于卸载时清理
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             nm.createNotificationChannel(
                 NotificationChannel(channelId, label(), NotificationManager.IMPORTANCE_DEFAULT)
