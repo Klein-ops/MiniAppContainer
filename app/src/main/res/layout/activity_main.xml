@@ -14,51 +14,72 @@
         app:title="@string/title_app_list"
         app:titleTextColor="#FFFFFF" />
 
-    <HorizontalScrollView
-        android:id="@+id/category_scroll"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:paddingHorizontal="12dp"
-        android:paddingVertical="8dp"
-        android:scrollbars="none">
-
-        <LinearLayout
-            android:id="@+id/category_bar"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:orientation="horizontal" />
-    </HorizontalScrollView>
-
-    <!-- 安装新应用卡片（分类下方、小程序卡片最上方） -->
-    <include
-        android:id="@+id/install_card"
-        layout="@layout/item_install_card"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_marginHorizontal="12dp"
-        android:layout_marginTop="2dp" />
-
     <FrameLayout
         android:layout_width="match_parent"
         android:layout_height="0dp"
         android:layout_weight="1">
 
-        <androidx.recyclerview.widget.RecyclerView
-            android:id="@+id/recycler"
+        <!-- 应用页 -->
+        <LinearLayout
+            android:id="@+id/page_apps"
             android:layout_width="match_parent"
             android:layout_height="match_parent"
-            android:clipToPadding="false"
-            android:padding="12dp" />
+            android:orientation="vertical">
 
-        <TextView
-            android:id="@+id/empty"
+            <HorizontalScrollView
+                android:id="@+id/category_scroll"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:paddingHorizontal="12dp"
+                android:paddingVertical="8dp"
+                android:scrollbars="none">
+
+                <LinearLayout
+                    android:id="@+id/category_bar"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal" />
+            </HorizontalScrollView>
+
+            <include
+                android:id="@+id/install_card"
+                layout="@layout/item_install_card"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginHorizontal="12dp"
+                android:layout_marginTop="2dp" />
+
+            <FrameLayout
+                android:layout_width="match_parent"
+                android:layout_height="0dp"
+                android:layout_weight="1">
+
+                <androidx.recyclerview.widget.RecyclerView
+                    android:id="@+id/recycler"
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:clipToPadding="false"
+                    android:padding="12dp" />
+
+                <TextView
+                    android:id="@+id/empty"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_gravity="center"
+                    android:gravity="center"
+                    android:text="@string/empty_apps"
+                    android:textColor="@color/text_secondary"
+                    android:textSize="15sp"
+                    android:visibility="gone" />
+            </FrameLayout>
+        </LinearLayout>
+
+        <!-- 设置页（与应用页同容器切换，不新开页面） -->
+        <include
+            android:id="@+id/page_settings"
+            layout="@layout/page_settings"
             android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_gravity="center"
-            android:gravity="center"
-            android:text="@string/empty_apps"
-            android:textColor="@color/text_secondary"
-            android:textSize="15sp"
+            android:layout_height="match_parent"
             android:visibility="gone" />
     </FrameLayout>
 
@@ -68,8 +89,8 @@
         android:layout_height="wrap_content"
         android:background="@color/bg_card"
         app:itemIconTint="@color/bottom_nav_item"
-        app:itemTextColor="@color/bottom_nav_item"
         app:itemRippleColor="@color/bottom_nav_item"
+        app:itemTextColor="@color/bottom_nav_item"
         app:labelVisibilityMode="labeled"
         app:menu="@menu/bottom_nav_menu" />
 

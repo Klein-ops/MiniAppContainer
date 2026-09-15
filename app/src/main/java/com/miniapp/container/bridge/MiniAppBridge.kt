@@ -181,10 +181,8 @@ class MiniAppBridge(
      * dex / input / output 路径相对沙箱根；隔离进程仅能通过 FD 读写。
      */
     private suspend fun dexRun(p: JSONObject): String {
-        val granted = permissionManager.ensurePermission(
-            activity, appInfo.appKey, appInfo.permissions, PermissionScope.DEX
-        )
-        if (!granted) throw SecurityException("permission denied: dex")
+        // 无需权限：dex 在 isolatedProcess 隔离进程中执行（独立 UID + isolated_app 域），
+        // 无网络/无路径访问/无系统服务/不能加载 native，天然受限，故不再要求审批。
         val dexPath = p.optStringOr("dex")
         val className = p.optStringOr("className")
         if (dexPath.isEmpty()) throw IllegalArgumentException("dex 路径不能为空")

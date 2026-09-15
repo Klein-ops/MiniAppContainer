@@ -339,7 +339,7 @@ await MiniApp.sys.openUrl('https://example.com');  // boolean true
 const granted = await MiniApp.permission.request('net');  // boolean
 ```
 
-### 4.9 Dex 执行（需审批）
+### 4.9 Dex 执行（无需权限）
 
 | 接口 | 返回类型 | 返回值 |
 |---|---|---|
@@ -368,11 +368,11 @@ const result = await MiniApp.dex.run({
 // → { ok: "true", /* dex 返回的键值 */ }
 ```
 
-需声明 `"dex"`。
+**无需任何权限**，直接调用即可（隔离进程本身即为安全边界，见下）。
 
 > `className` / `methodName` 由宿主通过内部保留键（`__className` / `__methodName`）传递，**不会**出现在 `params` 中，也不会覆盖调用方同名的 `params` 键。
 
-执行发生在 **isolatedProcess 隔离进程**中：
+执行发生在 **`android:isolatedProcess="true"` 的隔离进程**中（这是蜗壳 Dex 沙箱的核心机制）：
 
 - 独立 UID + SELinux `isolated_app` 域，**不继承宿主任何权限**：无网络、无路径访问、无系统服务、不能加载 native 库。
 - dex 内**只能使用 Android 框架类与 Java 标准库**；不能引用蜗壳的自定义类。
@@ -409,7 +409,6 @@ public static android.os.Bundle run(
 | `fs.external` | 静默操作内部储存：读写/列目录/查存在/查信息/建目录/删除/重命名 + 读取外部 content:// | 拒绝 |
 | `clipboard` | 读写系统剪贴板 | 拒绝 |
 | `notification` | 发送状态栏通知 | 拒绝 |
-| `dex` | 在隔离进程执行 Dex 字节码 | 拒绝 |
 
 ### 5.3 审批流程
 

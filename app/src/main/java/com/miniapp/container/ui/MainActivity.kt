@@ -63,13 +63,8 @@ class MainActivity : AppCompatActivity() {
         adapter.onItemClick = { startMiniApp(it) }
         adapter.onSettingsClick = { openAppSettings(it.appKey) }
         findViewById<View>(R.id.install_card).setOnClickListener { showInstallOptions() }
-        findViewById<com.google.android.material.bottomnavigation.BottomNavigationView>(R.id.bottom_nav)
-            .setOnItemSelectedListener { item ->
-                if (item.itemId == R.id.nav_settings) {
-                    startActivity(Intent(this, SettingsActivity::class.java))
-                    false   // 不切换选中态，设置是独立页面
-                } else true
-            }
+        setupBottomNav()
+        setupSettingsPage()
         recycler.layoutManager = LinearLayoutManager(this)
         recycler.adapter = adapter
 
@@ -360,5 +355,48 @@ class MainActivity : AppCompatActivity() {
         refresh()
     }
 
+
+    // ===== 底部导航：应用 / 设置 同容器切换（不新开页面，选中态正常高亮）=====
+    private fun setupBottomNav() {
+        val pageApps = findViewById<View>(R.id.page_apps)
+        val pageSettings = findViewById<View>(R.id.page_settings)
+        val toolbar = findViewById<Toolbar>(R.id.toolbar)
+        val bottomNav =
+            findViewById<com.google.android.material.bottomnavigation.BottomNavigationView>(R.id.bottom_nav)
+        bottomNav.setOnItemSelectedListener { item ->
+            val settings = item.itemId == R.id.nav_settings
+            pageApps.visibility = if (settings) View.GONE else View.VISIBLE
+            pageSettings.visibility = if (settings) View.VISIBLE else View.GONE
+            toolbar.title = if (settings) "设置" else getString(R.string.title_app_list)
+            true
+        }
+    }
+
+    // ===== 设置页各项 =====
+    private fun setupSettingsPage() {
+        val switchDebug = findViewById<androidx.appcompat.widget.SwitchCompat>(R.id.switch_debug)
+        switchDebug.isChecked = com.miniapp.container.debug.DebugBus.enabled
+        switchDebug.setOnCheckedChangeListener { _, checked ->
+            com.miniapp.container.debug.DebugBus.setEnabled(checked)
+            toast(if (checked) "调试模式已开启" else "调试模式已关闭")
+        }
+        findViewById<com.google.android.material.button.MaterialButton>(R.id.btn_debug_log)
+            .setOnClickListener { startActivity(Intent(this, DebugActivity::class.java)) }
+        findViewById<com.google.android.material.button.MaterialButton>(R.id.btn_backup)
+            .setOnClickListener { startActivity(Intent(this, BackupActivity::class.java)) }
+        findViewById<com.google.android.material.button.MaterialButton>(R.id.btn_netdisk)
+            .setOnClickListener { startActivity(Intent(this, WebdavConfigActivity::class.java)) }
+        findViewById<com.google.android.material.button.MaterialButton>(R.id.btn_clean_storage)
+            .setOnClickListener { cleanWebViewCache() }
+    }
+
+    /** 清理 WebView 缓存与存储。 */
+    private fun cleanWebViewCache() {
+        try {
+            android.webkit.WebStorage.getInstance().deleteAllData()
+            IoUtil.clearCache(this)
+        } catch (t: Throwable) { /* ignore */ }
+        toast("已清理 WebView 缓存与存储")
+    }
 
 }
