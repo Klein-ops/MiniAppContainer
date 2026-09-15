@@ -33,9 +33,9 @@ class WebdavConfigActivity : AppCompatActivity() {
         findViewById<MaterialToolbar>(R.id.toolbar).setNavigationOnClickListener { finish() }
 
         config = WebdavConfig(this)
-        etUrl = findViewById(R.id.et_url).also { it.setText(config.url) }
-        etUser = findViewById(R.id.et_user).also { it.setText(config.user) }
-        etPass = findViewById(R.id.et_pass).also { it.setText(config.pass) }
+        etUrl = findViewById<EditText>(R.id.et_url).also { it.setText(config.url) }
+        etUser = findViewById<EditText>(R.id.et_user).also { it.setText(config.user) }
+        etPass = findViewById<EditText>(R.id.et_pass).also { it.setText(config.pass) }
         tvStatus = findViewById(R.id.tv_status)
         tvPaths = findViewById(R.id.tv_paths)
 

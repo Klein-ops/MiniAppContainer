@@ -370,6 +370,9 @@ class MainActivity : AppCompatActivity() {
     private fun setupBottomNav() {
         val pageApps = findViewById<View>(R.id.page_apps)
         val pageSettings = findViewById<View>(R.id.page_settings)
+        // 显式初始化可见性（不依赖 <include> 上的 android:visibility）
+        pageApps.visibility = View.VISIBLE
+        pageSettings.visibility = View.GONE
         val toolbar = findViewById<Toolbar>(R.id.toolbar)
         val bottomNav =
             findViewById<com.google.android.material.bottomnavigation.BottomNavigationView>(R.id.bottom_nav)

@@ -111,11 +111,12 @@ class AppInstaller(
         registry.remove(appKey)
         registry.save()
         permissionManager.clearApp(appKey)   // 卸载时清除权限记录
-        sandbox.delete(appKey)
+        val deleted = sandbox.delete(appKey)
         // 移除该小程序的独立通知渠道（渠道名 = appKey = uid_uname）
         try {
             context.getSystemService(android.app.NotificationManager::class.java)
                 ?.deleteNotificationChannel(appKey)
         } catch (_: Throwable) { /* 渠道不存在或系统不支持，忽略 */ }
+        deleted
     }
 }

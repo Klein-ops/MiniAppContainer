@@ -63,13 +63,13 @@ class BackupService(private val context: Context) {
                 }
             }
 
-            selected.forEach { key ->
+            selected.forEach appLoop@{ key ->
                 val dir = File(base, key)
-                if (!dir.isDirectory) return@forEach
-                dir.walkTopDown().filter { it.isFile }.forEach { f ->
+                if (!dir.isDirectory) return@appLoop
+                dir.walkTopDown().filter { it.isFile }.forEach fileLoop@{ f ->
                     val rel = f.relativeTo(base).path.replace(File.separatorChar, '/')
-                    if (rel.contains("/tmp/")) return@forEach
-                    if (!includeData && rel.startsWith("$key/data/")) return@forEach
+                    if (rel.contains("/tmp/")) return@fileLoop
+                    if (!includeData && rel.startsWith("$key/data/")) return@fileLoop
                     writeEntry(zos, "miniapps/$rel", f.readBytes())
                 }
             }
