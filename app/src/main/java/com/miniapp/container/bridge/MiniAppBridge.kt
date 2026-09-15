@@ -207,13 +207,22 @@ class MiniAppBridge(
         params.putString("__methodName", p.optStringOr("methodName", "run"))
         val result = com.miniapp.container.dex.DexRunner(activity).run(dexFile, input, output, params)
         val out = JSONObject()
-        result.keySet().forEach { k -> out.put(k, result.get(k)?.toString()) }
+        result.keySet().forEach { k ->
+            // 布尔值保持布尔类型（如 ok），其余转字符串，避免 ok 变成 "true" 字符串
+            when (val v = result.get(k)) {
+                is Boolean -> out.put(k, v)
+                else -> out.put(k, v?.toString())
+            }
+        }
         return out.toString()
     }
 
     private fun respond(reqId: String, out: BridgeOut) {
+        // payload 会被原样拼进 JS：若为空会生成 __resolve(id,true,) 语法错误，
+        // 导致 Promise 永不结算。空 payload 统一降级为 null。
+        val payloadJs = if (out.payload.isBlank()) "null" else out.payload
         val js = if (out.ok) {
-            "window.__MiniAppBridge.__resolve(${jsString(reqId)},true,${out.payload})"
+            "window.__MiniAppBridge.__resolve(${jsString(reqId)},true,$payloadJs)"
         } else {
             "window.__MiniAppBridge.__resolve(${jsString(reqId)},false,${jsString(out.payload)})"
         }

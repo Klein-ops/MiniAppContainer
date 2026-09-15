@@ -52,7 +52,8 @@ class ExternalFileService(
         if (destPath.isBlank()) throw IllegalArgumentException("destPath required")
         return suspendCancellableCoroutine { cont ->
             activity.launchImport { uri ->
-                if (uri == null) { if (cont.isActive) cont.resume(""); return@launchImport }
+                // 用户取消：返回 false（与返回类型 boolean 一致，不抛异常）
+                if (uri == null) { if (cont.isActive) cont.resume("false"); return@launchImport }
                 activity.lifecycleScope.launch {
                     try {
                         val bytes = activity.contentResolver.openInputStream(uri)?.use { it.readBytes() }
@@ -74,7 +75,8 @@ class ExternalFileService(
         val defaultName = File(path).name
         return suspendCancellableCoroutine { cont ->
             activity.launchExport(defaultName) { uri ->
-                if (uri == null) { if (cont.isActive) cont.resume(""); return@launchExport }
+                // 用户取消：返回 false（与返回类型 boolean 一致，不抛异常）
+                if (uri == null) { if (cont.isActive) cont.resume("false"); return@launchExport }
                 activity.lifecycleScope.launch {
                     try {
                         activity.contentResolver.openOutputStream(uri)?.use { it.write(bytes) }

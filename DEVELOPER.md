@@ -20,7 +20,7 @@
 
 - **前端**：标准 HTML/CSS/JS，运行在系统 WebView 中。
 - **WASM**：基于 WebView 内置 WebAssembly JIT，支持二进制、Memory、import 注入。
-- **权限**：沙箱内读写无需审批；访问网络（`net`）、打开外链（`sys.openUrl`）、读写内部储存（`fs.external`）、剪贴板（`clipboard`）、通知（`notification`）、Dex（`dex`）需审批。
+- **权限**：沙箱内读写无需审批；访问网络（`net`）、打开外链（`sys.openUrl`）、读写内部储存（`fs.external`）、剪贴板（`clipboard`）、通知（`notification`）、网络存储（`storage`）需审批。Dex 执行（`dex.run`）**无需权限**。
   分为**普通权限**（可拒绝仍能进入）和**必要权限**（拒绝则不进入）。
 
 ---
@@ -176,8 +176,8 @@ await MiniApp.fs.remove('data/tmp');                        // boolean
 
 | 接口 | 返回类型 | 返回值 |
 |---|---|---|
-| `fs.importFile(destPath)` | `boolean` | 导入成功 `true`；用户取消时 reject |
-| `fs.exportFile(path)` | `boolean` | 导出成功 `true`；用户取消时 reject |
+| `fs.importFile(destPath)` | `boolean` | 导入成功 `true`；**用户取消时 `false`**（不 reject） |
+| `fs.exportFile(path)` | `boolean` | 导出成功 `true`；**用户取消时 `false`**（不 reject） |
 
 ```js
 await MiniApp.fs.importFile('data/imported.bin');  // boolean true
@@ -267,11 +267,13 @@ instance.exports.compute(42);
 
 `status` 为 HTTP 状态码（整数），`body` 为响应文本（字符串）。`opts` 为 `{ headers: object, body: string }`。支持 GET/POST/PUT/DELETE/PATCH 等任意方法。
 
-**Content-Type 行为**：宿主**不会**自动添加 `Content-Type`。若不通过 `headers` 显式指定，底层 `HttpURLConnection` 的默认值为 `application/x-www-form-urlencoded`（这是 Android 平台的默认行为，可能导致服务端按表单而非 JSON 解析请求体）。因此发送 JSON 时**必须显式指定**：
+**Content-Type 行为**：宿主**不会**自动添加 `Content-Type`（底层为 OkHttp，未显式指定时请求**不含**该请求头）。因此发送 JSON 时**必须自行指定**，否则服务端可能按默认类型解析请求体：
 
 ```js
-await MiniApp.net.post(url, JSON.stringify({ hello: '蜗壳' }), {
-  headers: { 'Content-Type': 'application/json' }
+// 需要自定义请求头（如 Content-Type）时用 net.request
+await MiniApp.net.request('POST', url, {
+  headers: { 'Content-Type': 'application/json' },
+  body: JSON.stringify({ hello: 'MiniApp' })
 });
 ```
 
@@ -343,7 +345,7 @@ const granted = await MiniApp.permission.request('net');  // boolean
 
 | 接口 | 返回类型 | 返回值 |
 |---|---|---|
-| `dex.run(opts)` | `object` | dex 内 `run` 方法返回的 `Bundle` 键值（值转为字符串），并含 `ok: "true"`；失败时含 `error` |
+| `dex.run(opts)` | `object` | dex 内 `run` 方法返回的 `Bundle` 键值（布尔值保持布尔类型，其余转字符串），并含 `ok: boolean`；失败时含 `error: string` |
 
 `opts` 字段：
 
@@ -365,7 +367,7 @@ const result = await MiniApp.dex.run({
   input: 'data/in.bin',
   output: 'data/out.bin'
 });
-// → { ok: "true", /* dex 返回的键值 */ }
+// → { ok: true, /* dex 返回的键值 */ }
 ```
 
 **无需任何权限**，直接调用即可（隔离进程本身即为安全边界，见下）。
@@ -704,7 +706,6 @@ adb logcat -s MiniAppJS MiniAppBridge
 | `permission denied: sys.openUrl` | 未声明 `sys.openUrl` 或用户拒绝 | manifest 声明并允许 |
 | `permission denied: clipboard` | 未声明 `clipboard` 或用户拒绝 | manifest 声明并允许 |
 | `permission denied: notification` | 未声明 `notification` 或用户拒绝 | manifest 声明并允许 |
-| `permission denied: dex` | 未声明 `dex` 或用户拒绝 | manifest 声明并允许 |
 | `写操作仅允许 data/ 和 tmp/ 目录: xxx` | 尝试写 `app/` | 写数据放 `data/` 或 `tmp/` |
 | `path escapes sandbox: xxx` | 路径含 `..` 逃出沙箱 | 使用沙箱内相对路径 |
 | `文件不存在: xxx` / `目录不存在: xxx` | 目标路径不存在 | 先用 `fs.exists` 判断或创建 |
