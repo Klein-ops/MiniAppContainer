@@ -5,7 +5,7 @@ import android.content.Context
 /**
  * WebDAV 连接配置（持久化到 SharedPreferences `webdav_config`）。
  *
- * [ROOT_FOLDER] 为蜗壳在 WebDAV 上的根文件夹（中文名，避免与其他应用冲突）。
+ * [ROOT_FOLDER] 为蜗壳在 WebDAV 上的根文件夹（英文名，避免中文路径在部分服务器上的兼容问题）。
  */
 class WebdavConfig(context: Context) {
 
@@ -29,7 +29,7 @@ class WebdavConfig(context: Context) {
 
     companion object {
         /** 蜗壳在 WebDAV 上的根文件夹名。 */
-        const val ROOT_FOLDER = "蜗壳"
+        const val ROOT_FOLDER = "MiniAppContainer"
         private const val KEY_URL = "url"
         private const val KEY_USER = "user"
         private const val KEY_PASS = "pass"

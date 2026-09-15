@@ -26,7 +26,7 @@ import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
 
-/** 备份与恢复：本地 zip + WebDAV（备份内容可选、路径固定 /蜗壳/backup/）。 */
+/** 备份与恢复：本地 zip + WebDAV（备份内容可选、路径固定 /MiniAppContainer/backup/）。 */
 class BackupActivity : AppCompatActivity() {
 
     private val hostApp by lazy { MiniAppApp.get(application) }
@@ -78,7 +78,7 @@ class BackupActivity : AppCompatActivity() {
 
     private fun renderWebdavHint() {
         findViewById<TextView>(R.id.tv_webdav_hint).text =
-            if (backup.isWebdavConfigured()) "备份保存到 /蜗壳/backup/。"
+            if (backup.isWebdavConfigured()) "备份保存到 /MiniAppContainer/backup/。"
             else "尚未配置服务器。请先在「网络存储」中填写 WebDAV 地址。"
     }
 
@@ -169,7 +169,7 @@ class BackupActivity : AppCompatActivity() {
                     tmp.delete()
                     r
                 }
-                toast(if (ok) "已备份到 /蜗壳/backup/$name" else "上传失败")
+                toast(if (ok) "已备份到 /MiniAppContainer/backup/$name" else "上传失败")
             } catch (e: WebdavError) {
                 toast(webdavErrorText(e))
             } catch (t: Throwable) {

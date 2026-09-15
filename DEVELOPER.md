@@ -397,10 +397,10 @@ public static android.os.Bundle run(
 **存储路径由宿主强制拼装，小程序只能给相对路径**：
 
 ```
-/<根文件夹>/data/<uid>_<uname>/<你给的相对路径>
+/MiniAppContainer/data/<uid>_<uname>/<你给的相对路径>
 ```
 
-- 根文件夹固定为 `蜗壳`（`WebdavConfig.ROOT_FOLDER`）。
+- 根文件夹固定为 `MiniAppContainer`（`WebdavConfig.ROOT_FOLDER`）。
 - `<uid>_<uname>` 为你的应用身份。**每个小程序有独立目录，彼此无法访问**。
 - 相对路径禁止 `.`、`..`（越权直接报错），开头 `/` 会被忽略。
 

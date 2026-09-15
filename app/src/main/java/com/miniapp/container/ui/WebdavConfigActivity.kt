@@ -1,6 +1,8 @@
 package com.miniapp.container.ui
 
 import android.os.Bundle
+import android.text.InputType
+import android.view.MotionEvent
 import android.widget.EditText
 import android.widget.TextView
 import androidx.appcompat.app.AppCompatActivity
@@ -24,6 +26,7 @@ class WebdavConfigActivity : AppCompatActivity() {
     private lateinit var tvStatus: TextView
     private lateinit var tvPaths: TextView
     private lateinit var config: WebdavConfig
+    private var passVisible = false
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -39,6 +42,7 @@ class WebdavConfigActivity : AppCompatActivity() {
         tvStatus = findViewById(R.id.tv_status)
         tvPaths = findViewById(R.id.tv_paths)
 
+        setupPasswordToggle()
         renderPaths()
         renderStatus()
 
@@ -51,6 +55,40 @@ class WebdavConfigActivity : AppCompatActivity() {
             save()
             testConnection()
         }
+    }
+
+    /** 点击密码框右侧眼睛图标切换明文/密文。 */
+    private fun setupPasswordToggle() {
+        etPass.setOnTouchListener { _, event ->
+            var handled = false
+            if (event.action == MotionEvent.ACTION_UP) {
+                // index 2 = END（用 Relative 版本，RTL 下也正确）
+                val icon = etPass.compoundDrawablesRelative[2]
+                if (icon != null) {
+                    val iconLeft = etPass.width - etPass.paddingEnd - icon.intrinsicWidth
+                    if (event.x >= iconLeft) {
+                        togglePasswordVisible()
+                        etPass.performClick()
+                        handled = true
+                    }
+                }
+            }
+            handled
+        }
+    }
+
+    private fun togglePasswordVisible() {
+        passVisible = !passVisible
+        val sel = etPass.selectionEnd.coerceAtLeast(0)
+        etPass.inputType = if (passVisible) {
+            InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_VARIATION_VISIBLE_PASSWORD
+        } else {
+            InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_VARIATION_PASSWORD
+        }
+        etPass.setCompoundDrawablesRelativeWithIntrinsicBounds(
+            0, 0, if (passVisible) R.drawable.ic_visibility else R.drawable.ic_visibility_off, 0
+        )
+        etPass.setSelection(sel.coerceAtMost(etPass.text.length))
     }
 
     private fun save() {
@@ -71,7 +109,7 @@ class WebdavConfigActivity : AppCompatActivity() {
         }.trim()
     }
 
-    /** 测试连接：PROPFIND 根目录。 */
+    /** 测试连接：确保根目录存在（写权限）并列出内容（读权限），失败时显示具体原因。 */
     private fun testConnection() {
         if (!config.configured) {
             toast("请先填写服务器地址")
@@ -79,13 +117,14 @@ class WebdavConfigActivity : AppCompatActivity() {
         }
         tvStatus.text = "状态：测试中…"
         lifecycleScope.launch {
-            val ok = withContext(Dispatchers.IO) {
-                runCatching {
-                    WebdavClient(config).list(listOf(WebdavConfig.ROOT_FOLDER))
-                    true
-                }.getOrDefault(false)
+            val err = withContext(Dispatchers.IO) {
+                WebdavClient(config).testConnection(WebdavConfig.ROOT_FOLDER)
             }
-            tvStatus.text = if (ok) "状态：连接成功" else "状态：连接失败（检查地址/账号，或目录不可写）"
+            tvStatus.text = if (err == null) {
+                "状态：连接成功（读写正常）"
+            } else {
+                "状态：连接失败\n原因：$err"
+            }
         }
     }
 }
