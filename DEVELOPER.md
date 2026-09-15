@@ -390,6 +390,60 @@ public static android.os.Bundle run(
 - 能力边界：确定可行——Dex 加载、反射调用、FD 读写、Java 库（压缩/加密/正则/时间）、多线程、Bundle 通信；确定不可行——加载 native 库、执行 ELF、主动 open 路径、网络、系统服务、访问宿主或其他沙箱。
 - 性能：无 AOT，首次解释执行；热点 JIT 后接近普通 Java；数值计算慢于 WASM，适合结构化逻辑、加密压缩等场景。
 
+### 4.10 网络存储（需审批）
+
+小程序可把自己产生的数据存到用户在「设置 → 网络存储」中配置的 WebDAV 服务器上。
+
+**存储路径由宿主强制拼装，小程序只能给相对路径**：
+
+```
+/<根文件夹>/data/<uid>_<uname>/<你给的相对路径>
+```
+
+- 根文件夹固定为 `蜗壳`（`WebdavConfig.ROOT_FOLDER`）。
+- `<uid>_<uname>` 为你的应用身份。**每个小程序有独立目录，彼此无法访问**。
+- 相对路径禁止 `.`、`..`（越权直接报错），开头 `/` 会被忽略。
+
+| 接口 | 返回类型 | 返回值 |
+|---|---|---|
+| `storage.upload(path, base64)` | `boolean` | 成功 `true` |
+| `storage.download(path)` | `string` | base64 编码的文件字节 |
+| `storage.list(path)` | `array` | `[{ name: string, isDir: boolean }]`（`path` 为 `''` 表示小程序根目录） |
+| `storage.delete(path)` | `boolean` | 删除成功 `true`；目标不存在也返回 `true` |
+
+**失败约定**（Promise reject，`Error.message` 为以下之一）：
+
+| message | 含义 |
+|---|---|
+| `permission denied: storage` | 用户未授予 `storage` 权限（或未声明） |
+| `storage not configured` | 已授权，但用户尚未在「设置 → 网络存储」中配置 WebDAV |
+
+```js
+// 上传（base64 内容）
+await MiniApp.storage.upload('notes/a.txt', btoa('hello'));   // boolean true
+
+// 下载
+const b64 = await MiniApp.storage.download('notes/a.txt');     // string (base64)
+
+// 列表（'' = 小程序根目录）
+const items = await MiniApp.storage.list('notes');             // [{ name, isDir }]
+
+// 删除
+await MiniApp.storage.delete('notes/a.txt');                   // boolean true
+
+// 区分失败原因
+try {
+  await MiniApp.storage.list('');
+} catch (e) {
+  if (e.message === 'permission denied: storage') { /* 用户未授权 */ }
+  else if (e.message === 'storage not configured') { /* 未配置 WebDAV */ }
+}
+```
+
+需声明 `"storage"`；首次调用弹窗审批，授权持久化。
+
+---
+
 ## 五、权限模型
 
 ### 5.1 两种权限
@@ -409,6 +463,7 @@ public static android.os.Bundle run(
 | `fs.external` | 静默操作内部储存：读写/列目录/查存在/查信息/建目录/删除/重命名 + 读取外部 content:// | 拒绝 |
 | `clipboard` | 读写系统剪贴板 | 拒绝 |
 | `notification` | 发送状态栏通知 | 拒绝 |
+| `storage` | 读写 WebDAV 网络存储（仅小程序自己的目录） | 拒绝 |
 
 ### 5.3 审批流程
 
@@ -657,6 +712,8 @@ adb logcat -s MiniAppJS MiniAppBridge
 | `已跳转系统设置，请开启「所有文件访问权限」后重试` | Android 11+ 未开 `MANAGE_EXTERNAL_STORAGE` | 在设置页开启后返回重试 |
 | `[MiniApp.wasm] instantiate failed: ...` | WASM 格式错误或 import 缺失 | 检查 import object 是否提供 `env.memory` 等必需项 |
 | `unknown method: xxx` | 方法名拼写错误 | 对照本手册 API 清单 |
+| `permission denied: storage` | 未声明 `storage` 或用户拒绝 | manifest 声明并允许 |
+| `storage not configured` | 已授权但未配置 WebDAV | 在「设置 → 网络存储」中填写地址 |
 | `dex 文件不存在: xxx` | `dex` 路径不对 | 路径相对沙箱根，确认 zip/`data/` 含该 dex |
 
 ---

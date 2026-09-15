@@ -40,7 +40,8 @@ Android Studio：`Open` 项目根目录 → Sync → Run。
 5. 底部导航「**设置**」页：
    - **调试模式**（开关）：开启后记录所有小程序接口调用（方法/参数/返回值/耗时）。
    - **查看调用日志**：实时查看调试记录。
-   - **备份与恢复**：导出/导入全部小程序数据（zip），支持备份到 WebDAV 及从 WebDAV 恢复。
+   - **备份与恢复**：导出/导入数据（zip），可选应用与是否含数据；支持备份到 WebDAV（路径 `/蜗壳/backup/`）及从 WebDAV 恢复。
+   - **网络存储**：配置 WebDAV 服务器（备份与小程序 `storage` 接口共用）。
    - **清理 WebView 缓存**。
 6. **数据开放**：内置 SAF DocumentsProvider，其他应用可通过系统文件选择器（SAF）在用户授权后浏览蜗壳的数据目录。
 
@@ -138,6 +139,8 @@ MiniApp.net.get(url) / post(url, body) / request(method, url, opts)
 MiniApp.clipboard.read() / write(text)
 // 通知（需 notification 权限）
 MiniApp.notification.show(title, body) / cancel()
+// 网络存储（需 storage 权限）：小程序在 WebDAV 上的独立目录
+MiniApp.storage.upload(path, base64) / download(path) / list(path) / delete(path)
 // Dex 执行（无需权限，android:isolatedProcess 隔离进程内运行）
 MiniApp.dex.run({ dex, className, methodName, params, input, output })
 // 打开外部链接（需 sys.openUrl 权限）
@@ -156,7 +159,7 @@ MiniApp.permission.request(scope)
 - **路径穿越防护**：`PathGuard.resolveUnderRoot` 规范化并校验 canonical 路径未逃出沙箱。
 - **写白名单**：沙箱内写操作仅允许 `data/` 和 `tmp/`，禁止写 `app/`（只读资源区）。
 - **内部储存安全**：`fs.external` 操作禁止访问应用私有目录（`/data/data/...`），防篡改权限记录。
-- **权限审批**：`net` / `sys.openUrl` / `fs.external` / `clipboard` / `notification` 调用前经 `PermissionManager` 审批，授权持久化到 `miniapps/permissions.json`。弹窗提供 4 种选择：允许 / 仅允许一次 / 拒绝 / 不再询问。
+- **权限审批**：`net` / `sys.openUrl` / `fs.external` / `clipboard` / `notification` / `storage` 调用前经 `PermissionManager` 审批，授权持久化到 `miniapps/permissions.json`。弹窗提供 4 种选择：允许 / 仅允许一次 / 拒绝 / 不再询问。
 - **Dex 隔离**：`dex.run` 无需权限，在 `android:isolatedProcess="true"` 独立进程中执行（独立 UID + SELinux `isolated_app` 域），无网络/无路径访问/无系统服务/不能加载 native 库；只能读写主进程通过 FD 传入的文件，无法主动打开路径。
 
 ---

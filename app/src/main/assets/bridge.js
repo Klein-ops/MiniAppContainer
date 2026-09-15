@@ -125,6 +125,13 @@
       show: function (title, body) { return B.call('notify.show', { title: String(title), body: String(body) }); },
       cancel: function () { return B.call('notify.cancel'); }
     },
+    storage: {
+      // 网络存储（需 storage 权限）：小程序在 WebDAV 上的独立目录 /蜗壳/data/<uid>_<uname>/
+      upload: function (path, base64) { return B.call('storage.upload', { path: String(path), base64: String(base64) }); },
+      download: function (path) { return B.call('storage.download', { path: String(path) }); },
+      list: function (path) { return B.call('storage.list', { path: String(path || '') }); },
+      delete: function (path) { return B.call('storage.delete', { path: String(path) }); }
+    },
     dex: {
       // 在隔离进程执行 Dex 字节码（需 dex 权限）
       run: function (opts) {

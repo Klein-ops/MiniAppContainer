@@ -58,6 +58,7 @@ class MiniAppBridge(
     private val net = NetService(activity, appInfo, permissionManager)
     private val clipboard = ClipboardService(activity, appInfo, permissionManager)
     private val notification = NotificationService(activity, appInfo, permissionManager)
+    private val storage = com.miniapp.container.service.StorageService(activity, appInfo, permissionManager)
 
     companion object { private const val TAG = "MiniAppBridge" }
 
@@ -132,6 +133,12 @@ class MiniAppBridge(
         // 通知
         "notify.show" -> notification.show(p.optStringOr("title"), p.optStringOr("body"))
         "notify.cancel" -> notification.cancel()
+
+        // 网络存储
+        "storage.upload" -> storage.upload(p.optStringOr("path"), p.optStringOr("base64"))
+        "storage.download" -> storage.download(p.optStringOr("path"))
+        "storage.list" -> storage.list(p.optStringOr("path"))
+        "storage.delete" -> storage.delete(p.optStringOr("path"))
 
         // Dex
         "dex.run" -> dexRun(p)

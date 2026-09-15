@@ -106,11 +106,8 @@ class WebdavClient(private val config: WebdavConfig) {
         }
     }
 
-    /**
-     * 列出目录下的直接子项（PROPFIND Depth:1，解析 href）。
-     * 返回子项名（不含父路径，不含斜杠）。
-     */
-    fun list(segments: List<String>): List<String> {
+    /** 列目录项（含是否目录），PROPFIND Depth:1。 */
+    fun listEntries(segments: List<String>): List<WebdavEntry> {
         val conn = open("PROPFIND", segments)
         return try {
             conn.setRequestProperty("Depth", "1")
@@ -125,19 +122,28 @@ class WebdavClient(private val config: WebdavConfig) {
             }
             if (conn.responseCode !in 200..299) return emptyList()
             val xml = conn.inputStream.bufferedReader().use { it.readText() }
-            parseHrefs(xml, segments)
+            parseEntries(xml, segments)
         } finally {
             conn.disconnect()
         }
     }
 
-    /** 从 PROPFIND 响应 XML 中提取直接子项名。 */
-    private fun parseHrefs(xml: String, parentSegments: List<String>): List<String> {
+    /** 列出目录下的直接子项名。 */
+    fun list(segments: List<String>): List<String> = listEntries(segments).map { it.name }
+
+    /** 从 PROPFIND 响应 XML 中提取直接子项（名称 + 是否目录）。 */
+    private fun parseEntries(xml: String, parentSegments: List<String>): List<WebdavEntry> {
         val parentEncoded = parentSegments.joinToString("/") { Uri.encode(it) }
-        val result = LinkedHashSet<String>()
-        val re = Regex("<[^>]*href[^>]*>(.*?)</[^>]*href>", RegexOption.IGNORE_CASE)
-        re.findAll(xml).forEach { m ->
-            var href = m.groupValues[1].trim()
+        val result = LinkedHashSet<WebdavEntry>()
+        val blockRe = Regex(
+            "<[^>]*:?response[^>]*>(.*?)</[^>]*:?response>",
+            setOf(RegexOption.IGNORE_CASE, RegexOption.DOT_MATCHES_ALL)
+        )
+        val hrefRe = Regex("<[^>]*:?href[^>]*>(.*?)</[^>]*:?href>", RegexOption.IGNORE_CASE)
+        blockRe.findAll(xml).forEach { block ->
+            val body = block.groupValues[1]
+            val hrefRaw = hrefRe.find(body)?.groupValues?.get(1)?.trim() ?: return@forEach
+            var href = hrefRaw
             if (href.startsWith("http://") || href.startsWith("https://")) {
                 href = runCatching { URL(href).path }.getOrDefault(href)
             }
@@ -145,8 +151,13 @@ class WebdavClient(private val config: WebdavConfig) {
             val idx = href.indexOf(parentEncoded)
             if (idx < 0) return@forEach
             val child = href.substring(idx + parentEncoded.length).trim('/')
-            if (child.isNotEmpty() && !child.contains('/')) result.add(child)
+            if (child.isEmpty() || child.contains('/')) return@forEach
+            val isDir = body.contains("collection", ignoreCase = true)
+            result.add(WebdavEntry(child, isDir))
         }
         return result.toList()
     }
 }
+
+/** WebDAV 目录项。 */
+data class WebdavEntry(val name: String, val isDir: Boolean)
