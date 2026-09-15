@@ -251,10 +251,20 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun launchMiniApp(appKey: String) {
-        startActivity(
-            Intent(this, MiniAppActivity::class.java).putExtra(MiniAppActivity.EXTRA_APP_KEY, appKey)
-        )
+        startActivity(miniAppIntent(appKey))
     }
+
+    /**
+     * 构造小程序启动 Intent：
+     * - data = miniapp://<appKey>，使每个小程序成为独立 task（多开互不干扰）
+     * - FLAG_ACTIVITY_NEW_DOCUMENT 配合 activity 的 documentLaunchMode=intoExisting
+     */
+    private fun miniAppIntent(appKey: String): Intent =
+        Intent(this, MiniAppActivity::class.java)
+            .setAction(Intent.ACTION_VIEW)
+            .setData(Uri.parse("miniapp://$appKey"))
+            .putExtra(MiniAppActivity.EXTRA_APP_KEY, appKey)
+            .addFlags(Intent.FLAG_ACTIVITY_NEW_DOCUMENT)
 
     private fun showUrlInstallDialog() {
         val input = EditText(this).apply {

@@ -57,9 +57,12 @@ class AppSettingsActivity : AppCompatActivity() {
             toast("当前桌面不支持创建快捷方式")
             return
         }
+        // data 唯一化 → 每个小程序的快捷方式对应独立 task（多开互不干扰）
         val launchIntent = Intent(this, com.miniapp.container.ui.MiniAppActivity::class.java)
             .setAction(Intent.ACTION_VIEW)
+            .setData(android.net.Uri.parse("miniapp://${info.appKey}"))
             .putExtra(com.miniapp.container.ui.MiniAppActivity.EXTRA_APP_KEY, info.appKey)
+            .addFlags(Intent.FLAG_ACTIVITY_NEW_DOCUMENT)
         val label = info.displayName.ifBlank { info.uname }
         val shortcut = ShortcutInfo.Builder(this, "miniapp_${info.appKey}")
             .setShortLabel(label)

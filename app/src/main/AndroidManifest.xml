@@ -24,6 +24,7 @@
         <activity
             android:name=".ui.MainActivity"
             android:exported="true"
+            android:launchMode="singleTask"
             android:label="@string/app_name">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
@@ -34,6 +35,9 @@
         <activity
             android:name=".ui.MiniAppActivity"
             android:exported="false"
+            android:launchMode="standard"
+            android:documentLaunchMode="intoExisting"
+            android:taskAffinity=""
             android:configChanges="orientation|screenSize|keyboardHidden|uiMode"
             android:label="@string/app_name"
             android:theme="@style/Theme.MiniApp" />
