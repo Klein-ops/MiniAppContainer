@@ -1,106 +1,159 @@
 package com.miniapp.container.core
 
 import android.content.Context
-import android.util.Base64
+import com.miniapp.container.netdisk.WebdavClient
+import com.miniapp.container.netdisk.WebdavConfig
+import org.json.JSONArray
+import org.json.JSONObject
+import java.io.BufferedOutputStream
 import java.io.File
-import java.net.HttpURLConnection
-import java.net.URL
 import java.util.zip.ZipEntry
 import java.util.zip.ZipInputStream
 import java.util.zip.ZipOutputStream
 
+/** 备份失败原因（便于 UI 区分提示）。 */
+enum class BackupError { NOT_CONFIGURED, NETWORK, SERVER }
+
 /**
- * 备份与恢复服务：
- * - 导出：把所有小程序数据（registry/categories/permissions + 各沙箱 app/data/meta）打包为 zip
- * - 导入：从 zip 解压覆盖 miniapps 目录
- * - WebDAV：上传/下载备份文件（HTTP PUT/GET + Basic Auth）
+ * 备份与恢复服务。
+ *
+ * 导出结构（zip）：
+ * ```
+ * backup.json                     清单：{ format, includeData, allApps, apps:[MiniAppInfo...] }
+ * miniapps/<appKey>/app/...       应用资源
+ * miniapps/<appKey>/data/...      应用数据（includeData=true 时）
+ * miniapps/<appKey>/meta.json     安装信息
+ * miniapps/categories.json        分类（仅全量备份时）
+ * ```
+ *
+ * WebDAV 路径：`/ROOT/backup/<文件名>`；小程序数据：`/ROOT/data/<uid>_<uname>/`。
  */
 class BackupService(private val context: Context) {
 
-    private val prefs = context.getSharedPreferences("backup", Context.MODE_PRIVATE)
+    private val config = WebdavConfig(context)
+    private val root = listOf(WebdavConfig.ROOT_FOLDER)
 
-    var webdavUrl: String
-        get() = prefs.getString("url", "").orEmpty()
-        set(v) = prefs.edit().putString("url", v).apply()
-    var webdavUser: String
-        get() = prefs.getString("user", "").orEmpty()
-        set(v) = prefs.edit().putString("user", v).apply()
-    var webdavPass: String
-        get() = prefs.getString("pass", "").orEmpty()
-        set(v) = prefs.edit().putString("pass", v).apply()
+    // ==================== 本地 zip ====================
 
-    /** 导出所有小程序数据为 zip（排除 tmp/ 临时目录）。 */
-    fun exportToZip(dest: File) {
+    /**
+     * 导出为 zip。
+     * @param appKeys 要备份的 appKey 列表；空表示全部应用
+     * @param includeData 是否包含 data/（应用数据）
+     */
+    fun exportToZip(dest: File, appKeys: List<String>, includeData: Boolean) {
         val base = File(context.filesDir, "miniapps")
-        ZipOutputStream(dest.outputStream().buffered()).use { zos ->
-            base.walkTopDown()
-                .filter { it.isFile && !it.absolutePath.contains("/tmp/") }
-                .forEach { f ->
-                    val rel = "miniapps/" + f.relativeTo(base).path.replace(File.separatorChar, '/')
-                    zos.putNextEntry(ZipEntry(rel))
-                    f.inputStream().use { it.copyTo(zos) }
-                    zos.closeEntry()
+        val registry = AppRegistry(File(base, "registry.json")).also { it.load() }
+        val all = appKeys.isEmpty()
+        val selected = if (all) registry.list().map { it.appKey } else appKeys
+
+        ZipOutputStream(BufferedOutputStream(dest.outputStream())).use { zos ->
+            val appsArr = JSONArray()
+            selected.forEach { registry.get(it)?.let { info -> appsArr.put(info.toJson()) } }
+            val manifest = JSONObject()
+                .put("format", 1)
+                .put("includeData", includeData)
+                .put("allApps", all)
+                .put("apps", appsArr)
+            writeEntry(zos, "backup.json", manifest.toString().toByteArray(Charsets.UTF_8))
+
+            if (all) {
+                listOf("categories.json").forEach { n ->
+                    val f = File(base, n)
+                    if (f.isFile) writeEntry(zos, "miniapps/$n", f.readBytes())
                 }
+            }
+
+            selected.forEach { key ->
+                val dir = File(base, key)
+                if (!dir.isDirectory) return@forEach
+                dir.walkTopDown().filter { it.isFile }.forEach { f ->
+                    val rel = f.relativeTo(base).path.replace(File.separatorChar, '/')
+                    if (rel.contains("/tmp/")) return@forEach
+                    if (!includeData && rel.startsWith("$key/data/")) return@forEach
+                    writeEntry(zos, "miniapps/$rel", f.readBytes())
+                }
+            }
         }
     }
 
-    /** 从 zip 恢复（解压覆盖 miniapps 目录，防路径穿越）。 */
+    /** 从 zip 导入：解压沙箱并合并注册表（不删除未包含的应用）。 */
     fun importFromZip(zipFile: File) {
-        val targetRoot = context.filesDir
+        val base = context.filesDir
+        var manifest: JSONObject? = null
         ZipInputStream(zipFile.inputStream().buffered()).use { zis ->
-            var entry = zis.nextEntry
-            while (entry != null) {
-                val name = entry.name
-                if (!entry.isDirectory && name.startsWith("miniapps/") &&
-                    !name.contains("..") && !name.startsWith("/")
-                ) {
-                    val target = File(targetRoot, name)
-                    target.parentFile?.mkdirs()
-                    target.outputStream().use { zis.copyTo(it) }
+            var e = zis.nextEntry
+            while (e != null) {
+                val name = e.name
+                if (!e.isDirectory && !name.contains("..") && !name.startsWith("/")) {
+                    when {
+                        name == "backup.json" ->
+                            manifest = runCatching {
+                                JSONObject(zis.readBytes().toString(Charsets.UTF_8))
+                            }.getOrNull()
+                        name.startsWith("miniapps/") -> {
+                            val target = File(base, name)
+                            target.parentFile?.mkdirs()
+                            target.outputStream().use { zis.copyTo(it) }
+                        }
+                    }
                 }
                 zis.closeEntry()
-                entry = zis.nextEntry
+                e = zis.nextEntry
             }
         }
-    }
-
-    /** WebDAV 上传备份文件。 */
-    fun webdavUpload(file: File): Boolean {
-        val conn = openWebdav("PUT")
-        conn.doOutput = true
-        conn.setRequestProperty("Content-Type", "application/zip")
-        conn.outputStream.use { file.inputStream().use { i -> i.copyTo(it) } }
-        val code = conn.responseCode
-        conn.disconnect()
-        return code in 200..299
-    }
-
-    /** WebDAV 下载备份文件。 */
-    fun webdavDownload(dest: File): Boolean {
-        val conn = openWebdav("GET")
-        val code = conn.responseCode
-        if (code in 200..299) {
-            conn.inputStream.use { input -> dest.outputStream().use { input.copyTo(it) } }
-            conn.disconnect()
-            return true
+        val reg = AppRegistry(File(base, "miniapps/registry.json")).also { it.load() }
+        manifest?.optJSONArray("apps")?.let { arr ->
+            for (i in 0 until arr.length()) reg.put(MiniAppInfo.fromJson(arr.getJSONObject(i)))
         }
-        conn.disconnect()
-        return false
+        reg.save()
     }
 
-    private fun openWebdav(method: String): HttpURLConnection =
-        (URL(webdavUrl).openConnection() as HttpURLConnection).apply {
-            requestMethod = method
-            if (webdavUser.isNotEmpty()) {
-                setRequestProperty(
-                    "Authorization",
-                    "Basic " + Base64.encodeToString(
-                        "$webdavUser:$webdavPass".toByteArray(Charsets.UTF_8), Base64.NO_WRAP
-                    )
-                )
-            }
-            connectTimeout = 30000
-            readTimeout = 120000
-            instanceFollowRedirects = true
+    private fun writeEntry(zos: ZipOutputStream, name: String, bytes: ByteArray) {
+        zos.putNextEntry(ZipEntry(name))
+        zos.write(bytes)
+        zos.closeEntry()
+    }
+
+    // ==================== WebDAV ====================
+
+    fun isWebdavConfigured(): Boolean = config.configured
+
+    /** 上传备份到 /ROOT/backup/<name>。 */
+    fun uploadBackup(name: String, localZip: File): Boolean {
+        if (!config.configured) throw WebdavError(BackupError.NOT_CONFIGURED)
+        val client = WebdavClient(config)
+        return try {
+            client.mkdirs(root + "backup")
+            client.put(root + "backup" + name, localZip)
+        } catch (t: Throwable) {
+            throw WebdavError(BackupError.NETWORK, t)
         }
+    }
+
+    /** 从 /ROOT/backup/<name> 下载到本地。 */
+    fun downloadBackup(name: String, dest: File): Boolean {
+        if (!config.configured) throw WebdavError(BackupError.NOT_CONFIGURED)
+        val client = WebdavClient(config)
+        return try {
+            client.get(root + "backup" + name, dest)
+        } catch (t: Throwable) {
+            throw WebdavError(BackupError.NETWORK, t)
+        }
+    }
+
+    /** 列出 /ROOT/backup/ 下的备份文件名。 */
+    fun listBackups(): List<String> {
+        if (!config.configured) throw WebdavError(BackupError.NOT_CONFIGURED)
+        val client = WebdavClient(config)
+        return try {
+            client.mkdirs(root + "backup")
+            client.list(root + "backup").filter { it.endsWith(".zip") }
+        } catch (t: Throwable) {
+            throw WebdavError(BackupError.NETWORK, t)
+        }
+    }
 }
+
+/** WebDAV 操作异常，携带可区分的原因。 */
+class WebdavError(val reason: BackupError, cause: Throwable? = null) :
+    Exception(cause?.message ?: reason.name, cause)

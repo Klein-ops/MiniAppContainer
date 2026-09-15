@@ -3,16 +3,16 @@
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:orientation="vertical"
-    android:background="@color/bg_window">
+    android:background="@color/bg_window"
+    android:orientation="vertical">
 
     <com.google.android.material.appbar.MaterialToolbar
         android:id="@+id/toolbar"
         android:layout_width="match_parent"
         android:layout_height="?attr/actionBarSize"
+        android:background="@color/brand_primary_dark"
         app:title="备份与恢复"
-        app:titleTextColor="#FFFFFF"
-        android:background="@color/brand_primary_dark" />
+        app:titleTextColor="#FFFFFF" />
 
     <ScrollView
         android:layout_width="match_parent"
@@ -24,19 +24,28 @@
             android:orientation="vertical"
             android:padding="16dp">
 
+            <!-- 本地 -->
             <TextView
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:text="导出/导入所有已安装小程序数据（含应用包、data 数据、权限与分类记录）。"
+                android:text="本地文件"
+                android:textColor="@color/text_primary"
+                android:textSize="15sp"
+                android:textStyle="bold" />
+
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="4dp"
+                android:text="导出/导入到设备上的 zip 文件，可选择要备份的应用及是否包含应用数据。"
                 android:textColor="@color/text_secondary"
                 android:textSize="13sp" />
 
-            <!-- 本地导入导出 -->
             <com.google.android.material.button.MaterialButton
                 android:id="@+id/btn_export_local"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="12dp"
+                android:layout_marginTop="10dp"
                 android:text="导出到本地文件" />
 
             <com.google.android.material.button.MaterialButton
@@ -47,61 +56,29 @@
                 android:layout_marginTop="8dp"
                 android:text="从本地文件导入" />
 
-            <!-- WebDAV 设置 -->
+            <!-- WebDAV -->
             <TextView
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="24dp"
-                android:text="WebDAV 备份"
+                android:text="WebDAV"
                 android:textColor="@color/text_primary"
                 android:textSize="15sp"
                 android:textStyle="bold" />
 
-            <EditText
-                android:id="@+id/et_webdav_url"
+            <TextView
+                android:id="@+id/tv_webdav_hint"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="8dp"
-                android:hint="WebDAV 地址（含文件名，如 https://dav.example.com/backup.zip）"
-                android:inputType="textUri"
-                android:textColor="@color/text_primary"
-                android:textColorHint="@color/text_secondary"
-                android:textSize="14sp" />
-
-            <EditText
-                android:id="@+id/et_webdav_user"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="8dp"
-                android:hint="用户名（可选）"
-                android:inputType="text"
-                android:textColor="@color/text_primary"
-                android:textColorHint="@color/text_secondary"
-                android:textSize="14sp" />
-
-            <EditText
-                android:id="@+id/et_webdav_pass"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="8dp"
-                android:hint="密码（可选）"
-                android:inputType="textPassword"
-                android:textColor="@color/text_primary"
-                android:textColorHint="@color/text_secondary"
-                android:textSize="14sp" />
-
-            <com.google.android.material.button.MaterialButton
-                android:id="@+id/btn_save_webdav"
-                style="@style/Widget.MaterialComponents.Button.TextButton"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="保存设置" />
+                android:layout_marginTop="4dp"
+                android:textColor="@color/text_secondary"
+                android:textSize="13sp" />
 
             <com.google.android.material.button.MaterialButton
                 android:id="@+id/btn_webdav_upload"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="4dp"
+                android:layout_marginTop="10dp"
                 android:text="备份到 WebDAV" />
 
             <com.google.android.material.button.MaterialButton
@@ -112,6 +89,15 @@
                 android:layout_marginTop="8dp"
                 android:text="从 WebDAV 恢复" />
 
+            <com.google.android.material.button.MaterialButton
+                android:id="@+id/btn_webdav_config"
+                style="@style/Widget.MaterialComponents.Button.TextButton"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="4dp"
+                android:text="网络存储设置" />
+
         </LinearLayout>
     </ScrollView>
+
 </LinearLayout>
