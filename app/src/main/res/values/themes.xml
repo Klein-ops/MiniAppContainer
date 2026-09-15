@@ -8,6 +8,8 @@
         <item name="colorOnSecondary">@color/text_primary</item>
         <item name="android:windowBackground">@color/bg_window</item>
         <item name="android:statusBarColor" tools:targetApi="l">@color/brand_primary_dark</item>
+        <!-- 页面切换动画 -->
+        <item name="android:windowAnimationStyle">@style/Animation.MiniApp.Activity</item>
         <!-- 所有 AlertDialog 统一圆角（24dp 大弧度，显式指定避免 Material 默认小圆角） -->
         <item name="android:alertDialogTheme">@style/ThemeOverlay.MiniApp.RoundedDialog</item>
         <item name="alertDialogTheme">@style/ThemeOverlay.MiniApp.RoundedDialog</item>
@@ -32,6 +34,14 @@
 
     <style name="Widget.MiniApp.DialogButton" parent="Widget.MaterialComponents.Button.TextButton.Dialog">
         <item name="android:textColor">@color/brand_primary</item>
+    </style>
+
+    <!-- 页面进入/退出动画 -->
+    <style name="Animation.MiniApp.Activity" parent="@android:style/Animation.Activity">
+        <item name="android:activityOpenEnterAnimation">@anim/slide_in_right</item>
+        <item name="android:activityOpenExitAnimation">@anim/fade_out_slight</item>
+        <item name="android:activityCloseEnterAnimation">@anim/fade_in_slight</item>
+        <item name="android:activityCloseExitAnimation">@anim/slide_out_right</item>
     </style>
 
 </resources>

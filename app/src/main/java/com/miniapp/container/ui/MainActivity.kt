@@ -375,9 +375,14 @@ class MainActivity : AppCompatActivity() {
             findViewById<com.google.android.material.bottomnavigation.BottomNavigationView>(R.id.bottom_nav)
         bottomNav.setOnItemSelectedListener { item ->
             val settings = item.itemId == R.id.nav_settings
-            pageApps.visibility = if (settings) View.GONE else View.VISIBLE
-            pageSettings.visibility = if (settings) View.VISIBLE else View.GONE
+            val show = if (settings) pageSettings else pageApps
+            val hide = if (settings) pageApps else pageSettings
             toolbar.title = if (settings) "设置" else getString(R.string.title_app_list)
+            // 淡入切换
+            hide.visibility = View.GONE
+            show.alpha = 0f
+            show.visibility = View.VISIBLE
+            show.animate().alpha(1f).setDuration(180).start()
             true
         }
     }
