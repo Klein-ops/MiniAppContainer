@@ -8,6 +8,7 @@ object PermissionScope {
     const val CLIPBOARD = "clipboard"
     const val NOTIFICATION = "notification"
     const val STORAGE = "storage"
+    const val ADB = "adb"
 
     fun label(scope: String): String = when (scope) {
         NET -> "网络访问"
@@ -16,6 +17,7 @@ object PermissionScope {
         CLIPBOARD -> "读写剪贴板"
         NOTIFICATION -> "发送通知"
         STORAGE -> "网络存储"
+        ADB -> "ADB / Shell（Shizuku）"
         else -> scope
     }
 
@@ -26,6 +28,7 @@ object PermissionScope {
         CLIPBOARD -> "该小程序请求读写剪贴板。"
         NOTIFICATION -> "该小程序请求发送状态栏通知。"
         STORAGE -> "该小程序请求读写你在「网络存储」中配置的 WebDAV（仅其自己的目录）。"
+        ADB -> "该小程序请求通过 Shizuku 以 root/shell 权限执行命令。⚠ 极度危险：可能访问系统文件、隐私数据。仅在你完全信任该小程序时授予。"
         else -> "该小程序请求权限：$scope"
     }
 }

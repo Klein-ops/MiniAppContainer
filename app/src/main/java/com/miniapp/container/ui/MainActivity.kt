@@ -406,6 +406,10 @@ class MainActivity : AppCompatActivity() {
             .setOnClickListener { startActivity(Intent(this, WebdavConfigActivity::class.java)) }
         findViewById<com.google.android.material.button.MaterialButton>(R.id.btn_clean_storage)
             .setOnClickListener { cleanWebViewCache() }
+        // 关于项目：点击 GitHub 仓库地址打开浏览器
+        findViewById<android.view.View>(R.id.tv_repo_url).setOnClickListener {
+            startActivity(Intent(Intent.ACTION_VIEW, Uri.parse("https://github.com/Klein-ops/MiniAppContainer")))
+        }
     }
 
     /** 清理 WebView 缓存与存储。 */

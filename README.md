@@ -123,11 +123,13 @@ MiniApp.ui.toast(msg)                   // 提示
 
 // 沙箱内文件（data/ tmp/ 可写，app/ 只读）
 MiniApp.fs.read / readBytes / write / writeBytes / list / exists / stat / mkdir / remove
+MiniApp.fs.grep(path, pattern, opts) / sed(path, script)   // 局部编辑，免全量写入
 // SAF 导入导出（无需权限）
 MiniApp.fs.importFile(destPath) / exportFile(path)
 // 内部储存（需 fs.external 权限）
 MiniApp.fs.readExternalFile / writeExternalFile / listExternal / existsExternal
 MiniApp.fs.statExternal / mkdirExternal / removeExternal / renameExternal
+MiniApp.fs.grepExternal / sedExternal   // 同上，作用于内部储存
 
 // WASM（WebView 内置 JIT）
 MiniApp.wasm.createMemory(pages)        // 共享内存
@@ -141,6 +143,8 @@ MiniApp.clipboard.read() / write(text)
 MiniApp.notification.show(title, body) / cancel()
 // 网络存储（需 storage 权限）：小程序在 WebDAV 上的独立目录
 MiniApp.storage.upload(path, base64) / download(path) / list(path) / delete(path)
+// ADB / Shell（需 adb 权限，⚠ 危险，经 Shizuku 执行）
+MiniApp.adb.exec(command)   // → { ok, exitCode, stdout, stderr } 或 { ok:false, error }
 // Dex 执行（无需权限，android:isolatedProcess 隔离进程内运行）
 MiniApp.dex.run({ dex, className, methodName, params, input, output })
 // 打开外部链接（需 sys.openUrl 权限）
@@ -159,7 +163,8 @@ MiniApp.permission.request(scope)
 - **路径穿越防护**：`PathGuard.resolveUnderRoot` 规范化并校验 canonical 路径未逃出沙箱。
 - **写白名单**：沙箱内写操作仅允许 `data/` 和 `tmp/`，禁止写 `app/`（只读资源区）。
 - **内部储存安全**：`fs.external` 操作禁止访问应用私有目录（`/data/data/...`），防篡改权限记录。
-- **权限审批**：`net` / `sys.openUrl` / `fs.external` / `clipboard` / `notification` / `storage` 调用前经 `PermissionManager` 审批，授权持久化到 `miniapps/permissions.json`。弹窗提供 4 种选择：允许 / 仅允许一次 / 拒绝 / 不再询问。
+- **权限审批**：`net` / `sys.openUrl` / `fs.external` / `clipboard` / `notification` / `storage` / `adb` 调用前经 `PermissionManager` 审批，授权持久化到 `miniapps/permissions.json`。弹窗提供 4 种选择：允许 / 仅允许一次 / 拒绝 / 不再询问。
+- **ADB / Shell**：`adb.exec` 需 `adb` 权限（⚠ 危险，审批时醒目警告），经 Shizuku 执行；Shizuku 未激活时返回明确错误而非崩溃
 - **Dex 隔离**：`dex.run` 无需权限，在 `android:isolatedProcess="true"` 独立进程中执行（独立 UID + SELinux `isolated_app` 域），无网络/无路径访问/无系统服务/不能加载 native 库；只能读写主进程通过 FD 传入的文件，无法主动打开路径。
 
 ---

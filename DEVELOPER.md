@@ -160,6 +160,8 @@ const ok = await MiniApp.ui.toast('提示'); // boolean true
 | `fs.stat(path)` | `object` | `{ exists: boolean, isDir: boolean, size: number, name: string, canRead: boolean, canWrite: boolean, lastModified: number }`（`lastModified` 为 Unix **毫秒**时间戳；**精度取决于底层文件系统**，多数 Android 文件系统为秒级，末三位可能恒为 `000`） |
 | `fs.mkdir(path)` | `boolean` | 成功 `true` |
 | `fs.remove(path)` | `boolean` | 成功 `true`（目录递归删除），失败 `false` |
+| `fs.grep(path, pattern, opts)` | `array` | 匹配的行（字符串数组）；`opts={regex:boolean, ignoreCase:boolean, invert:boolean}` |
+| `fs.sed(path, script)` | `boolean` | 对文本文件应用编辑脚本并写回（仅 `data/`/`tmp/` 可写） |
 
 ```js
 const text = await MiniApp.fs.read('data/test.txt');        // string
@@ -204,6 +206,8 @@ await MiniApp.fs.exportFile('data/report.txt');    // boolean true
 | `fs.mkdirExternal(dir)` | `boolean` | 成功 `true`；已存在 `true` |
 | `fs.removeExternal(absPath)` | `boolean` | 成功 `true`（目录递归删除），失败 `false` |
 | `fs.renameExternal(from, to)` | `boolean` | 成功 `true`，失败 `false` |
+| `fs.grepExternal(absPath, pattern, opts)` | `array` | 同 `fs.grep`，作用于内部储存文件 |
+| `fs.sedExternal(absPath, script)` | `boolean` | 同 `fs.sed`，作用于内部储存文件 |
 | `MiniApp.call('fs.readExternal', { uri })` | `string` | 读取 content:// URI，返回 base64 |
 
 ```js
@@ -446,6 +450,41 @@ try {
 
 ---
 
+### 4.11 ADB / Shell（需审批，⚠ 危险）
+
+小程序可通过 Shizuku 以 shell/root 权限执行命令。**前提**：用户已安装并启动 Shizuku、激活服务。
+
+> ⚠ **极度危险**：该权限等同于把 root shell 交给小程序。仅在你完全信任该小程序时授予。
+> 蜗壳审批时会显示醒目警告；审批通过后，首次调用还需在 Shizuku 应用弹窗再次授权。
+
+| 接口 | 返回类型 | 返回值 |
+|---|---|---|
+| `adb.exec(command)` | `object` | 成功 `{ ok: true, exitCode: number, stdout: string, stderr: string }`；失败 `{ ok: false, error: string, detail: string }` |
+
+**失败原因（`error` 字段）**：
+
+| `error` | 含义 |
+|---|---|
+| `shizuku not active` | 蜗壳权限已授，但 Shizuku 未启动/未激活 |
+| `shizuku permission denied` | Shizuku 弹窗中用户拒绝 |
+| `shizuku error` | 查询 Shizuku 状态时出错 |
+| `adb error` | 命令执行异常 |
+
+> 蜗壳自身权限被拒时 Promise reject，`Error.message` = `permission denied: adb`（区别于上面 resolve 的 `{ok:false}`）。
+
+```js
+const r = await MiniApp.adb.exec('ls -l /sdcard');
+if (r.ok) {
+  console.log('exit', r.exitCode);
+  console.log(r.stdout);
+} else if (r.error === 'shizuku not active') {
+  // 提示用户启动 Shizuku
+}
+```
+
+命令通过 `sh -c <command>` 执行，支持管道、重定向等 shell 语法。
+
+
 ## 五、权限模型
 
 ### 5.1 两种权限
@@ -466,6 +505,7 @@ try {
 | `clipboard` | 读写系统剪贴板 | 拒绝 |
 | `notification` | 发送状态栏通知 | 拒绝 |
 | `storage` | 读写 WebDAV 网络存储（仅小程序自己的目录） | 拒绝 |
+| `adb` | 通过 Shizuku 执行 SH 指令（⚠ 极度危险） | 拒绝 |
 
 ### 5.3 审批流程
 
@@ -715,6 +755,9 @@ adb logcat -s MiniAppJS MiniAppBridge
 | `unknown method: xxx` | 方法名拼写错误 | 对照本手册 API 清单 |
 | `permission denied: storage` | 未声明 `storage` 或用户拒绝 | manifest 声明并允许 |
 | `storage not configured` | 已授权但未配置 WebDAV | 在「设置 → 网络存储」中填写地址 |
+| `permission denied: adb` | 未声明 `adb` 或用户拒绝 | manifest 声明并允许（⚠ 危险） |
+| `shizuku not active` | Shizuku 未启动 | 启动 Shizuku 并激活服务 |
+| `shizuku permission denied` | Shizuku 弹窗拒绝 | 在 Shizuku 弹窗授权 |
 | `dex 文件不存在: xxx` | `dex` 路径不对 | 路径相对沙箱根，确认 zip/`data/` 含该 dex |
 
 ---

@@ -59,6 +59,7 @@ class MiniAppBridge(
     private val clipboard = ClipboardService(activity, appInfo, permissionManager)
     private val notification = NotificationService(activity, appInfo, permissionManager)
     private val storage = com.miniapp.container.service.StorageService(activity, appInfo, permissionManager)
+    private val adb = com.miniapp.container.service.AdbService(activity, appInfo, permissionManager)
 
     companion object { private const val TAG = "MiniAppBridge" }
 
@@ -149,6 +150,9 @@ class MiniAppBridge(
         "storage.download" -> storage.download(p.optStringOr("path"))
         "storage.list" -> storage.list(p.optStringOr("path"))
         "storage.delete" -> storage.delete(p.optStringOr("path"))
+
+        // ADB / Shell（Shizuku）
+        "adb.exec" -> adb.exec(p)
 
         // Dex
         "dex.run" -> dexRun(p)
