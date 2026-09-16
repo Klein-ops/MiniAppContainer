@@ -11,6 +11,7 @@ import kotlin.coroutines.resume
  * 权限审批管理器（应用级单例）。
  *
  * - 沙箱内操作默认允许，不走这里。
+ * - 「安全」级权限（[PermLevel.SAFE]）直接放行，不弹窗；
  * - 出沙箱能力调用 [ensurePermission]：若已授权直接返回 true；
  *   若"不再询问"标记则返回 false（不再弹窗）；
  *   若清单未声明该 scope 返回 false；否则弹出审批对话框（4 选项）。
@@ -45,6 +46,8 @@ class PermissionManager(context: Context) {
         declared: List<String>,
         scope: String
     ): Boolean {
+        // 「安全」级权限无需审批、也无需声明，直接放行
+        if (PermissionRegistry.isSafe(scope)) return true
         if (store.isGranted(appKey, scope)) return true
         if (tempGrants[appKey]?.contains(scope) == true) return true
         if (store.isDeniedForever(appKey, scope)) return false

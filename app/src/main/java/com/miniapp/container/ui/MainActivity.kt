@@ -229,7 +229,10 @@ class MainActivity : AppCompatActivity() {
     // ===== 启动小程序（必要权限检查）=====
     private fun startMiniApp(app: MiniAppInfo) {
         val pm = hostApp.permissionManager
-        val ungranted = app.requiredPermissions.filter { !pm.isGranted(app.appKey, it) }
+        // 冗余过滤：危险权限不可作为必要权限（安装时已剔除，此处防旧数据）
+        val ungranted = app.requiredPermissions
+            .filter { PermissionScope.canBeRequired(it) }
+            .filter { !pm.isGranted(app.appKey, it) }
         if (ungranted.isEmpty()) {
             launchMiniApp(app.appKey)
             return
@@ -406,9 +409,11 @@ class MainActivity : AppCompatActivity() {
             .setOnClickListener { startActivity(Intent(this, WebdavConfigActivity::class.java)) }
         findViewById<com.google.android.material.button.MaterialButton>(R.id.btn_clean_storage)
             .setOnClickListener { cleanWebViewCache() }
-        // 关于项目：点击 GitHub 仓库地址打开浏览器
-        findViewById<android.view.View>(R.id.tv_repo_url).setOnClickListener {
-            startActivity(Intent(Intent.ACTION_VIEW, Uri.parse("https://github.com/Klein-ops/MiniAppContainer")))
+        // 关于蜗壳：点击卡片直接打开 GitHub 仓库
+        findViewById<android.view.View>(R.id.card_about).setOnClickListener {
+            startActivity(
+                Intent(Intent.ACTION_VIEW, Uri.parse("https://github.com/Klein-ops/MiniAppContainer"))
+            )
         }
     }
 

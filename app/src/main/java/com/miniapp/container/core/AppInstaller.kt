@@ -2,6 +2,7 @@ package com.miniapp.container.core
 
 import android.content.Context
 import com.miniapp.container.permission.PermissionManager
+import com.miniapp.container.permission.PermissionRegistry
 import com.miniapp.container.util.IoUtil
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -58,6 +59,11 @@ class AppInstaller(
             // 将应用根内容拷入 app/（保留目录层级）
             appRoot.copyRecursively(resDir, overwrite = true)
 
+            // 必要权限过滤：危险权限不允许作为必要权限（清单声明会被忽略）
+            val safeRequired = PermissionRegistry.sanitizeRequired(
+                manifest.requiredPermissions, manifest.permissions
+            )
+
             // 写 meta.json
             val meta = MetaInfo(
                 uid = uid,
@@ -66,7 +72,7 @@ class AppInstaller(
                 entry = manifest.entry,
                 wasm = manifest.wasm,
                 permissions = manifest.permissions,
-                requiredPermissions = manifest.requiredPermissions,
+                requiredPermissions = safeRequired,
                 installedAt = System.currentTimeMillis(),
                 appKey = appKey,
                 sandboxPath = sandbox.appDir(appKey).absolutePath
@@ -81,7 +87,7 @@ class AppInstaller(
                 entry = manifest.entry,
                 wasm = manifest.wasm,
                 permissions = manifest.permissions,
-                requiredPermissions = manifest.requiredPermissions,
+                requiredPermissions = safeRequired,
                 icon = manifest.icon,
                 displayName = existing?.displayName ?: "",
                 installedAt = System.currentTimeMillis()
@@ -112,6 +118,10 @@ class AppInstaller(
         val manifestFile = File(extractedDir, "app/manifest.json")
         if (!manifestFile.isFile) return@withContext false
         val manifest = AppManifest.parse(manifestFile) ?: return@withContext false
+        // 危险权限不允许作为必要权限
+        val safeRequired = PermissionRegistry.sanitizeRequired(
+            manifest.requiredPermissions, manifest.permissions
+        )
 
         // 1) 重建沙箱：只替换 app/，data/ 若有则合并
         val appDir = sandbox.appDir(appKey)
@@ -134,7 +144,7 @@ class AppInstaller(
             entry = manifest.entry,
             wasm = manifest.wasm,
             permissions = manifest.permissions,
-            requiredPermissions = manifest.requiredPermissions,
+            requiredPermissions = safeRequired,
             installedAt = System.currentTimeMillis(),
             appKey = appKey,
             sandboxPath = appDir.absolutePath
@@ -151,7 +161,7 @@ class AppInstaller(
                 entry = manifest.entry,
                 wasm = manifest.wasm,
                 permissions = manifest.permissions,
-                requiredPermissions = manifest.requiredPermissions,
+                requiredPermissions = safeRequired,
                 icon = manifest.icon,
                 displayName = displayName.ifBlank { existing?.displayName ?: "" },
                 installedAt = System.currentTimeMillis()

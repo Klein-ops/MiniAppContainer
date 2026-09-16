@@ -20,7 +20,7 @@
 
 - **前端**：标准 HTML/CSS/JS，运行在系统 WebView 中。
 - **WASM**：基于 WebView 内置 WebAssembly JIT，支持二进制、Memory、import 注入。
-- **权限**：沙箱内读写无需审批；访问网络（`net`）、打开外链（`sys.openUrl`）、读写内部储存（`fs.external`）、剪贴板（`clipboard`）、通知（`notification`）、网络存储（`storage`）需审批。Dex 执行（`dex.run`）**无需权限**。
+- **权限**：分为**安全**（无需审批，如沙箱内读写）、**普通**（需审批：`net` / `sys.openUrl` / `fs.external` / `clipboard` / `notification` / `storage`）、**危险**（需审批 + 警告，且不可作必要权限：`adb`）。Dex 执行（`dex.run`）**无需权限**。详见第五章。
   分为**普通权限**（可拒绝仍能进入）和**必要权限**（拒绝则不进入）。
 
 ---
@@ -509,35 +509,56 @@ if (!r2.ok && r2.timedOut) console.log('超时，已部分输出:', r2.stdout);
 
 ## 五、权限模型
 
-### 5.1 两种权限
+### 5.1 权限等级
+
+每个权限有一个**等级**，决定是否需要用户审批、以及审批时的呈现方式：
+
+| 等级 | 标识 | 行为 |
+|---|---|---|
+| **安全** | `SAFE` | **无需任何审批**，调用即可用（也无需在 manifest 声明） |
+| **普通** | `NORMAL` | 需用户审批后可用 |
+| **危险** | `DANGEROUS` | 需审批，且界面显示醒目警告；**不可声明为必要权限**（声明会被忽略） |
+
+> 「危险权限不可作必要权限」是一项保护：避免小程序用"不授权就用不了"胁迫用户交出高危能力。
+
+沙箱内文件操作属于**安全**级（无需声明、无需审批）。
+
+### 5.2 必要权限与普通权限
+
+在**等级**之外，还有一个正交维度——**是否必要**（由 manifest 字段决定）：
 
 | 类型 | 字段 | 行为 |
 |---|---|---|
-| 普通权限 | `permissions` | 可拒绝，仍能进入；运行时首次调用弹窗 |
-| 必要权限 | `requiredPermissions` | **拒绝则不进入**，打开时一次性审批 |
+| 普通权限 | `permissions` | 可拒绝，仍能进入；运行时首次调用时弹窗 |
+| 必要权限 | `requiredPermissions` | **拒绝则不进入**，打开小程序时一次性审批 |
 
-### 5.2 权限范围
+**约束**：
+- `requiredPermissions` 的每一项必须同时出现在 `permissions` 中。
+- **危险等级权限不能出现在 `requiredPermissions`**——即使声明也会在安装时被自动剔除。
 
-| 权限 scope | 能力 | 默认 |
-|---|---|---|
-| 沙箱内读写 `app/`/`data/`/`tmp/` | 文件操作（写仅 `data/`/`tmp/`） | **允许**，无需审批 |
-| `net` | HTTP 请求（GET/POST/PUT/DELETE/PATCH 等） | 拒绝 |
-| `sys.openUrl` | 打开外部链接 | 拒绝 |
-| `fs.external` | 静默操作内部储存：读写/列目录/查存在/查信息/建目录/删除/重命名 + 读取外部 content:// | 拒绝 |
-| `clipboard` | 读写系统剪贴板 | 拒绝 |
-| `notification` | 发送状态栏通知 | 拒绝 |
-| `storage` | 读写 WebDAV 网络存储（仅小程序自己的目录） | 拒绝 |
-| `adb` | 通过 Shizuku 执行 SH 指令（⚠ 极度危险） | 拒绝 |
+### 5.3 权限范围
 
-### 5.3 审批流程
+| 权限 scope | 等级 | 能力 | 默认 |
+|---|---|---|---|
+| 沙箱内读写 `app/`/`data/`/`tmp/` | 安全 | 文件操作（写仅 `data/`/`tmp/`） | **允许**，无需审批 |
+| `net` | 普通 | HTTP 请求（GET/POST/PUT/DELETE/PATCH 等） | 拒绝 |
+| `sys.openUrl` | 普通 | 打开外部链接 | 拒绝 |
+| `fs.external` | 普通 | 静默操作内部储存：读写/列目录/查存在/查信息/建目录/删除/重命名 + 读取外部 content:// | 拒绝 |
+| `clipboard` | 普通 | 读写系统剪贴板 | 拒绝 |
+| `notification` | 普通 | 发送状态栏通知 | 拒绝 |
+| `storage` | 普通 | 读写 WebDAV 网络存储（仅小程序自己的目录） | 拒绝 |
+| `adb` | **危险** | 通过 Shizuku 执行 SH 指令 | 拒绝 |
 
+### 5.4 审批流程
+
+- **安全权限**：直接放行，不弹窗。
 - **必要权限**：用户点击应用时，若有未授权的必要权限，弹窗列出全部并要求一次性允许/拒绝。拒绝任一 → 不进入。
-- **普通权限**：进入后，运行时首次调用对应能力时弹窗。
+- **普通 / 危险权限**：进入后，运行时首次调用对应能力时弹窗（危险权限附警告）。
 - 授权结果持久化到 `miniapps/permissions.json`。
 - **卸载应用时清除该应用全部授权记录**（重装会重新请求）。
 - 权限管理入口：应用列表 → 应用设置页 → 权限管理。
 
-### 5.4 权限选项
+### 5.5 权限选项
 
 弹窗提供 4 种选择：
 
@@ -547,6 +568,36 @@ if (!r2.ok && r2.timedOut) console.log('超时，已部分输出:', r2.stdout);
 | 仅允许一次 | 本次会话有效，下次再问 |
 | 拒绝 | 本次拒绝，下次运行时再弹窗 |
 | 不再询问 | 持久化拒绝，之后不再弹窗（可在权限管理页撤销） |
+
+### 5.6 扩展指南：新增一个权限
+
+权限系统是**注册表驱动**的。新增权限只需**两步**：
+
+**第 1 步**：在 `PermissionRegistry.defaults` 追加一条定义
+
+```kotlin
+PermissionDef(
+    scope = "camera",                       // 与 manifest permissions 里的字符串一致
+    label = "相机",                          // 审批弹窗标题 / 权限管理页显示
+    description = "该小程序请求使用相机。",     // 审批弹窗正文
+    level = PermLevel.NORMAL                // SAFE / NORMAL / DANGEROUS
+)
+```
+
+**第 2 步**：在服务代码里调用 `ensurePermission(...)`（`DANGEROUS` 级可额外提供 `warning` 文案）
+
+```kotlin
+val ok = permissionManager.ensurePermission(
+    activity, appInfo.appKey, appInfo.permissions, "camera"
+)
+if (!ok) throw SecurityException("permission denied: camera")
+```
+
+**自动生效的部分**（无需改动）：
+- 审批流程按 `level` 决定是否弹窗；`SAFE` 直接放行
+- `DANGEROUS` 自动被禁止作为必要权限；审批弹窗自动显示警告框
+- 权限管理页自动显示该权限及其等级标签
+- `PermissionScope.label/description/warning` 自动取到新值
 
 ---
 

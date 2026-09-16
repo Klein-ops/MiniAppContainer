@@ -6,6 +6,8 @@ import android.widget.TextView
 import androidx.appcompat.widget.SwitchCompat
 import androidx.recyclerview.widget.RecyclerView
 import com.miniapp.container.R
+import com.miniapp.container.permission.PermLevel
+import com.miniapp.container.permission.PermissionRegistry
 import com.miniapp.container.permission.PermissionScope
 
 data class PermItem(val scope: String, val required: Boolean, val granted: Boolean)
@@ -43,9 +45,19 @@ class PermissionListAdapter : RecyclerView.Adapter<PermissionListAdapter.VH>() {
     override fun onBindViewHolder(holder: VH, position: Int) {
         val it = items[position]
         holder.name.text = PermissionScope.label(it.scope)
-        holder.tag.text = if (it.required) "必要 · 拒绝后无法运行" else "可选"
+        // 标签 = 等级 + 是否必要（危险权限不会出现在必要权限中）
+        val levelText = PermissionRegistry.levelLabel(it.scope)
+        holder.tag.text = when {
+            PermissionRegistry.isDangerous(it.scope) -> "$levelText · 需谨慎"
+            it.required -> "$levelText · 必要（拒绝后无法运行）"
+            else -> "$levelText · 可选"
+        }
         holder.tag.setTextColor(
-            if (it.required) 0xFFE03131.toInt() else 0xFF6B7280.toInt()
+            when {
+                PermissionRegistry.isDangerous(it.scope) -> 0xFFE03131.toInt()
+                it.required -> 0xFFE03131.toInt()
+                else -> 0xFF6B7280.toInt()
+            }
         )
         // 先解绑，避免回填触发
         holder.sw.setOnCheckedChangeListener(null)

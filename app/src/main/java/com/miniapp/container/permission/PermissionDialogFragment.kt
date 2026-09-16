@@ -22,6 +22,16 @@ class PermissionDialogFragment : DialogFragment() {
         view.findViewById<TextView>(R.id.tv_perm_desc).text =
             "${PermissionScope.description(scope)}\n\n请选择授权方式："
 
+        // 危险权限：显示醒目警告
+        val tvWarning = view.findViewById<TextView>(R.id.tv_perm_warning)
+        val warning = PermissionScope.warning(scope)
+        if (PermissionRegistry.isDangerous(scope) && warning.isNotEmpty()) {
+            tvWarning.text = warning
+            tvWarning.visibility = android.view.View.VISIBLE
+        } else {
+            tvWarning.visibility = android.view.View.GONE
+        }
+
         val app = (requireActivity().application as MiniAppApp).permissionManager
 
         fun submit(action: PermAction) {

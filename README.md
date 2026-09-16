@@ -163,7 +163,8 @@ MiniApp.permission.request(scope)
 - **路径穿越防护**：`PathGuard.resolveUnderRoot` 规范化并校验 canonical 路径未逃出沙箱。
 - **写白名单**：沙箱内写操作仅允许 `data/` 和 `tmp/`，禁止写 `app/`（只读资源区）。
 - **内部储存安全**：`fs.external` 操作禁止访问应用私有目录（`/data/data/...`），防篡改权限记录。
-- **权限审批**：`net` / `sys.openUrl` / `fs.external` / `clipboard` / `notification` / `storage` / `adb` 调用前经 `PermissionManager` 审批，授权持久化到 `miniapps/permissions.json`。弹窗提供 4 种选择：允许 / 仅允许一次 / 拒绝 / 不再询问。
+- **权限分级**：权限系统为注册表驱动，分三级——**安全**（无需审批，如沙箱内文件）、**普通**（需审批）、**危险**（需审批 + 醒目标警，且**不可声明为必要权限**）。新增权限只需在 `PermissionRegistry` 注册一条定义。
+- **权限审批**：普通/危险权限调用前经 `PermissionManager` 审批，授权持久化到 `miniapps/permissions.json`。弹窗提供 4 种选择：允许 / 仅允许一次 / 拒绝 / 不再询问。
 - **ADB / Shell**：`adb.exec` 需 `adb` 权限（⚠ 危险，审批时醒目警告），经 Shizuku 执行；Shizuku 未激活时返回明确错误而非崩溃
 - **Dex 隔离**：`dex.run` 无需权限，在 `android:isolatedProcess="true"` 独立进程中执行（独立 UID + SELinux `isolated_app` 域），无网络/无路径访问/无系统服务/不能加载 native 库；只能读写主进程通过 FD 传入的文件，无法主动打开路径。
 
