@@ -21,15 +21,19 @@ class PermissionManager(context: Context) {
     private val store = PermissionStore(
         java.io.File(context.filesDir, "miniapps/permissions.json")
     )
-    // 仅允许一次：内存临时授权（进程生命周期内有效）
+    // 仅允许一次：一次性令牌，命中即消费（只放行紧接着的那一次调用）
     private val tempGrants = ConcurrentHashMap<String, MutableSet<String>>()
     private val pending = ConcurrentHashMap<String, kotlinx.coroutines.CancellableContinuation<Boolean>>()
 
     /** 导入备份后重新加载授权记录。 */
     fun reload() = store.load()
 
-    fun isGranted(appKey: String, scope: String): Boolean =
-        store.isGranted(appKey, scope) || (tempGrants[appKey]?.contains(scope) == true)
+    /**
+     * 是否已持久授权。
+     * 注意：不包含「仅允许一次」的一次性令牌——那只是对单次调用的放行，
+     * 不代表该权限已授权（权限管理页据此显示更为准确）。
+     */
+    fun isGranted(appKey: String, scope: String): Boolean = store.isGranted(appKey, scope)
 
     fun isDeniedForever(appKey: String, scope: String): Boolean = store.isDeniedForever(appKey, scope)
 
@@ -49,7 +53,8 @@ class PermissionManager(context: Context) {
         // 「安全」级权限无需审批、也无需声明，直接放行
         if (PermissionRegistry.isSafe(scope)) return true
         if (store.isGranted(appKey, scope)) return true
-        if (tempGrants[appKey]?.contains(scope) == true) return true
+        // 一次性令牌：命中即移除，本次放行后失效，下次调用会重新弹窗
+        if (tempGrants[appKey]?.remove(scope) == true) return true
         if (store.isDeniedForever(appKey, scope)) return false
         if (scope !in declared) return false
         if (activity.isFinishing) return false
@@ -81,9 +86,9 @@ class PermissionManager(context: Context) {
     }
 
     fun recordGrant(appKey: String, scope: String) = store.grant(appKey, scope)
+    /** 记录「仅允许一次」——供紧接着的单次调用消费。 */
     fun recordTempGrant(appKey: String, scope: String) {
-        val set = tempGrants.getOrPut(appKey) { java.util.Collections.synchronizedSet(HashSet()) }
-        set.add(scope)
+        tempGrants.getOrPut(appKey) { ConcurrentHashMap.newKeySet() }.add(scope)
     }
     fun recordDenyForever(appKey: String, scope: String) = store.denyForever(appKey, scope)
 }

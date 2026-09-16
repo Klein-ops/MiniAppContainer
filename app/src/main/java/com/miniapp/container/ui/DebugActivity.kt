@@ -6,7 +6,9 @@ import android.widget.TextView
 import androidx.appcompat.app.AppCompatActivity
 import com.google.android.material.appbar.MaterialToolbar
 import com.miniapp.container.R
+import com.google.android.material.button.MaterialButton
 import com.miniapp.container.debug.DebugBus
+import com.miniapp.container.util.toast
 
 /** 显示调试模式记录的接口调用日志，实时刷新。 */
 class DebugActivity : AppCompatActivity() {
@@ -30,6 +32,12 @@ class DebugActivity : AppCompatActivity() {
         scroll = findViewById(R.id.scroll)
         tvHint = findViewById(R.id.tv_hint)
 
+        // 手动清空（另一种清空时机是蜗壳进程结束，日志仅存内存会自然消失）
+        findViewById<MaterialButton>(R.id.btn_clear_log).setOnClickListener {
+            DebugBus.clear()
+            toast("已清空日志")
+        }
+
         DebugBus.addListener(listener)
         render()
     }
@@ -40,8 +48,11 @@ class DebugActivity : AppCompatActivity() {
     }
 
     private fun render() {
-        tvHint.text = if (DebugBus.enabled) "调试模式：已开启（最多保留 500 条）"
-        else "调试模式未开启。在应用列表菜单开启「调试模式」后，此处记录所有小程序接口调用。"
+        tvHint.text = if (DebugBus.enabled) {
+            "调试模式：已开启 · 关闭调试模式不会清空日志"
+        } else {
+            "调试模式未开启（已有日志仍保留）· 日志仅存内存，蜗壳被划掉后消失"
+        }
         val logs = DebugBus.snapshot()
         tvLog.text = if (logs.isEmpty()) "(暂无记录)" else logs.joinToString("\n\n")
         scroll.post { scroll.fullScroll(ScrollView.FOCUS_DOWN) }
