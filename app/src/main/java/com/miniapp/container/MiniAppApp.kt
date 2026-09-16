@@ -5,6 +5,7 @@ import com.miniapp.container.core.AppInstaller
 import com.miniapp.container.core.AppRegistry
 import com.miniapp.container.core.SandboxManager
 import com.miniapp.container.permission.PermissionManager
+import com.miniapp.container.core.BackupService
 import com.miniapp.container.core.CategoryManager
 import java.io.File
 
@@ -20,6 +21,8 @@ class MiniAppApp : Application() {
         private set
     lateinit var categoryManager: CategoryManager
         private set
+    lateinit var backupService: BackupService
+        private set
 
     override fun onCreate() {
         super.onCreate()
@@ -29,6 +32,7 @@ class MiniAppApp : Application() {
         permissionManager = PermissionManager(this)
         categoryManager = CategoryManager(File(base, "categories.json"))
         installer = AppInstaller(this, sandbox, registry, permissionManager)
+        backupService = BackupService(this, installer)
     }
 
     companion object {

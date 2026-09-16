@@ -7,6 +7,7 @@ import org.json.JSONArray
 import org.json.JSONObject
 import java.io.BufferedOutputStream
 import java.io.File
+import java.io.IOException
 import java.util.zip.ZipEntry
 import java.util.zip.ZipInputStream
 import java.util.zip.ZipOutputStream
@@ -17,18 +18,23 @@ enum class BackupError { NOT_CONFIGURED, NETWORK, SERVER }
 /**
  * 备份与恢复服务。
  *
+ * **备份内容刻意精简**：只含小程序资源（app/）与应用数据（data/，可选），
+ * **不含权限声明、权限授权记录、分类等元数据**。恢复时权限从重新解压的
+ * `app/manifest.json` 读取，保证与资源一致。
+ *
  * 导出结构（zip）：
  * ```
- * backup.json                     清单：{ format, includeData, allApps, apps:[MiniAppInfo...] }
+ * backup.json                     精简清单：{ format, includeData, apps:[{uid,uname,version,entry,wasm,icon,displayName}] }
  * miniapps/<appKey>/app/...       应用资源
  * miniapps/<appKey>/data/...      应用数据（includeData=true 时）
- * miniapps/<appKey>/meta.json     安装信息
- * miniapps/categories.json        分类（仅全量备份时）
  * ```
  *
- * WebDAV 路径：`/ROOT/backup/<文件名>`；小程序数据：`/ROOT/data/<uid>_<uname>/`。
+ * WebDAV 路径：`/<ROOT>/backup/<文件名>`；小程序数据：`/<ROOT>/data/<uid>_<uname>/`。
  */
-class BackupService(private val context: Context) {
+class BackupService(
+    private val context: Context,
+    private val installer: AppInstaller
+) {
 
     private val config = WebdavConfig(context)
     private val root = listOf(WebdavConfig.ROOT_FOLDER)
@@ -39,73 +45,93 @@ class BackupService(private val context: Context) {
      * 导出为 zip。
      * @param appKeys 要备份的 appKey 列表；空表示全部应用
      * @param includeData 是否包含 data/（应用数据）
+     * @param compressionLevel zip 压缩等级 0-9（0=不压缩，9=最大，默认 6）
      */
-    fun exportToZip(dest: File, appKeys: List<String>, includeData: Boolean) {
+    fun exportToZip(
+        dest: File,
+        appKeys: List<String>,
+        includeData: Boolean,
+        compressionLevel: Int = 6
+    ) {
         val base = File(context.filesDir, "miniapps")
         val registry = AppRegistry(File(base, "registry.json")).also { it.load() }
         val all = appKeys.isEmpty()
         val selected = if (all) registry.list().map { it.appKey } else appKeys
 
         ZipOutputStream(BufferedOutputStream(dest.outputStream())).use { zos ->
+            zos.setLevel(compressionLevel.coerceIn(0, 9))
+
+            // 1) 精简清单：不含 permissions/requiredPermissions/installedAt
             val appsArr = JSONArray()
-            selected.forEach { registry.get(it)?.let { info -> appsArr.put(info.toJson()) } }
+            selected.forEach { key ->
+                registry.get(key)?.let { info ->
+                    appsArr.put(
+                        JSONObject()
+                            .put("uid", info.uid)
+                            .put("uname", info.uname)
+                            .put("version", info.version)
+                            .put("entry", info.entry)
+                            .put("wasm", JSONArray(info.wasm))
+                            .put("icon", info.icon)
+                            .put("displayName", info.displayName)
+                            .put("appKey", info.appKey)
+                    )
+                }
+            }
             val manifest = JSONObject()
-                .put("format", 1)
+                .put("format", 2)
                 .put("includeData", includeData)
-                .put("allApps", all)
                 .put("apps", appsArr)
             writeEntry(zos, "backup.json", manifest.toString().toByteArray(Charsets.UTF_8))
 
-            if (all) {
-                listOf("categories.json").forEach { n ->
-                    val f = File(base, n)
-                    if (f.isFile) writeEntry(zos, "miniapps/$n", f.readBytes())
-                }
-            }
-
+            // 2) 各应用沙箱：只备份 app/ 与（可选）data/，不备份 meta.json
             selected.forEach appLoop@{ key ->
                 val dir = File(base, key)
                 if (!dir.isDirectory) return@appLoop
                 dir.walkTopDown().filter { it.isFile }.forEach fileLoop@{ f ->
                     val rel = f.relativeTo(base).path.replace(File.separatorChar, '/')
-                    if (rel.contains("/tmp/")) return@fileLoop
-                    if (!includeData && rel.startsWith("$key/data/")) return@fileLoop
-                    writeEntry(zos, "miniapps/$rel", f.readBytes())
+                    if (rel.startsWith("$key/app/")) {
+                        writeEntry(zos, "miniapps/$rel", f.readBytes())
+                    } else if (includeData && rel.startsWith("$key/data/")) {
+                        writeEntry(zos, "miniapps/$rel", f.readBytes())
+                    }
+                    // tmp/、meta.json、其它一律不备份
                 }
             }
         }
     }
 
-    /** 从 zip 导入：解压沙箱并合并注册表（不删除未包含的应用）。 */
+    /** 从 zip 导入：解压沙箱并按清单逐个恢复（不删除未包含的应用）。 */
     fun importFromZip(zipFile: File) {
-        val base = context.filesDir
-        var manifest: JSONObject? = null
-        ZipInputStream(zipFile.inputStream().buffered()).use { zis ->
-            var e = zis.nextEntry
-            while (e != null) {
-                val name = e.name
-                if (!e.isDirectory && !name.contains("..") && !name.startsWith("/")) {
-                    when {
-                        name == "backup.json" ->
-                            manifest = runCatching {
-                                JSONObject(zis.readBytes().toString(Charsets.UTF_8))
-                            }.getOrNull()
-                        name.startsWith("miniapps/") -> {
-                            val target = File(base, name)
-                            target.parentFile?.mkdirs()
-                            target.outputStream().use { zis.copyTo(it) }
-                        }
-                    }
-                }
-                zis.closeEntry()
-                e = zis.nextEntry
+        val tmp = File(context.cacheDir, "restore_${System.currentTimeMillis()}")
+        tmp.mkdirs()
+        try {
+            IoUtil.unzip(zipFile, tmp)   // 自带 Zip-Slip 防护
+            val manifestFile = File(tmp, "backup.json")
+            if (!manifestFile.isFile) throw IOException("备份文件缺少 backup.json（可能不是蜗壳备份）")
+            val root = JSONObject(manifestFile.readText(Charsets.UTF_8))
+            val apps = root.optJSONArray("apps") ?: JSONArray()
+            var restored = 0
+            for (i in 0 until apps.length()) {
+                val o = apps.getJSONObject(i)
+                val uid = o.optString("uid")
+                val uname = o.optString("uname")
+                val appKey = PathGuard.appKey(uid, uname)
+                val extracted = File(tmp, "miniapps/$appKey")
+                val ok = installer.restoreFromBackup(
+                    extractedDir = extracted,
+                    uid = uid,
+                    uname = uname,
+                    displayName = o.optString("displayName")
+                )
+                if (ok) restored++
             }
+            if (restored == 0 && apps.length() > 0) {
+                throw IOException("备份内容无法恢复（应用数据缺失或格式不符）")
+            }
+        } finally {
+            tmp.deleteRecursively()
         }
-        val reg = AppRegistry(File(base, "miniapps/registry.json")).also { it.load() }
-        manifest?.optJSONArray("apps")?.let { arr ->
-            for (i in 0 until arr.length()) reg.put(MiniAppInfo.fromJson(arr.getJSONObject(i)))
-        }
-        reg.save()
     }
 
     private fun writeEntry(zos: ZipOutputStream, name: String, bytes: ByteArray) {
@@ -148,6 +174,17 @@ class BackupService(private val context: Context) {
         return try {
             client.mkdirs(root + "backup")
             client.list(root + "backup").filter { it.endsWith(".zip") }
+        } catch (t: Throwable) {
+            throw WebdavError(BackupError.NETWORK, t)
+        }
+    }
+
+    /** 删除 /ROOT/backup/ 下的一个备份文件。 */
+    fun deleteBackup(name: String): Boolean {
+        if (!config.configured) throw WebdavError(BackupError.NOT_CONFIGURED)
+        val client = WebdavClient(config)
+        return try {
+            client.delete(root + "backup" + name)
         } catch (t: Throwable) {
             throw WebdavError(BackupError.NETWORK, t)
         }

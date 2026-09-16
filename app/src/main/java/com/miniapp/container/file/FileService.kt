@@ -5,7 +5,9 @@ import com.miniapp.container.util.IoUtil
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import org.json.JSONArray
+import org.json.JSONArray
 import org.json.JSONObject
+import com.miniapp.container.util.TextEditor
 import java.io.File
 
 /**
@@ -28,6 +30,29 @@ class FileService(private val sandboxRoot: File) {
         if (prefix != "data" && prefix != "tmp") {
             throw SecurityException("写操作仅允许 data/ 和 tmp/ 目录: $path")
         }
+    }
+
+    /** grep：返回匹配行（不修改文件）。 */
+    suspend fun grep(path: String, pattern: String, regex: Boolean, ignoreCase: Boolean, invert: Boolean): String =
+        withContext(Dispatchers.IO) {
+            val f = resolve(path)
+            if (!f.exists()) throw java.io.FileNotFoundException("文件不存在: $path")
+            val arr = JSONArray()
+            TextEditor.grep(f.readText(Charsets.UTF_8), pattern, regex, ignoreCase, invert)
+                .forEach { arr.put(it) }
+            arr.toString()
+        }
+
+    /** sed：对文本文件应用编辑脚本（s/old/new/[gi]、Nd、/pat/d、/pat/a\t、/pat/i\t），写回。 */
+    suspend fun sed(path: String, script: String): String = withContext(Dispatchers.IO) {
+        assertWritable(path)
+        val f = resolve(path)
+        if (!f.exists()) throw java.io.FileNotFoundException("文件不存在: $path")
+        if (f.isDirectory) throw java.io.IOException("目标是目录: $path")
+        val text = f.readText(Charsets.UTF_8)
+        val result = TextEditor.sed(text, script)
+        f.writeText(result, Charsets.UTF_8)
+        "true"
     }
 
     suspend fun read(path: String): String = withContext(Dispatchers.IO) {

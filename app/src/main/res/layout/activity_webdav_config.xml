@@ -81,6 +81,44 @@
                 android:layout_marginTop="8dp"
                 android:text="测试连接" />
 
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="16dp"
+                android:gravity="center_vertical"
+                android:orientation="horizontal">
+
+                <TextView
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:text="备份压缩等级"
+                    android:textColor="@color/text_primary"
+                    android:textSize="14sp" />
+
+                <TextView
+                    android:id="@+id/tv_level"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginEnd="8dp"
+                    android:textColor="@color/brand_primary"
+                    android:textSize="14sp"
+                    android:textStyle="bold" />
+            </LinearLayout>
+
+            <SeekBar
+                android:id="@+id/seek_level"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:max="9" />
+
+            <TextView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="0=不压缩（最快）· 9=最大压缩（最慢）"
+                android:textColor="@color/text_secondary"
+                android:textSize="12sp" />
+
             <TextView
                 android:id="@+id/tv_status"
                 android:layout_width="match_parent"

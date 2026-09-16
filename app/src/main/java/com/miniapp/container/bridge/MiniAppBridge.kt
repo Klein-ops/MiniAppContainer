@@ -104,6 +104,11 @@ class MiniAppBridge(
         "fs.write" -> fileService.write(p.optStringOr("path"), p.optStringOr("content"))
         "fs.writeBytes" -> fileService.writeBytes(p.optStringOr("path"), p.optStringOr("base64"))
         "fs.list" -> fileService.list(p.optStringOr("path"))
+        "fs.grep" -> fileService.grep(
+            p.optStringOr("path"), p.optStringOr("pattern"),
+            p.optBoolOr("regex"), p.optBoolOr("ignoreCase"), p.optBoolOr("invert")
+        )
+        "fs.sed" -> fileService.sed(p.optStringOr("path"), p.optStringOr("script"))
         "fs.exists" -> fileService.exists(p.optStringOr("path"))
         "fs.stat" -> fileService.stat(p.optStringOr("path"))
         "fs.mkdir" -> fileService.mkdir(p.optStringOr("path"))
@@ -116,6 +121,11 @@ class MiniAppBridge(
         "fs.readExternalFile" -> externalFile.readFile(p.optStringOr("path"))
         "fs.writeExternalFile" -> externalFile.writeFile(p.optStringOr("path"), p.optStringOr("base64"))
         "fs.listExternal" -> externalFile.list(p.optStringOr("dir"))
+        "fs.grepExternal" -> externalFile.grepFile(
+            p.optStringOr("path"), p.optStringOr("pattern"),
+            p.optBoolOr("regex"), p.optBoolOr("ignoreCase"), p.optBoolOr("invert")
+        )
+        "fs.sedExternal" -> externalFile.sedFile(p.optStringOr("path"), p.optStringOr("script"))
         "fs.existsExternal" -> externalFile.exists(p.optStringOr("path"))
         "fs.statExternal" -> externalFile.stat(p.optStringOr("path"))
         "fs.mkdirExternal" -> externalFile.mkdir(p.optStringOr("dir"))

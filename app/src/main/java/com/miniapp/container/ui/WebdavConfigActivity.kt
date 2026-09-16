@@ -2,6 +2,7 @@ package com.miniapp.container.ui
 
 import android.os.Bundle
 import android.text.InputType
+import android.widget.SeekBar
 import android.view.MotionEvent
 import android.widget.EditText
 import android.widget.TextView
@@ -41,6 +42,7 @@ class WebdavConfigActivity : AppCompatActivity() {
         etPass = findViewById<EditText>(R.id.et_pass).also { it.setText(config.pass) }
         tvStatus = findViewById(R.id.tv_status)
         tvPaths = findViewById(R.id.tv_paths)
+        setupCompressionLevel()
 
         setupPasswordToggle()
         renderPaths()
@@ -55,6 +57,22 @@ class WebdavConfigActivity : AppCompatActivity() {
             save()
             testConnection()
         }
+    }
+
+    /** 压缩等级滑块：0-9，保存到配置。 */
+    private fun setupCompressionLevel() {
+        val seek = findViewById<SeekBar>(R.id.seek_level)
+        val tv = findViewById<TextView>(R.id.tv_level)
+        seek.progress = config.compressionLevel
+        tv.text = config.compressionLevel.toString()
+        seek.setOnSeekBarChangeListener(object : android.widget.SeekBar.OnSeekBarChangeListener {
+            override fun onProgressChanged(sb: SeekBar?, progress: Int, fromUser: Boolean) {
+                tv.text = progress.toString()
+                if (fromUser) config.compressionLevel = progress
+            }
+            override fun onStartTrackingTouch(sb: SeekBar?) {}
+            override fun onStopTrackingTouch(sb: SeekBar?) {}
+        })
     }
 
     /** 点击密码框右侧眼睛图标切换明文/密文。 */

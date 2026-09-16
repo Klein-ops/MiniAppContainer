@@ -95,6 +95,72 @@ class AppInstaller(
         }
     }
 
+    /**
+     * 从备份恢复单个应用（备份里**不含权限等元数据**，权限从重新解压的
+     * `app/manifest.json` 读取，保证恢复后权限声明与资源一致）。
+     *
+     * @param extractedDir 已解压的 `miniapps/<appKey>` 目录（含 app/，可选 data/）
+     * @param displayName  用户重命名（来自备份清单；备份里保留该项，便于恢复显示名）
+     */
+    suspend fun restoreFromBackup(
+        extractedDir: File,
+        uid: String,
+        uname: String,
+        displayName: String
+    ): Boolean = withContext(Dispatchers.IO) {
+        val appKey = PathGuard.appKey(uid, uname)
+        val manifestFile = File(extractedDir, "app/manifest.json")
+        if (!manifestFile.isFile) return@withContext false
+        val manifest = AppManifest.parse(manifestFile) ?: return@withContext false
+
+        // 1) 重建沙箱：只替换 app/，data/ 若有则合并
+        val appDir = sandbox.appDir(appKey)
+        appDir.deleteRecursively()
+        appDir.mkdirs()
+        File(extractedDir, "app").copyRecursively(appDir, overwrite = true)
+        val dataSrc = File(extractedDir, "data")
+        if (dataSrc.isDirectory) {
+            val dataDst = sandbox.dataDir(appKey)
+            dataDst.deleteRecursively()
+            dataDst.mkdirs()
+            dataSrc.copyRecursively(dataDst, overwrite = true)
+        }
+
+        // 2) 写 meta.json（权限取自重新解析的 manifest）
+        val meta = MetaInfo(
+            uid = uid,
+            uname = uname,
+            version = manifest.version,
+            entry = manifest.entry,
+            wasm = manifest.wasm,
+            permissions = manifest.permissions,
+            requiredPermissions = manifest.requiredPermissions,
+            installedAt = System.currentTimeMillis(),
+            appKey = appKey,
+            sandboxPath = appDir.absolutePath
+        )
+        sandbox.metaFile(appKey).writeText(meta.toJson().toString(), Charsets.UTF_8)
+
+        // 3) 注册（upsert，displayName 来自备份）
+        val existing = registry.get(appKey)
+        registry.put(
+            MiniAppInfo(
+                uid = uid,
+                uname = uname,
+                version = manifest.version,
+                entry = manifest.entry,
+                wasm = manifest.wasm,
+                permissions = manifest.permissions,
+                requiredPermissions = manifest.requiredPermissions,
+                icon = manifest.icon,
+                displayName = displayName.ifBlank { existing?.displayName ?: "" },
+                installedAt = System.currentTimeMillis()
+            )
+        )
+        registry.save()
+        true
+    }
+
     suspend fun installFromAssets(assetName: String): InstallResult = withContext(Dispatchers.IO) {
         val cache = File(context.cacheDir, "asset_${System.currentTimeMillis()}.zip")
         try {

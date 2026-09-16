@@ -55,6 +55,15 @@
       stat: function (p) { return B.call('fs.stat', { path: p }); },
       mkdir: function (p) { return B.call('fs.mkdir', { path: p }); },
       remove: function (p) { return B.call('fs.remove', { path: p }); },
+      // grep（搜索匹配行，不修改文件）+ sed（流编辑：替换/删行/插行，写回）
+      grep: function (path, pattern, opts) {
+        opts = opts || {};
+        return B.call('fs.grep', { path: path, pattern: String(pattern), regex: !!opts.regex, ignoreCase: !!opts.ignoreCase, invert: !!opts.invert });
+      },
+      sed: function (path, script, opts) {
+        opts = opts || {};
+        return B.call('fs.sed', { path: path, script: String(script) });
+      },
       // SAF 导入导出（无需权限）
       importFile: function (destPath) { return B.call('fs.importFile', { destPath: destPath }); },
       exportFile: function (path) { return B.call('fs.exportFile', { path: path }); },
@@ -66,7 +75,14 @@
       statExternal: function (p) { return B.call('fs.statExternal', { path: p }); },
       mkdirExternal: function (dir) { return B.call('fs.mkdirExternal', { dir: dir }); },
       removeExternal: function (p) { return B.call('fs.removeExternal', { path: p }); },
-      renameExternal: function (from, to) { return B.call('fs.renameExternal', { from: from, to: to }); }
+      renameExternal: function (from, to) { return B.call('fs.renameExternal', { from: from, to: to }); },
+      grepExternal: function (absPath, pattern, opts) {
+        opts = opts || {};
+        return B.call('fs.grepExternal', { path: absPath, pattern: String(pattern), regex: !!opts.regex, ignoreCase: !!opts.ignoreCase, invert: !!opts.invert });
+      },
+      sedExternal: function (absPath, script) {
+        return B.call('fs.sedExternal', { path: absPath, script: String(script) });
+      }
     },
     wasm: {
       // 利用 WebView 内置 WebAssembly JIT 引擎（高性能，支持二进制/Memory/import）

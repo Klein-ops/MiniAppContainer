@@ -5,6 +5,7 @@ import android.os.Build
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.lifecycleScope
 import com.miniapp.container.core.MiniAppInfo
+import com.miniapp.container.util.TextEditor
 import com.miniapp.container.file.FileService
 import com.miniapp.container.permission.PermissionManager
 import com.miniapp.container.permission.PermissionScope
@@ -36,6 +37,28 @@ class ExternalFileService(
 ) {
 
     // ---------- content:// URI ----------
+
+    /** grep：返回匹配行（不修改文件）。 */
+    suspend fun grepFile(absPath: String, pattern: String, regex: Boolean, ignoreCase: Boolean, invert: Boolean): String =
+        withContext(Dispatchers.IO) {
+            val f = File(assertExternalPath(absPath))
+            if (!f.exists()) throw java.io.FileNotFoundException("文件不存在: $absPath")
+            val arr = org.json.JSONArray()
+            TextEditor.grep(f.readText(Charsets.UTF_8), pattern, regex, ignoreCase, invert)
+                .forEach { arr.put(it) }
+            arr.toString()
+        }
+
+    /** sed：对内部储存文本文件应用编辑脚本，写回。 */
+    suspend fun sedFile(absPath: String, script: String): String = withContext(Dispatchers.IO) {
+        val f = File(assertExternalPath(absPath))
+        if (!f.exists()) throw java.io.FileNotFoundException("文件不存在: $absPath")
+        if (f.isDirectory) throw java.io.IOException("目标是目录: $absPath")
+        val text = f.readText(Charsets.UTF_8)
+        val result = TextEditor.sed(text, script)
+        f.writeText(result, Charsets.UTF_8)
+        "true"
+    }
 
     suspend fun readUri(uri: String): String = withContext(Dispatchers.IO) {
         ensurePermission()
