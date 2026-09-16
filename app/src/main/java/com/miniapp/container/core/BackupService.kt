@@ -3,6 +3,7 @@ package com.miniapp.container.core
 import android.content.Context
 import com.miniapp.container.netdisk.WebdavClient
 import com.miniapp.container.netdisk.WebdavConfig
+import com.miniapp.container.util.IoUtil
 import org.json.JSONArray
 import org.json.JSONObject
 import java.io.BufferedOutputStream
@@ -102,7 +103,7 @@ class BackupService(
     }
 
     /** 从 zip 导入：解压沙箱并按清单逐个恢复（不删除未包含的应用）。 */
-    fun importFromZip(zipFile: File) {
+    suspend fun importFromZip(zipFile: File) {
         val tmp = File(context.cacheDir, "restore_${System.currentTimeMillis()}")
         tmp.mkdirs()
         try {

@@ -41,7 +41,8 @@ class ExternalFileService(
     /** grep：返回匹配行（不修改文件）。 */
     suspend fun grepFile(absPath: String, pattern: String, regex: Boolean, ignoreCase: Boolean, invert: Boolean): String =
         withContext(Dispatchers.IO) {
-            val f = File(assertExternalPath(absPath))
+            val f = File(absPath)
+            assertExternalPath(f)
             if (!f.exists()) throw java.io.FileNotFoundException("文件不存在: $absPath")
             val arr = org.json.JSONArray()
             TextEditor.grep(f.readText(Charsets.UTF_8), pattern, regex, ignoreCase, invert)
@@ -51,7 +52,8 @@ class ExternalFileService(
 
     /** sed：对内部储存文本文件应用编辑脚本，写回。 */
     suspend fun sedFile(absPath: String, script: String): String = withContext(Dispatchers.IO) {
-        val f = File(assertExternalPath(absPath))
+        val f = File(absPath)
+        assertExternalPath(f)
         if (!f.exists()) throw java.io.FileNotFoundException("文件不存在: $absPath")
         if (f.isDirectory) throw java.io.IOException("目标是目录: $absPath")
         val text = f.readText(Charsets.UTF_8)

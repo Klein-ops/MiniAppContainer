@@ -1,6 +1,7 @@
 package com.miniapp.container.service
 
 import android.content.pm.PackageManager
+import android.os.ParcelFileDescriptor
 import com.miniapp.container.core.MiniAppInfo
 import com.miniapp.container.permission.PermissionManager
 import com.miniapp.container.permission.PermissionScope
@@ -10,6 +11,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlinx.coroutines.withContext
 import org.json.JSONObject
+import moe.shizuku.server.IShizukuService
 import rikka.shizuku.Shizuku
 import kotlin.coroutines.resume
 
@@ -59,10 +61,18 @@ class AdbService(
         // 4) 执行
         return runCatching {
             withContext(Dispatchers.IO) {
-                val proc = Shizuku.newProcess(arrayOf("sh", "-c", command), null, null)
+                // 直接用 AIDL 调 IShizukuService.newProcess：
+                // Shizuku.newProcess 在 API 13 起为 private（已废弃，API 14 移除）
+                val binder = Shizuku.getBinder()
+                    ?: return@withContext fail("shizuku not active", "Shizuku 服务未就绪。")
+                val service = IShizukuService.Stub.asInterface(binder)
+                val proc = service.newProcess(arrayOf("sh", "-c", command), null, null)
+                    ?: return@withContext fail("adb error", "Shizuku 返回空进程。")
                 try {
-                    val stdout = proc.inputStream.bufferedReader().use { it.readText() }
-                    val stderr = proc.errorStream.bufferedReader().use { it.readText() }
+                    val stdout = ParcelFileDescriptor.AutoCloseInputStream(proc.inputStream)
+                        .bufferedReader().use { it.readText() }
+                    val stderr = ParcelFileDescriptor.AutoCloseInputStream(proc.errorStream)
+                        .bufferedReader().use { it.readText() }
                     val code = proc.waitFor()
                     JSONObject()
                         .put("ok", true)
@@ -71,7 +81,7 @@ class AdbService(
                         .put("stderr", stderr)
                         .toString()
                 } finally {
-                    proc.destroy()
+                    runCatching { proc.destroy() }
                 }
             }
         }.getOrElse { fail("adb error", it.message ?: it.javaClass.simpleName) }
@@ -87,20 +97,20 @@ class AdbService(
     private suspend fun ensureShizukuPermission(): Boolean = suspendCancellableCoroutine { cont ->
         val listener = object : Shizuku.OnRequestPermissionResultListener {
             override fun onRequestPermissionResult(requestCode: Int, grantResult: Int) {
-                Shizuku.removeOnRequestPermissionResultListener(this)
+                Shizuku.removeRequestPermissionResultListener(this)
                 if (cont.isActive) {
                     cont.resume(grantResult == PackageManager.PERMISSION_GRANTED)
                 }
             }
         }
-        Shizuku.addOnRequestPermissionResultListener(listener)
+        Shizuku.addRequestPermissionResultListener(listener)
         try {
             Shizuku.requestPermission(0)
         } catch (t: Throwable) {
-            Shizuku.removeOnRequestPermissionResultListener(listener)
+            Shizuku.removeRequestPermissionResultListener(listener)
             if (cont.isActive) cont.resume(false)
         }
-        cont.invokeOnCancellation { Shizuku.removeOnRequestPermissionResultListener(listener) }
+        cont.invokeOnCancellation { Shizuku.removeRequestPermissionResultListener(listener) }
     }
 
     private fun fail(error: String, detail: String): String = JSONObject()

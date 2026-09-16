@@ -109,7 +109,7 @@ object TextEditor {
 
     /** /pattern/a\\ text */
     private fun applyAppend(lines: MutableList<String>, cmd: String) {
-        val (pat, text) = parseInsertCmd(cmd, "a") ?: return
+        val (pat, text) = parseInsertCmd(cmd, 'a') ?: return
         val matcher = pat.matcher("")
         for (i in lines.indices.reversed()) {
             matcher.reset(lines[i])
@@ -121,7 +121,7 @@ object TextEditor {
 
     /** /pattern/i\\ text */
     private fun applyInsert(lines: MutableList<String>, cmd: String) {
-        val (pat, text) = parseInsertCmd(cmd, "i") ?: return
+        val (pat, text) = parseInsertCmd(cmd, 'i') ?: return
         val matcher = pat.matcher("")
         for (i in lines.indices.reversed()) {
             matcher.reset(lines[i])
