@@ -9,6 +9,7 @@ import com.miniapp.container.ui.MiniAppActivity
 import com.miniapp.container.util.optLongOr
 import com.miniapp.container.util.optStringOr
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlinx.coroutines.withContext
 import moe.shizuku.server.IShizukuService
@@ -53,6 +54,7 @@ class AdbService(
         private const val MIN_TIMEOUT_MS = 1_000L
         private const val MAX_TIMEOUT_MS = 600_000L   // 最长 10 分钟
         private const val SHIZUKU_PKG = "moe.shizuku.privileged.api"
+        private const val WAIT_MS = 2_000L   // 等待 Shizuku 推送 binder 的最长时间
     }
 
     suspend fun exec(p: JSONObject): String {
@@ -68,11 +70,17 @@ class AdbService(
         if (!granted) throw SecurityException("permission denied: adb")
 
         // 2) Shizuku 状态
-        when (shizukuState()) {
+        // 注意：binder 由 Shizuku 服务端主动推送（经 ShizukuProvider），是异步的。
+        // 应用刚启动时可能尚未到达，故未激活时短暂等待再判定，避免误报。
+        when (awaitShizukuState()) {
             ShizukuState.NOT_INSTALLED ->
                 return fail("shizuku not installed", "未检测到 Shizuku，请先安装并激活。")
             ShizukuState.NOT_ACTIVE ->
-                return fail("shizuku not active", "Shizuku 已安装但服务未激活，请启动 Shizuku。")
+                return fail(
+                    "shizuku not active",
+                    "Shizuku 已安装但服务未就绪。请在 Shizuku 中确认已启动，" +
+                        "并确认蜗壳出现在 Shizuku 的应用列表中；首次启用后稍等片刻再试。"
+                )
             ShizukuState.ACTIVE -> Unit
         }
 
@@ -157,6 +165,22 @@ class AdbService(
             Thread.sleep(40)
         }
         return !runCatching { proc.alive() }.getOrDefault(false)
+    }
+
+    /**
+     * 检测 Shizuku 状态；若暂未激活则轮询等待（最多 [WAIT_MS]）。
+     * Shizuku 服务端推送 binder 是异步的，刚启动时直接判定会误报"未激活"。
+     */
+    private suspend fun awaitShizukuState(): ShizukuState {
+        var st = shizukuState()
+        if (st == ShizukuState.NOT_INSTALLED || st == ShizukuState.ACTIVE) return st
+        val deadline = System.currentTimeMillis() + WAIT_MS
+        while (System.currentTimeMillis() < deadline) {
+            delay(120)
+            st = shizukuState()
+            if (st == ShizukuState.ACTIVE) return st
+        }
+        return st
     }
 
     /** 检测 Shizuku 状态：未安装 / 已安装未激活 / 已激活。 */

@@ -499,6 +499,13 @@ if (!r2.ok && r2.timedOut) console.log('超时，已部分输出:', r2.stdout);
 
 命令通过 `sh -c <command>` 执行，支持管道、重定向等 shell 语法。
 
+> **宿主集成要求**（维护者注意）：`adb.exec` 依赖 Shizuku，而 Shizuku 的 binder
+> 由**服务端主动推送**给客户端。客户端必须在 AndroidManifest 中声明
+> `rikka.shizuku.ShizukuProvider`（authority `${applicationId}.shizuku`、
+> `exported=true`、`multiprocess=false`、
+> `permission=android.permission.INTERACT_ACROSS_USERS_FULL`），
+> 否则 `Shizuku.pingBinder()` 恒为 false、授权弹窗也不会出现。
+
 
 ## 五、权限模型
 

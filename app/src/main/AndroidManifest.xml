@@ -91,6 +91,17 @@
             android:isolatedProcess="true"
             android:exported="false" />
 
+
+        <!-- Shizuku 必需：Shizuku 服务端通过该 provider 推送 binder。
+             缺此声明会导致 Shizuku.pingBinder() 恒为 false（无法检测/使用 Shizuku）。 -->
+        <provider
+            android:name="rikka.shizuku.ShizukuProvider"
+            android:authorities="${applicationId}.shizuku"
+            android:enabled="true"
+            android:exported="true"
+            android:multiprocess="false"
+            android:permission="android.permission.INTERACT_ACROSS_USERS_FULL" />
+
     </application>
 
 </manifest>
