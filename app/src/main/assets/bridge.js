@@ -162,7 +162,10 @@
     sys: { openUrl: function (u) { return B.call('sys.openUrl', { url: u }); } },
     adb: {
       // 通过 Shizuku 执行 SH 指令（需 adb 权限，危险，需用户审批）
-      exec: function (command) { return B.call('adb.exec', { command: String(command) }); }
+      exec: function (command, opts) {
+        opts = opts || {};
+        return B.call('adb.exec', { command: String(command), timeout: Number(opts.timeout) || 0 });
+      }
     },
     permission: { request: function (scope) { return B.call('perm.request', { scope: scope }); } }
   };

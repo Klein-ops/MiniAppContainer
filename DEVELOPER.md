@@ -459,27 +459,42 @@ try {
 
 | 接口 | 返回类型 | 返回值 |
 |---|---|---|
-| `adb.exec(command)` | `object` | 成功 `{ ok: true, exitCode: number, stdout: string, stderr: string }`；失败 `{ ok: false, error: string, detail: string }` |
+| `adb.exec(command, opts)` | `object` | 见下 |
 
-**失败原因（`error` 字段）**：
+`opts`：
 
-| `error` | 含义 |
-|---|---|
-| `shizuku not active` | 蜗壳权限已授，但 Shizuku 未启动/未激活 |
-| `shizuku permission denied` | Shizuku 弹窗中用户拒绝 |
-| `shizuku error` | 查询 Shizuku 状态时出错 |
-| `adb error` | 命令执行异常 |
+| 字段 | 类型 | 默认 | 说明 |
+|---|---|---|---|
+| `timeout` | `number` | `30000` | 超时毫秒数；≤0 时按默认值处理。有效范围 1000~600000（超出会被夹紧） |
 
+**成功**：`{ ok: true, exitCode: number, stdout: string, stderr: string, timedOut: false }`
+
+**失败**：`{ ok: false, error: string, detail: string }`，其中 `error` 取值：
+
+| `error` | 含义 | 建议处理 |
+|---|---|---|
+| `shizuku not installed` | 设备未安装 Shizuku | 提示用户安装 Shizuku |
+| `shizuku not active` | 已安装但服务未启动/未激活 | 提示用户启动 Shizuku |
+| `shizuku permission denied` | Shizuku 弹窗中用户拒绝 | 提示用户重新授权 |
+| `shizuku error` | 查询 Shizuku 状态出错 | 提示重启 Shizuku |
+| `timeout` | 超过 `timeout` 未结束，进程已被强杀 | 该情形额外含 `timedOut: true` 与已捕获的 `stdout`/`stderr` | 
+| `adb error` | 命令执行异常 | 检查命令本身 |
+
+> **注意**：`timeout` 失败时返回结构为 `{ ok:false, timedOut:true, error:"timeout", detail, stdout, stderr }`。
 > 蜗壳自身权限被拒时 Promise reject，`Error.message` = `permission denied: adb`（区别于上面 resolve 的 `{ok:false}`）。
 
 ```js
+// 基本用法（默认 30s 超时）
 const r = await MiniApp.adb.exec('ls -l /sdcard');
 if (r.ok) {
-  console.log('exit', r.exitCode);
-  console.log(r.stdout);
-} else if (r.error === 'shizuku not active') {
-  // 提示用户启动 Shizuku
+  console.log('exit', r.exitCode, r.stdout, r.stderr);
+} else {
+  console.log('failed:', r.error, r.detail);
 }
+
+// 自定义超时（5 秒）
+const r2 = await MiniApp.adb.exec('ping -c 3 example.com', { timeout: 5000 });
+if (!r2.ok && r2.timedOut) console.log('超时，已部分输出:', r2.stdout);
 ```
 
 命令通过 `sh -c <command>` 执行，支持管道、重定向等 shell 语法。
@@ -756,7 +771,9 @@ adb logcat -s MiniAppJS MiniAppBridge
 | `permission denied: storage` | 未声明 `storage` 或用户拒绝 | manifest 声明并允许 |
 | `storage not configured` | 已授权但未配置 WebDAV | 在「设置 → 网络存储」中填写地址 |
 | `permission denied: adb` | 未声明 `adb` 或用户拒绝 | manifest 声明并允许（⚠ 危险） |
+| `shizuku not installed` | 设备未安装 Shizuku | 安装 Shizuku 应用 |
 | `shizuku not active` | Shizuku 未启动 | 启动 Shizuku 并激活服务 |
+| `timeout` | 命令超过指定超时 | 增大 `timeout` 或检查命令 |
 | `shizuku permission denied` | Shizuku 弹窗拒绝 | 在 Shizuku 弹窗授权 |
 | `dex 文件不存在: xxx` | `dex` 路径不对 | 路径相对沙箱根，确认 zip/`data/` 含该 dex |
 

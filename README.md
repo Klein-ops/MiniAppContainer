@@ -144,7 +144,7 @@ MiniApp.notification.show(title, body) / cancel()
 // 网络存储（需 storage 权限）：小程序在 WebDAV 上的独立目录
 MiniApp.storage.upload(path, base64) / download(path) / list(path) / delete(path)
 // ADB / Shell（需 adb 权限，⚠ 危险，经 Shizuku 执行）
-MiniApp.adb.exec(command)   // → { ok, exitCode, stdout, stderr } 或 { ok:false, error }
+MiniApp.adb.exec(command, { timeout })   // → { ok, exitCode, stdout, stderr } 或 { ok:false, error, detail }
 // Dex 执行（无需权限，android:isolatedProcess 隔离进程内运行）
 MiniApp.dex.run({ dex, className, methodName, params, input, output })
 // 打开外部链接（需 sys.openUrl 权限）
