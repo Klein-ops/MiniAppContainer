@@ -124,10 +124,18 @@ class AppInstaller(
         )
 
         // 1) 重建沙箱：只替换 app/，data/ 若有则合并
-        val appDir = sandbox.appDir(appKey)
-        appDir.deleteRecursively()
-        appDir.mkdirs()
-        File(extractedDir, "app").copyRecursively(appDir, overwrite = true)
+        //    注意：资源必须写入沙箱的 app/ 子目录（与 installFromZip 一致）。
+        //    曾误写成 sandbox.appDir(appKey)（即 <appKey>/ 本身），导致资源少了
+        //    app/ 这一层，恢复后入口与图标都找不到。
+        val appSrc = File(extractedDir, "app")
+        if (!appSrc.isDirectory) return@withContext false
+        sandbox.create(appKey)                      // 确保 app/ data/ tmp/ 存在
+        cleanupSandboxRoot(appKey)                  // 清掉可能残留的历史错误文件
+        val resDir = sandbox.resDir(appKey)         // <appKey>/app
+        resDir.deleteRecursively()
+        resDir.mkdirs()
+        appSrc.copyRecursively(resDir, overwrite = true)
+
         val dataSrc = File(extractedDir, "data")
         if (dataSrc.isDirectory) {
             val dataDst = sandbox.dataDir(appKey)
@@ -147,7 +155,7 @@ class AppInstaller(
             requiredPermissions = safeRequired,
             installedAt = System.currentTimeMillis(),
             appKey = appKey,
-            sandboxPath = appDir.absolutePath
+            sandboxPath = sandbox.appDir(appKey).absolutePath
         )
         sandbox.metaFile(appKey).writeText(meta.toJson().toString(), Charsets.UTF_8)
 
@@ -169,6 +177,20 @@ class AppInstaller(
         )
         registry.save()
         true
+    }
+
+    /**
+     * 清理沙箱根目录下**不属于**沙箱结构（`app/` `data/` `tmp/` `meta.json`）的残留。
+     *
+     * 用途：早期版本的备份恢复曾把资源错写到 `<appKey>/` 根下（少了 `app/` 一层），
+     * 这些文件不会被正常的资源替换清掉，会一直堆着。此处顺手清理，
+     * 使用户无需卸载重装即可恢复干净状态。
+     */
+    private fun cleanupSandboxRoot(appKey: String) {
+        val keep = setOf("app", "data", "tmp", "meta.json")
+        sandbox.appDir(appKey).listFiles()?.forEach { f ->
+            if (f.name !in keep) runCatching { f.deleteRecursively() }
+        }
     }
 
     suspend fun installFromAssets(assetName: String): InstallResult = withContext(Dispatchers.IO) {

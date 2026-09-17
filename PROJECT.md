@@ -176,6 +176,24 @@ Shizuku 大版本升级可能失效。
 
 ## 五、备份与恢复
 
+### 沙箱路径约定（易错点）
+
+沙箱固定结构，**所有读写必须落在约定层级**：
+
+```
+<filesDir>/miniapps/<appKey>/
+├─ app/       前端资源（只读）   ← 读写端统一用 "app/" 前缀
+├─ data/      读写数据
+├─ tmp/       临时文件
+└─ meta.json
+```
+
+- 写入资源必须用 `sandbox.resDir(appKey)`（= `<appKey>/app`），**不要**写成
+  `sandbox.appDir(appKey)`（= `<appKey>/` 本身）——后者会让文件少一层 `app/`，
+  导致入口与图标都找不到（历史 bug）。
+- 读取端统一：图标 `<appKey>/app/<icon>`、入口 `<appKey>/app/<entry>`。
+- 新增任何"写沙箱"的代码后，务必与 `installFromZip` 的写法对照一遍。
+
 ### 备份内容（刻意精简）
 
 **只含小程序资源与应用数据**，不含权限声明、权限授权记录、分类、`meta.json`。
