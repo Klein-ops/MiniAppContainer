@@ -2,7 +2,6 @@ package com.miniapp.container.ui
 
 import android.content.Intent
 import android.os.Bundle
-import android.widget.EditText
 import android.content.pm.ShortcutInfo
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
@@ -16,6 +15,7 @@ import androidx.lifecycle.lifecycleScope
 import com.google.android.material.appbar.MaterialToolbar
 import com.miniapp.container.MiniAppApp
 import com.miniapp.container.R
+import com.miniapp.container.util.InputDialog
 import com.miniapp.container.util.showRounded
 import com.miniapp.container.util.toast
 import com.miniapp.container.core.CategoryManager
@@ -98,15 +98,13 @@ class AppSettingsActivity : AppCompatActivity() {
     }
 
     private fun showRename() {
-        val input = EditText(this).apply {
-            setText(info.displayName.ifBlank { info.uname })
-            setSelection(text.length)
-            hint = "显示名称"
-        }
+        val (view, input) = InputDialog.create(
+            this, "显示名称", initial = info.displayName.ifBlank { info.uname }
+        )
         MaterialAlertDialogBuilder(this)
             .setTitle("重命名")
             .setMessage("仅影响显示，不影响应用身份（${info.uid}_${info.uname}）")
-            .setView(input)
+            .setView(view)
             .setPositiveButton("确定") { _, _ ->
                 val name = input.text.toString().trim()
                 hostApp.registry.put(info.copy(displayName = name))
@@ -134,10 +132,10 @@ class AppSettingsActivity : AppCompatActivity() {
     }
 
     private fun showAddCategoryAndMove() {
-        val input = android.widget.EditText(this).apply { hint = "分类名称" }
+        val (view, input) = InputDialog.create(this, "分类名称")
         MaterialAlertDialogBuilder(this)
             .setTitle("新建分类并移入")
-            .setView(input)
+            .setView(view)
             .setPositiveButton("创建") { _, _ ->
                 val name = input.text.toString().trim()
                 if (hostApp.categoryManager.addCategory(name)) {

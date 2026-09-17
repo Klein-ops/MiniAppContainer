@@ -221,6 +221,19 @@ miniapps/<appKey>/data/...        应用数据（includeData=true 时）
 
 **不要**在设置类页面里混用 `MaterialButton` 与卡片。
 
+### 输入弹窗
+
+需要用户输入文本的对话框**必须**经 `util/InputDialog.create(context, hint, ...)` 构造视图，
+不要 `setView(EditText(this))` —— 裸 `EditText` 会贴到卡片边缘（下划线与文字顶边）。
+`InputDialog` 内部用 `TextInputLayout`（outlined）+ 24dp 水平内边距，并支持 `inputType`：
+
+```kotlin
+val (view, input) = InputDialog.create(this, "分类名称")
+MaterialAlertDialogBuilder(this).setTitle("新建分类").setView(view)
+    .setPositiveButton("创建") { _, _ -> /* input.text */ }
+    .setNegativeButton("取消", null).showRounded()
+```
+
 ### 圆角对话框
 
 对话框圆角在部分 ROM 上会被系统/Material 覆盖成直角，因此统一经

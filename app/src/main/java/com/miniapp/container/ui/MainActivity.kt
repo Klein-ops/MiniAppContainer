@@ -21,6 +21,7 @@ import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.miniapp.container.MiniAppApp
 import com.miniapp.container.R
+import com.miniapp.container.util.InputDialog
 import com.miniapp.container.util.showRounded
 import com.miniapp.container.util.toast
 import com.miniapp.container.core.MiniAppInfo
@@ -152,12 +153,10 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun showAddCategoryDialog() {
-        val input = android.widget.EditText(this).apply {
-            hint = "分类名称"
-        }
+        val (view, input) = InputDialog.create(this, "分类名称")
         MaterialAlertDialogBuilder(this)
             .setTitle("新建分类")
-            .setView(input)
+            .setView(view)
             .setPositiveButton("创建") { _, _ ->
                 val name = input.text.toString().trim()
                 if (hostApp.categoryManager.addCategory(name)) {
@@ -190,10 +189,10 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun showAddCategoryAndMove(info: MiniAppInfo) {
-        val input = android.widget.EditText(this).apply { hint = "分类名称" }
+        val (view, input) = InputDialog.create(this, "分类名称")
         MaterialAlertDialogBuilder(this)
             .setTitle("新建分类并移入")
-            .setView(input)
+            .setView(view)
             .setPositiveButton("创建") { _, _ ->
                 val name = input.text.toString().trim()
                 if (hostApp.categoryManager.addCategory(name)) {
@@ -271,14 +270,13 @@ class MainActivity : AppCompatActivity() {
             .addFlags(Intent.FLAG_ACTIVITY_NEW_DOCUMENT)
 
     private fun showUrlInstallDialog() {
-        val input = EditText(this).apply {
-            hint = "https://example.com/app.zip"
-            inputType = android.text.InputType.TYPE_TEXT_VARIATION_URI
-        }
+        val (view, input) = InputDialog.create(
+            this, "https://example.com/app.zip", inputType = android.text.InputType.TYPE_TEXT_VARIATION_URI
+        )
         MaterialAlertDialogBuilder(this)
             .setTitle("从 URL 安装")
             .setMessage("输入 zip 文件直链")
-            .setView(input)
+            .setView(view)
             .setPositiveButton("下载安装") { _, _ ->
                 val url = input.text.toString().trim()
                 if (url.isNotEmpty()) lifecycleScope.launch { installFromUrl(url) }
