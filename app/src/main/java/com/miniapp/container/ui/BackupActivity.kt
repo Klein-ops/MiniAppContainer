@@ -36,7 +36,7 @@ import java.util.Locale
 /** 备份与恢复：本地 zip + WebDAV（备份内容精简、可选应用与数据、WebDAV 可删备份）。 */
 class BackupActivity : AppCompatActivity() {
 
-    private val hostApp by lazy { MiniAppApp.get(application) }
+    private val hostApp by lazy { MiniAppApp.require(application) }
     private val backup by lazy { hostApp.backupService }
     private val webdavConfig by lazy { WebdavConfig(this) }
 

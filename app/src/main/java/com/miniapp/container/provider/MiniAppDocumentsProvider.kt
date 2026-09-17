@@ -7,6 +7,9 @@ import android.os.ParcelFileDescriptor
 import android.provider.DocumentsContract
 import android.provider.DocumentsProvider
 import android.webkit.MimeTypeMap
+import android.content.Context
+import android.os.Process
+import android.os.UserManager
 import com.miniapp.container.R
 import java.io.File
 import java.io.FileNotFoundException
@@ -41,6 +44,25 @@ class MiniAppDocumentsProvider : DocumentsProvider() {
 
     private fun rootDir(): File = context!!.dataDir
 
+    /**
+     * 当前是否可以提供服务。
+     *
+     * 本 provider 为 exported，可能被系统/其他应用在**锁屏（Direct Boot 未解锁）**阶段查询，
+     * 也可能运行在隔离进程。这两种情形下 `dataDir` 不可访问，直接返回空列表而非抛异常。
+     */
+    private fun canServe(): Boolean {
+        if (Process.isIsolated()) return false
+        val ctx = context ?: return false
+        return try {
+            (ctx.getSystemService(Context.USER_SERVICE) as UserManager).isUserUnlocked
+        } catch (_: Throwable) {
+            false
+        }
+    }
+
+    private fun emptyCursor(projection: Array<out String>?, fallback: Array<String>): Cursor =
+        MatrixCursor(projection ?: fallback)
+
     /** documentId -> 真实文件（严格限制在 rootDir 内）。 */
     private fun fileFor(docId: String): File {
         val root = rootDir().canonicalFile
@@ -61,6 +83,7 @@ class MiniAppDocumentsProvider : DocumentsProvider() {
     override fun onCreate(): Boolean = true
 
     override fun queryRoots(projection: Array<out String>?): Cursor {
+        if (!canServe()) return emptyCursor(projection, DEFAULT_ROOT_PROJECTION)
         val cursor = MatrixCursor(projection ?: DEFAULT_ROOT_PROJECTION)
         cursor.newRow().apply {
             add(DocumentsContract.Root.COLUMN_ROOT_ID, ROOT_ID)
@@ -76,6 +99,7 @@ class MiniAppDocumentsProvider : DocumentsProvider() {
     }
 
     override fun queryDocument(documentId: String, projection: Array<out String>?): Cursor {
+        if (!canServe()) return emptyCursor(projection, DEFAULT_DOCUMENT_PROJECTION)
         val cursor = MatrixCursor(projection ?: DEFAULT_DOCUMENT_PROJECTION)
         val file = fileFor(documentId)
         includeFile(cursor, file)
@@ -87,6 +111,7 @@ class MiniAppDocumentsProvider : DocumentsProvider() {
         projection: Array<out String>?,
         sortOrder: String?
     ): Cursor {
+        if (!canServe()) return emptyCursor(projection, DEFAULT_DOCUMENT_PROJECTION)
         val cursor = MatrixCursor(projection ?: DEFAULT_DOCUMENT_PROJECTION)
         val parent = fileFor(parentDocumentId)
         parent.listFiles()?.sortedBy { it.name }?.forEach { includeFile(cursor, it) }
@@ -98,6 +123,7 @@ class MiniAppDocumentsProvider : DocumentsProvider() {
         mode: String,
         signal: CancellationSignal?
     ): ParcelFileDescriptor {
+        if (!canServe()) throw FileNotFoundException("存储不可用（用户未解锁）")
         val file = fileFor(documentId)
         if (!file.exists()) throw FileNotFoundException(documentId)
         val flags = when (mode) {

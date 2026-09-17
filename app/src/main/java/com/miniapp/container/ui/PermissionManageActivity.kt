@@ -16,7 +16,7 @@ class PermissionManageActivity : AppCompatActivity() {
 
     private lateinit var app: MiniAppInfo
     private lateinit var adapter: PermissionListAdapter
-    private val hostApp: MiniAppApp get() = application as MiniAppApp
+    private val hostApp: MiniAppApp get() = MiniAppApp.require(application)
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)

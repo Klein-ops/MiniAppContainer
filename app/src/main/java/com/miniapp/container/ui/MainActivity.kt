@@ -43,7 +43,7 @@ class MainActivity : AppCompatActivity() {
 
     private var currentFilter: String? = com.miniapp.container.core.CategoryManager.DEFAULT
 
-    private val hostApp: MiniAppApp get() = application as MiniAppApp
+    private val hostApp: MiniAppApp get() = MiniAppApp.require(application)
 
     private val pickZip = registerForActivityResult(
         ActivityResultContracts.OpenDocument()

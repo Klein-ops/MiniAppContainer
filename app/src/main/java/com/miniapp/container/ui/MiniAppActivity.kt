@@ -80,7 +80,7 @@ class MiniAppActivity : AppCompatActivity() {
 
         val appKey = intent.getStringExtra(EXTRA_APP_KEY)
         if (appKey == null) { finish(); return }
-        val info = (application as MiniAppApp).registry.get(appKey)
+        val info = MiniAppApp.require(application).registry.get(appKey)
         if (info == null) { finish(); return }
         appInfo = info
 
@@ -98,7 +98,7 @@ class MiniAppActivity : AppCompatActivity() {
      * （含桌面快捷方式、外部 Intent、最近任务恢复）都受同一约束。
      */
     private fun gateRequiredPermissions(): Boolean {
-        val pm = (application as MiniAppApp).permissionManager
+        val pm = MiniAppApp.require(application).permissionManager
         val ungranted = appInfo.requiredPermissions
             .filter { PermissionScope.canBeRequired(it) }
             .filter { !pm.isGranted(appInfo.appKey, it) }
@@ -132,7 +132,7 @@ class MiniAppActivity : AppCompatActivity() {
         // 打开时即安排闲置自动贴边收起（等待布局完成后再调度）
         floatingExit.post { floatingExit.scheduleIdleHide() }
 
-        val hostApp = application as MiniAppApp
+        val hostApp = MiniAppApp.require(application)
         val sandboxRoot = hostApp.sandbox.appDir(appInfo.appKey)
         val bridgeJs = assets.open("bridge.js").bufferedReader().use { it.readText() }
 

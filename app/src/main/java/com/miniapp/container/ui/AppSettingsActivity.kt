@@ -25,7 +25,7 @@ import kotlinx.coroutines.launch
 /** 小程序独立设置页：权限管理 / 移动分类 / 清空数据 / 卸载。 */
 class AppSettingsActivity : AppCompatActivity() {
 
-    private val hostApp: MiniAppApp get() = application as MiniAppApp
+    private val hostApp: MiniAppApp get() = MiniAppApp.require(application)
     private lateinit var info: MiniAppInfo
 
     override fun onCreate(savedInstanceState: Bundle?) {

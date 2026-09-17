@@ -33,7 +33,7 @@ class PermissionDialogFragment : DialogFragment() {
             tvWarning.visibility = android.view.View.GONE
         }
 
-        val app = (requireActivity().application as MiniAppApp).permissionManager
+        val app = MiniAppApp.require(requireActivity().application).permissionManager
 
         fun submit(action: PermAction) {
             when (action) {

@@ -10,6 +10,7 @@ import android.os.ParcelFileDescriptor
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlinx.coroutines.withContext
+import kotlinx.coroutines.withTimeoutOrNull
 import java.io.File
 import kotlin.coroutines.resume
 
@@ -59,7 +60,17 @@ class DexRunner(private val context: Context) {
         }
     }
 
-    private suspend fun bind(): IDexService? = suspendCancellableCoroutine { cont ->
+    /**
+     * 绑定隔离进程服务。
+     *
+     * 加超时：若隔离进程启动失败（如历史版本中 Application 初始化抛异常导致进程崩溃），
+     * `onServiceConnected` 永远不会回调，不加超时会让调用方永久挂起。
+     */
+    private suspend fun bind(): IDexService? = withTimeoutOrNull(BIND_TIMEOUT_MS) {
+        bindInternal()
+    }
+
+    private suspend fun bindInternal(): IDexService? = suspendCancellableCoroutine { cont ->
         val intent = Intent().setComponent(ComponentName(context, DexService::class.java))
         val conn = object : ServiceConnection {
             override fun onServiceConnected(name: ComponentName?, service: IBinder?) {
@@ -75,5 +86,10 @@ class DexRunner(private val context: Context) {
         } catch (t: Throwable) {
             if (cont.isActive) cont.resume(null)
         }
+    }
+
+    private companion object {
+        /** 绑定隔离进程服务的超时（毫秒）。 */
+        const val BIND_TIMEOUT_MS = 10_000L
     }
 }
