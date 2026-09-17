@@ -87,9 +87,9 @@ object PermissionRegistry {
         PermissionDef(
             scope = "adb",
             label = "ADB / Shell（Shizuku）",
-            description = "该小程序请求通过 Shizuku 以 root/shell 权限执行命令。",
+            description = "该小程序请求通过 Shizuku 以 adb shell 权限执行命令。",
             level = PermLevel.DANGEROUS,
-            warning = "⚠ 极度危险：该权限等同于把 root shell 交给小程序，可能读取系统文件与隐私数据。仅在你完全信任该小程序时授予。"
+            warning = "⚠ 极度危险：该权限等同于把 adb shell 交给小程序，可能读取系统文件与隐私数据。仅在你完全信任该小程序时授予。"
         )
     )
 
