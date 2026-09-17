@@ -1,7 +1,7 @@
-# 开发者手册 —— 蜗壳开发指南
+# 蜗壳 · 小程序开发手册
 
-> 适用宿主：**蜗壳**（Android 本地小程序容器应用）
-> 平台能力：系统 WebView 渲染 + JS Bridge + 文件沙箱 + WASM 执行 + 权限审批
+> 本手册面向**小程序开发者**，只讲如何开发与调试小程序。
+> 蜗壳自身的架构、构建、维护约定见 [PROJECT.md](PROJECT.md)。
 
 ---
 
@@ -21,7 +21,6 @@
 - **前端**：标准 HTML/CSS/JS，运行在系统 WebView 中。
 - **WASM**：基于 WebView 内置 WebAssembly JIT，支持二进制、Memory、import 注入。
 - **权限**：分为**安全**（无需审批，如沙箱内读写）、**普通**（需审批：`net` / `sys.openUrl` / `fs.external` / `clipboard` / `notification` / `storage`）、**危险**（需审批 + 警告，且不可作必要权限：`adb`）。Dex 执行（`dex.run`）**无需权限**。详见第五章。
-  分为**普通权限**（可拒绝仍能进入）和**必要权限**（拒绝则不进入）。
 
 ---
 
@@ -190,7 +189,7 @@ await MiniApp.fs.exportFile('data/report.txt');    // boolean true
 
 声明 `fs.external` 后，可静默操作内部储存（`/storage/emulated/0`）。
 
-**安全限制**：禁止访问应用私有目录（`/data/data/...`），防止篡改权限记录。路径为**绝对路径**。
+**安全限制**：禁止访问应用私有目录（`/data/data/...`）。路径为**绝对路径**。
 
 **权限适配**（蜗壳自动处理）：
 - Android 10 及以下：首次调用时蜗壳主动弹窗申请运行时存储权限。
@@ -271,7 +270,7 @@ instance.exports.compute(42);
 
 `status` 为 HTTP 状态码（整数），`body` 为响应文本（字符串）。`opts` 为 `{ headers: object, body: string }`。支持 GET/POST/PUT/DELETE/PATCH 等任意方法。
 
-**Content-Type 行为**：宿主**不会**自动添加 `Content-Type`（底层为 OkHttp，未显式指定时请求**不含**该请求头）。因此发送 JSON 时**必须自行指定**，否则服务端可能按默认类型解析请求体：
+**Content-Type 行为**：蜗壳**不会**自动添加 `Content-Type`。发送 JSON 时**必须自行指定**，否则服务端可能按默认类型解析请求体：
 
 ```js
 // 需要自定义请求头（如 Content-Type）时用 net.request
@@ -374,16 +373,16 @@ const result = await MiniApp.dex.run({
 // → { ok: true, /* dex 返回的键值 */ }
 ```
 
-**无需任何权限**，直接调用即可（隔离进程本身即为安全边界，见下）。
+**无需任何权限**，直接调用即可。
 
 > `className` / `methodName` 由宿主通过内部保留键（`__className` / `__methodName`）传递，**不会**出现在 `params` 中，也不会覆盖调用方同名的 `params` 键。
 
-执行发生在 **`android:isolatedProcess="true"` 的隔离进程**中（这是蜗壳 Dex 沙箱的核心机制）：
+dex 运行在**隔离进程**中，请按以下边界编写代码：
 
-- 独立 UID + SELinux `isolated_app` 域，**不继承宿主任何权限**：无网络、无路径访问、无系统服务、不能加载 native 库。
-- dex 内**只能使用 Android 框架类与 Java 标准库**；不能引用蜗壳的自定义类。
-- 与宿主的唯一通道是 Binder：dex 只能读写主进程通过 FD 传入的 `input`/`output` 文件，**无法主动打开任何路径**，因此不会破坏沙箱。
-- dex 内约定的入口方法签名：
+- 只能用 **Android 框架类与 Java 标准库**，不能引用蜗壳的自定义类。
+- 不能加载 native 库、执行 ELF、访问网络或系统服务。
+- 不能主动打开文件路径；读写文件只能走 `input` / `output` 两个参数。
+- 入口方法签名：
 
 ```java
 public static android.os.Bundle run(
@@ -393,7 +392,7 @@ public static android.os.Bundle run(
 );
 ```
 
-- 能力边界：确定可行——Dex 加载、反射调用、FD 读写、Java 库（压缩/加密/正则/时间）、多线程、Bundle 通信；确定不可行——加载 native 库、执行 ELF、主动 open 路径、网络、系统服务、访问宿主或其他沙箱。
+- 可行：Dex 加载、反射调用、FD 读写、Java 库（压缩/加密/正则/时间）、多线程、Bundle 通信。
 - 性能：无 AOT，首次解释执行；热点 JIT 后接近普通 Java；数值计算慢于 WASM，适合结构化逻辑、加密压缩等场景。
 
 ### 4.10 网络存储（需审批）
@@ -454,9 +453,6 @@ try {
 
 小程序可通过 Shizuku 以 shell/root 权限执行命令。**前提**：用户已安装并启动 Shizuku、激活服务。
 
-> ⚠ **极度危险**：该权限等同于把 root shell 交给小程序。仅在你完全信任该小程序时授予。
-> 蜗壳审批时会显示醒目警告；审批通过后，首次调用还需在 Shizuku 应用弹窗再次授权。
-
 | 接口 | 返回类型 | 返回值 |
 |---|---|---|
 | `adb.exec(command, opts)` | `object` | 见下 |
@@ -499,13 +495,7 @@ if (!r2.ok && r2.timedOut) console.log('超时，已部分输出:', r2.stdout);
 
 命令通过 `sh -c <command>` 执行，支持管道、重定向等 shell 语法。
 
-> **宿主集成要求**（维护者注意）：`adb.exec` 依赖 Shizuku，而 Shizuku 的 binder
-> 由**服务端主动推送**给客户端。客户端必须在 AndroidManifest 中声明
-> `rikka.shizuku.ShizukuProvider`（authority `${applicationId}.shizuku`、
-> `exported=true`、`multiprocess=false`、
-> `permission=android.permission.INTERACT_ACROSS_USERS_FULL`），
-> 否则 `Shizuku.pingBinder()` 恒为 false、授权弹窗也不会出现。
-
+---
 
 ## 五、权限模型
 
@@ -518,8 +508,6 @@ if (!r2.ok && r2.timedOut) console.log('超时，已部分输出:', r2.stdout);
 | **安全** | `SAFE` | **无需任何审批**，调用即可用（也无需在 manifest 声明） |
 | **普通** | `NORMAL` | 需用户审批后可用 |
 | **危险** | `DANGEROUS` | 需审批，且界面显示醒目警告；**不可声明为必要权限**（声明会被忽略） |
-
-> 「危险权限不可作必要权限」是一项保护：避免小程序用"不授权就用不了"胁迫用户交出高危能力。
 
 沙箱内文件操作属于**安全**级（无需声明、无需审批）。
 
@@ -565,39 +553,9 @@ if (!r2.ok && r2.timedOut) console.log('超时，已部分输出:', r2.stdout);
 | 选项 | 行为 |
 |---|---|
 | 允许 | 持久化授权 |
-| 仅允许一次 | **只放行紧接着的一次调用**；该次之后再次调用会重新弹窗（令牌是一次性的，命中即消费）|
+| 仅允许一次 | 只放行**当前这次**调用，下次调用会重新弹窗 |
 | 拒绝 | 本次拒绝，下次运行时再弹窗 |
 | 不再询问 | 持久化拒绝，之后不再弹窗（可在权限管理页撤销） |
-
-### 5.6 扩展指南：新增一个权限
-
-权限系统是**注册表驱动**的。新增权限只需**两步**：
-
-**第 1 步**：在 `PermissionRegistry.defaults` 追加一条定义
-
-```kotlin
-PermissionDef(
-    scope = "camera",                       // 与 manifest permissions 里的字符串一致
-    label = "相机",                          // 审批弹窗标题 / 权限管理页显示
-    description = "该小程序请求使用相机。",     // 审批弹窗正文
-    level = PermLevel.NORMAL                // SAFE / NORMAL / DANGEROUS
-)
-```
-
-**第 2 步**：在服务代码里调用 `ensurePermission(...)`（`DANGEROUS` 级可额外提供 `warning` 文案）
-
-```kotlin
-val ok = permissionManager.ensurePermission(
-    activity, appInfo.appKey, appInfo.permissions, "camera"
-)
-if (!ok) throw SecurityException("permission denied: camera")
-```
-
-**自动生效的部分**（无需改动）：
-- 审批流程按 `level` 决定是否弹窗；`SAFE` 直接放行
-- `DANGEROUS` 自动被禁止作为必要权限；审批弹窗自动显示警告框
-- 权限管理页自动显示该权限及其等级标签
-- `PermissionScope.label/description/warning` 自动取到新值
 
 ---
 
@@ -800,14 +758,12 @@ console.log('WASM time:', performance.now() - t0);
 
 ### 7.3 日志标签
 
-> **日志留存规则**：接口调用日志只存在内存中，**清空只有两种时机**——
-> ① 蜗壳进程结束（应用从后台被划掉时自然消失）；② 在「调用日志」页手动点击「清空」。
-> 关闭「调试模式」开关**不会**清空已有日志，只是停止记录新日志。
+- `MiniAppBridge`：Bridge 调用与错误
+- `MiniAppJS`：页面 `console.*` 输出（由宿主转发）
 
-- `MiniAppBridge`：Bridge 调用与错误（Tag 为 `MiniAppBridge`）
-- 前端 `console.*` 输出：由 WebChromeClient 转发为 `MiniAppJS`；未接转发时仅出现在 WebView 控制台
+开启蜗壳「调试模式」后，接口调用可在「调用日志」页查看。
 
-> **WASM 不产生宿主日志**：`wasm.instantiate` / `wasm.createMemory` 是 `bridge.js` 中的纯 JS 实现，**不经过 JS Bridge**，因此不会出现在 Bridge 调用日志（调试模式）中。WASM 相关输出请在页面 `console` 查看（`bridge.js` 会输出 `[MiniApp.wasm] instantiated` / `[MiniApp.wasm] instantiate failed:` 前缀的日志）。
+> `wasm.*` 由前端 `bridge.js` 实现，**不会**出现在调用日志中；相关输出请看页面 `console`（前缀 `[MiniApp.wasm]`）。
 
 ```bash
 adb logcat -s MiniAppJS MiniAppBridge
