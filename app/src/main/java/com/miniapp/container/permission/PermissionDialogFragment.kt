@@ -21,12 +21,11 @@ class PermissionDialogFragment : DialogFragment() {
 
         val view = layoutInflater.inflate(R.layout.dialog_permission, null)
 
-        // 内容区限高：长文案（如危险权限警告）时内部滚动，保证下方 4 个按钮始终可见可点
+        // 整个弹窗（含按钮）都在滚动区内：内容一长即可上下滑动看到底部按钮。
+        // 上限取屏幕高度的 90%，避免对话框超出屏幕；内容短时自动收缩。
         val dm = resources.displayMetrics
-        val reservedPx = (BTN_AREA_DP * dm.density).toInt()   // 按钮区 + 内边距
         view.findViewById<MaxHeightScrollView>(R.id.scroll_perm).maxHeight =
-            ((dm.heightPixels * 0.9f).toInt() - reservedPx)
-                .coerceAtLeast((MIN_CONTENT_DP * dm.density).toInt())
+            (dm.heightPixels * 0.9f).toInt()
 
         view.findViewById<TextView>(R.id.tv_perm_title).text = "权限审批：${PermissionScope.label(scope)}"
         view.findViewById<TextView>(R.id.tv_perm_desc).text =
@@ -68,11 +67,6 @@ class PermissionDialogFragment : DialogFragment() {
     }
 
     companion object {
-        /** 按钮区（4 个按钮 + 边距）预留高度，单位 dp，用于给滚动区限高。 */
-        private const val BTN_AREA_DP = 270
-        /** 滚动区最小高度，单位 dp。 */
-        private const val MIN_CONTENT_DP = 140
-
         private const val ARG_APP_KEY = "appKey"
         private const val ARG_SCOPE = "scope"
         private const val ARG_TOKEN = "token"

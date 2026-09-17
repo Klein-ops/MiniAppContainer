@@ -223,15 +223,18 @@ miniapps/<appKey>/data/...        应用数据（includeData=true 时）
 
 ### 对话框内容滚动
 
-**内容高度可变**的对话框（权限审批的说明/警告等），必须把可变部分放进
-`MaxHeightScrollView` 并设定 `maxHeight`，**按钮留在滚动区之外**，
-否则内容一长对话框会撑出屏幕、底部按钮点不到。
+**内容高度可变**的对话框（权限审批的说明/警告等），用 `MaxHeightScrollView`
+作为根布局把**全部内容（含按钮）**包进同一个滚动区，并设定 `maxHeight`，
+否则内容一长对话框会撑出屏幕、底部按钮点不到也滚不到。
 
 ```kotlin
 val dm = resources.displayMetrics
 view.findViewById<MaxHeightScrollView>(R.id.scroll_x).maxHeight =
-    (dm.heightPixels * 0.9f).toInt() - (按钮区高度dp * dm.density).toInt()
+    (dm.heightPixels * 0.9f).toInt()
 ```
+
+即：整个弹窗一起滚动（按钮区也随内容滚动），上限取屏幕高度的 90%，
+内容短时 ScrollView 自适应收缩，保持紧凑外观。
 
 （`ScrollView` 原生无 `android:maxHeight`，故用 `util/MaxHeightScrollView`，
 其覆写 `onMeasure` 以 `AT_MOST` 传递上限。）
