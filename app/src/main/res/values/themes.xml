@@ -29,8 +29,20 @@
         <item name="buttonBarNeutralButtonStyle">@style/Widget.MiniApp.DialogButton</item>
 </style>
 
-<!-- 对话框圆角形状外观：24dp 大弧度 -->
-<style name="ShapeAppearance.MiniApp.Dialog" parent="">
+    <!-- 自行控制窗口尺寸的对话框主题（圆角由内容视图自身背景提供，
+         故窗口背景透明；避免 Material 默认 inset 干扰高度计算） -->
+    <style name="Theme.MiniApp.FloatingDialog" parent="Theme.MaterialComponents.Dialog">
+        <item name="android:windowBackground">@android:color/transparent</item>
+        <item name="android:windowIsFloating">true</item>
+        <item name="android:windowNoTitle">true</item>
+        <item name="android:backgroundDimEnabled">true</item>
+        <item name="android:colorBackground">@color/bg_card</item>
+        <item name="colorPrimary">@color/brand_primary</item>
+        <item name="colorSecondary">@color/brand_accent</item>
+    </style>
+
+    <!-- 对话框圆角形状外观：24dp 大弧度 -->
+    <style name="ShapeAppearance.MiniApp.Dialog" parent="">
         <item name="cornerFamily">rounded</item>
         <item name="cornerSize">24dp</item>
 </style>

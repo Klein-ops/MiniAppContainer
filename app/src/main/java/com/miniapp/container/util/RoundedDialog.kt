@@ -2,6 +2,8 @@ package com.miniapp.container.util
 
 import android.app.Dialog
 import android.graphics.drawable.Drawable
+import android.view.ViewGroup
+import android.view.WindowManager
 import android.graphics.drawable.GradientDrawable
 import android.graphics.drawable.InsetDrawable
 import androidx.appcompat.app.AlertDialog
@@ -23,8 +25,37 @@ object RoundedDialog {
 
     private const val RADIUS_DP = 24f
 
-    /** 校正 [dialog] 的窗口圆角。 */
+    /** 校正 [dialog] 的窗口圆角，并保证其不超出屏幕。 */
     fun apply(dialog: Dialog) {
+        applyCorners(dialog)
+        clampToScreen(dialog)
+    }
+
+    /**
+     * 兜底：对话框实际高度超过屏幕可用高度的 90% 时强制限高。
+     *
+     * 为什么需要：MaterialAlertDialog 用的是 `wrap_content` 窗口，一旦内部
+     * 布局（如 `setView` 的自定义内容）测量结果偏大，窗口会被系统直接裁掉，
+     * 且**不会**产生滚动，用户就点不到底部按钮。这里事后发现超限便限制窗口高度，
+     * 迫使内部的 `ScrollView` 接管滚动。
+     */
+    private fun clampToScreen(dialog: Dialog) {
+        val window = dialog.window ?: return
+        val dm = dialog.context.resources.displayMetrics
+        val cap = (dm.heightPixels * 0.9f).toInt()
+        window.decorView.post {
+            val h = window.decorView.height
+            val w = window.decorView.width
+            if (h > cap && w > 0) {
+                window.setLayout(w, cap)
+                window.attributes = window.attributes.apply {
+                    height = cap
+                }
+            }
+        }
+    }
+
+    private fun applyCorners(dialog: Dialog) {
         val window = dialog.window ?: return
         val radiusPx = RADIUS_DP * dialog.context.resources.displayMetrics.density
         val shaped = findShapeDrawable(window.decorView.background)
