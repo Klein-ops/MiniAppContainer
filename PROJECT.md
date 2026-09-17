@@ -221,6 +221,23 @@ miniapps/<appKey>/data/...        应用数据（includeData=true 时）
 
 **不要**在设置类页面里混用 `MaterialButton` 与卡片。
 
+### 对话框内容滚动
+
+**内容高度可变**的对话框（权限审批的说明/警告等），必须把可变部分放进
+`MaxHeightScrollView` 并设定 `maxHeight`，**按钮留在滚动区之外**，
+否则内容一长对话框会撑出屏幕、底部按钮点不到。
+
+```kotlin
+val dm = resources.displayMetrics
+view.findViewById<MaxHeightScrollView>(R.id.scroll_x).maxHeight =
+    (dm.heightPixels * 0.9f).toInt() - (按钮区高度dp * dm.density).toInt()
+```
+
+（`ScrollView` 原生无 `android:maxHeight`，故用 `util/MaxHeightScrollView`，
+其覆写 `onMeasure` 以 `AT_MOST` 传递上限。）
+
+`MaterialAlertDialogBuilder.setMessage(...)` 由 Material 自身负责滚动，不受此限。
+
 ### 输入弹窗
 
 需要用户输入文本的对话框**必须**经 `util/InputDialog.create(context, hint, ...)` 构造视图，

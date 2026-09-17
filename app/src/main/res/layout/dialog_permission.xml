@@ -1,46 +1,66 @@
 <?xml version="1.0" encoding="utf-8"?>
+<!-- 权限审批对话框（圆角，4 选项自定义按钮）。
+     标题/说明/警告放进限高滚动区（可变高度），按钮固定在滚动区之外，
+     保证内容再长（如危险权限的长警告）按钮也始终可见可点。 -->
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
-    android:orientation="vertical"
     android:background="@drawable/bg_dialog_rounded"
-    android:padding="24dp">
+    android:orientation="vertical"
+    android:paddingStart="24dp"
+    android:paddingEnd="24dp"
+    android:paddingTop="24dp">
 
-    <TextView
-        android:id="@+id/tv_perm_title"
+    <com.miniapp.container.util.MaxHeightScrollView
+        android:id="@+id/scroll_perm"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:textColor="@color/text_primary"
-        android:textSize="18sp"
-        android:textStyle="bold" />
+        android:scrollbarStyle="insideInset">
 
-    <TextView
-        android:id="@+id/tv_perm_desc"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="12dp"
-        android:lineSpacingExtra="4dp"
-        android:textColor="@color/text_secondary"
-        android:textSize="14sp" />
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical">
 
-    <TextView
-        android:id="@+id/tv_perm_warning"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_marginTop="12dp"
-        android:background="@drawable/bg_warning"
-        android:lineSpacingExtra="3dp"
-        android:padding="12dp"
-        android:textColor="@color/danger"
-        android:textSize="13sp"
-        android:visibility="gone" />
+            <TextView
+                android:id="@+id/tv_perm_title"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:textColor="@color/text_primary"
+                android:textSize="18sp"
+                android:textStyle="bold" />
 
+            <TextView
+                android:id="@+id/tv_perm_desc"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="12dp"
+                android:lineSpacingExtra="4dp"
+                android:textColor="@color/text_secondary"
+                android:textSize="14sp" />
+
+            <TextView
+                android:id="@+id/tv_perm_warning"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="12dp"
+                android:layout_marginBottom="8dp"
+                android:background="@drawable/bg_warning"
+                android:lineSpacingExtra="3dp"
+                android:padding="12dp"
+                android:textColor="@color/danger"
+                android:textSize="13sp"
+                android:visibility="gone" />
+        </LinearLayout>
+    </com.miniapp.container.util.MaxHeightScrollView>
+
+    <!-- 按钮区：固定在滚动区之外，始终可见 -->
     <com.google.android.material.button.MaterialButton
         android:id="@+id/btn_allow"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_marginTop="20dp"
+        android:layout_marginTop="16dp"
         android:text="允许"
         android:textColor="#FFFFFF"
         app:backgroundTint="@color/brand_primary"
@@ -72,6 +92,7 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_marginTop="4dp"
+        android:layout_marginBottom="20dp"
         android:text="不再询问"
         android:textColor="@color/danger"
         app:cornerRadius="12dp" />

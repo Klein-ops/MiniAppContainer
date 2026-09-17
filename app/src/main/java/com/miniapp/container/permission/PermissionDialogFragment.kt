@@ -8,6 +8,7 @@ import androidx.fragment.app.DialogFragment
 import com.google.android.material.button.MaterialButton
 import com.miniapp.container.MiniAppApp
 import com.miniapp.container.R
+import com.miniapp.container.util.MaxHeightScrollView
 import com.miniapp.container.util.RoundedDialog
 
 /** 权限审批对话框（圆角，4 选项自定义按钮）。 */
@@ -19,6 +20,14 @@ class PermissionDialogFragment : DialogFragment() {
         val token = requireArguments().getString(ARG_TOKEN) ?: ""
 
         val view = layoutInflater.inflate(R.layout.dialog_permission, null)
+
+        // 内容区限高：长文案（如危险权限警告）时内部滚动，保证下方 4 个按钮始终可见可点
+        val dm = resources.displayMetrics
+        val reservedPx = (BTN_AREA_DP * dm.density).toInt()   // 按钮区 + 内边距
+        view.findViewById<MaxHeightScrollView>(R.id.scroll_perm).maxHeight =
+            ((dm.heightPixels * 0.9f).toInt() - reservedPx)
+                .coerceAtLeast((MIN_CONTENT_DP * dm.density).toInt())
+
         view.findViewById<TextView>(R.id.tv_perm_title).text = "权限审批：${PermissionScope.label(scope)}"
         view.findViewById<TextView>(R.id.tv_perm_desc).text =
             "${PermissionScope.description(scope)}\n\n请选择授权方式："
@@ -59,6 +68,11 @@ class PermissionDialogFragment : DialogFragment() {
     }
 
     companion object {
+        /** 按钮区（4 个按钮 + 边距）预留高度，单位 dp，用于给滚动区限高。 */
+        private const val BTN_AREA_DP = 270
+        /** 滚动区最小高度，单位 dp。 */
+        private const val MIN_CONTENT_DP = 140
+
         private const val ARG_APP_KEY = "appKey"
         private const val ARG_SCOPE = "scope"
         private const val ARG_TOKEN = "token"
