@@ -14,9 +14,9 @@ import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import androidx.appcompat.app.AppCompatActivity
 import androidx.lifecycle.lifecycleScope
 import com.google.android.material.appbar.MaterialToolbar
-import com.google.android.material.button.MaterialButton
 import com.miniapp.container.MiniAppApp
 import com.miniapp.container.R
+import com.miniapp.container.util.showRounded
 import com.miniapp.container.util.toast
 import com.miniapp.container.core.CategoryManager
 import com.miniapp.container.core.MiniAppInfo
@@ -35,15 +35,15 @@ class AppSettingsActivity : AppCompatActivity() {
         info = hostApp.registry.get(appKey) ?: run { finish(); return }
 
         findViewById<MaterialToolbar>(R.id.toolbar).also { setSupportActionBar(it); title = info.uname }
-        findViewById<MaterialButton>(R.id.btn_rename).setOnClickListener { showRename() }
-        findViewById<MaterialButton>(R.id.btn_perm_manage).setOnClickListener {
+        findViewById<android.view.View>(R.id.btn_rename).setOnClickListener { showRename() }
+        findViewById<android.view.View>(R.id.btn_perm_manage).setOnClickListener {
             startActivity(Intent(this, PermissionManageActivity::class.java)
                 .putExtra(PermissionManageActivity.EXTRA_APP_KEY, appKey))
         }
-        findViewById<MaterialButton>(R.id.btn_move_category).setOnClickListener { showMoveToCategory() }
-        findViewById<MaterialButton>(R.id.btn_shortcut).setOnClickListener { createDesktopShortcut() }
-        findViewById<MaterialButton>(R.id.btn_clear_data).setOnClickListener { confirmClearData() }
-        findViewById<MaterialButton>(R.id.btn_uninstall).setOnClickListener { confirmUninstall() }
+        findViewById<android.view.View>(R.id.btn_move_category).setOnClickListener { showMoveToCategory() }
+        findViewById<android.view.View>(R.id.btn_shortcut).setOnClickListener { createDesktopShortcut() }
+        findViewById<android.view.View>(R.id.btn_clear_data).setOnClickListener { confirmClearData() }
+        findViewById<android.view.View>(R.id.btn_uninstall).setOnClickListener { confirmUninstall() }
 
         findViewById<android.widget.TextView>(R.id.tv_app_info).text =
             "${info.uname}\n版本 ${info.version}\n${info.appKey}"
@@ -115,7 +115,7 @@ class AppSettingsActivity : AppCompatActivity() {
                 findViewById<android.widget.TextView>(R.id.tv_app_info).text =
                     "${info.displayName.ifBlank { info.uname }}\n版本 ${info.version}\n${info.appKey}"
                 toast("已重命名")
-            }.setNegativeButton("取消", null).show()
+            }.setNegativeButton("取消", null).showRounded()
     }
 
     private fun showMoveToCategory() {
@@ -130,7 +130,7 @@ class AppSettingsActivity : AppCompatActivity() {
                     cm.moveTo(info.appKey, cats[which])
                     toast("已移到 ${cats[which]}")
                 }
-            }.show()
+            }.showRounded()
     }
 
     private fun showAddCategoryAndMove() {
@@ -144,7 +144,7 @@ class AppSettingsActivity : AppCompatActivity() {
                     hostApp.categoryManager.moveTo(info.appKey, name)
                     toast("已移到 $name")
                 } else toast("分类名无效或已存在")
-            }.setNegativeButton("取消", null).show()
+            }.setNegativeButton("取消", null).showRounded()
     }
 
     private fun confirmClearData() {
@@ -157,7 +157,7 @@ class AppSettingsActivity : AppCompatActivity() {
                     com.miniapp.container.file.FileService(sandbox).clearData()
                     toast("已清空数据")
                 }
-            }.setNegativeButton("取消", null).show()
+            }.setNegativeButton("取消", null).showRounded()
     }
 
     private fun confirmUninstall() {
@@ -170,7 +170,7 @@ class AppSettingsActivity : AppCompatActivity() {
                     toast("已卸载")
                     finish()
                 }
-            }.setNegativeButton("取消", null).show()
+            }.setNegativeButton("取消", null).showRounded()
     }
 
 

@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- 设置页内容（内嵌于 MainActivity，底部导航切换） -->
+<!-- 设置页内容（内嵌于 MainActivity，底部导航切换）。
+     所有条目统一为 Widget.MiniApp.SettingCard 卡片风格。 -->
 <ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
@@ -20,65 +21,86 @@
             android:textColor="@color/text_secondary"
             android:textSize="13sp" />
 
-        <!-- 调试模式：开关（与权限管理一致） -->
-        <LinearLayout
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:background="@drawable/shape_card"
-            android:layout_marginTop="8dp"
-            android:gravity="center_vertical"
-            android:orientation="horizontal"
-            android:paddingHorizontal="16dp"
-            android:paddingVertical="12dp">
-
-            <ImageView
-                android:layout_width="24dp"
-                android:layout_height="24dp"
-                android:contentDescription="调试模式"
-                android:src="@android:drawable/ic_menu_manage"
-                android:tint="@color/brand_primary" />
+        <!-- 调试模式 -->
+        <com.google.android.material.card.MaterialCardView
+            android:id="@+id/card_debug"
+            style="@style/Widget.MiniApp.SettingCard">
 
             <LinearLayout
-                android:layout_width="0dp"
+                android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginStart="12dp"
-                android:layout_weight="1"
-                android:orientation="vertical">
+                android:gravity="center_vertical"
+                android:orientation="horizontal"
+                android:paddingHorizontal="16dp"
+                android:paddingVertical="14dp">
+
+                <ImageView
+                    android:layout_width="24dp"
+                    android:layout_height="24dp"
+                    android:contentDescription="调试模式"
+                    android:src="@android:drawable/ic_menu_manage"
+                    android:tint="@color/brand_primary" />
+
+                <LinearLayout
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="12dp"
+                    android:layout_weight="1"
+                    android:orientation="vertical">
+
+                    <TextView
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:text="调试模式"
+                        android:textColor="@color/text_primary"
+                        android:textSize="15sp" />
+
+                    <TextView
+                        android:id="@+id/tv_debug_desc"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:text="记录所有小程序接口调用"
+                        android:textColor="@color/text_secondary"
+                        android:textSize="12sp" />
+                </LinearLayout>
+
+                <androidx.appcompat.widget.SwitchCompat
+                    android:id="@+id/switch_debug"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content" />
+            </LinearLayout>
+        </com.google.android.material.card.MaterialCardView>
+
+        <!-- 查看调用日志 -->
+        <com.google.android.material.card.MaterialCardView
+            android:id="@+id/card_debug_log"
+            style="@style/Widget.MiniApp.SettingCard">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:gravity="center_vertical"
+                android:orientation="horizontal"
+                android:paddingHorizontal="16dp"
+                android:paddingVertical="14dp">
+
+                <ImageView
+                    android:layout_width="24dp"
+                    android:layout_height="24dp"
+                    android:contentDescription="查看调用日志"
+                    android:src="@android:drawable/ic_menu_info_details"
+                    android:tint="@color/brand_primary" />
 
                 <TextView
-                    android:layout_width="match_parent"
+                    android:layout_width="0dp"
                     android:layout_height="wrap_content"
-                    android:text="调试模式"
+                    android:layout_marginStart="12dp"
+                    android:layout_weight="1"
+                    android:text="查看调用日志"
                     android:textColor="@color/text_primary"
                     android:textSize="15sp" />
-
-                <TextView
-                    android:id="@+id/tv_debug_desc"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:text="记录所有小程序接口调用"
-                    android:textColor="@color/text_secondary"
-                    android:textSize="12sp" />
             </LinearLayout>
-
-            <androidx.appcompat.widget.SwitchCompat
-                android:id="@+id/switch_debug"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content" />
-        </LinearLayout>
-
-        <com.google.android.material.button.MaterialButton
-            android:id="@+id/btn_debug_log"
-            style="@style/Widget.MaterialComponents.Button.TextButton"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="8dp"
-            android:gravity="start|center_vertical"
-            android:paddingHorizontal="16dp"
-            android:text="查看调用日志"
-            android:textColor="@color/text_primary"
-            app:icon="@android:drawable/ic_menu_info_details"
-            app:iconTint="@color/brand_primary" />
+        </com.google.android.material.card.MaterialCardView>
 
         <TextView
             android:layout_width="match_parent"
@@ -88,65 +110,137 @@
             android:textColor="@color/text_secondary"
             android:textSize="13sp" />
 
-        <com.google.android.material.button.MaterialButton
-            android:id="@+id/btn_backup"
-            style="@style/Widget.MaterialComponents.Button.TextButton"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:gravity="start|center_vertical"
-            android:paddingHorizontal="16dp"
-            android:text="备份与恢复"
-            android:textColor="@color/text_primary"
-            app:icon="@android:drawable/ic_menu_save"
-            app:iconTint="@color/brand_primary" />
-
-        <com.google.android.material.button.MaterialButton
-            android:id="@+id/btn_netdisk"
-            style="@style/Widget.MaterialComponents.Button.TextButton"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:gravity="start|center_vertical"
-            android:paddingHorizontal="16dp"
-            android:text="网络存储"
-            android:textColor="@color/text_primary"
-            app:icon="@android:drawable/ic_menu_upload"
-            app:iconTint="@color/brand_primary" />
-
+        <!-- 备份与恢复 -->
         <com.google.android.material.card.MaterialCardView
-            android:id="@+id/card_about"
+            android:id="@+id/card_backup"
+            style="@style/Widget.MiniApp.SettingCard">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:gravity="center_vertical"
+                android:orientation="horizontal"
+                android:paddingHorizontal="16dp"
+                android:paddingVertical="14dp">
+
+                <ImageView
+                    android:layout_width="24dp"
+                    android:layout_height="24dp"
+                    android:contentDescription="备份与恢复"
+                    android:src="@android:drawable/ic_menu_save"
+                    android:tint="@color/brand_primary" />
+
+                <TextView
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="12dp"
+                    android:layout_weight="1"
+                    android:text="备份与恢复"
+                    android:textColor="@color/text_primary"
+                    android:textSize="15sp" />
+            </LinearLayout>
+        </com.google.android.material.card.MaterialCardView>
+
+        <!-- 网络存储 -->
+        <com.google.android.material.card.MaterialCardView
+            android:id="@+id/card_netdisk"
+            style="@style/Widget.MiniApp.SettingCard">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:gravity="center_vertical"
+                android:orientation="horizontal"
+                android:paddingHorizontal="16dp"
+                android:paddingVertical="14dp">
+
+                <ImageView
+                    android:layout_width="24dp"
+                    android:layout_height="24dp"
+                    android:contentDescription="网络存储"
+                    android:src="@android:drawable/ic_menu_upload"
+                    android:tint="@color/brand_primary" />
+
+                <TextView
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="12dp"
+                    android:layout_weight="1"
+                    android:text="网络存储"
+                    android:textColor="@color/text_primary"
+                    android:textSize="15sp" />
+            </LinearLayout>
+        </com.google.android.material.card.MaterialCardView>
+
+        <TextView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginTop="16dp"
-            android:clickable="true"
-            android:focusable="true"
-            android:foreground="?attr/selectableItemBackground"
-            app:cardBackgroundColor="@color/bg_card"
-            app:cardCornerRadius="16dp"
-            app:cardElevation="0dp"
-            app:strokeColor="@color/divider"
-            app:strokeWidth="1dp">
+            android:text="其他"
+            android:textColor="@color/text_secondary"
+            android:textSize="13sp" />
 
-            <TextView
+        <!-- 清理 WebView 缓存 -->
+        <com.google.android.material.card.MaterialCardView
+            android:id="@+id/card_clean"
+            style="@style/Widget.MiniApp.SettingCard">
+
+            <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
+                android:gravity="center_vertical"
+                android:orientation="horizontal"
                 android:paddingHorizontal="16dp"
-                android:paddingVertical="16dp"
-                android:text="关于蜗壳"
-                android:textColor="@color/text_primary"
-                android:textSize="15sp" />
+                android:paddingVertical="14dp">
+
+                <ImageView
+                    android:layout_width="24dp"
+                    android:layout_height="24dp"
+                    android:contentDescription="清理 WebView 缓存"
+                    android:src="@android:drawable/ic_menu_close_clear_cancel"
+                    android:tint="@color/brand_primary" />
+
+                <TextView
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="12dp"
+                    android:layout_weight="1"
+                    android:text="清理 WebView 缓存"
+                    android:textColor="@color/text_primary"
+                    android:textSize="15sp" />
+            </LinearLayout>
         </com.google.android.material.card.MaterialCardView>
 
-        <com.google.android.material.button.MaterialButton
-            android:id="@+id/btn_clean_storage"
-            style="@style/Widget.MaterialComponents.Button.TextButton"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:gravity="start|center_vertical"
-            android:paddingHorizontal="16dp"
-            android:text="清理 WebView 缓存"
-            android:textColor="@color/text_primary"
-            app:icon="@android:drawable/ic_menu_close_clear_cancel"
-            app:iconTint="@color/brand_primary" />
+        <!-- 关于蜗壳 -->
+        <com.google.android.material.card.MaterialCardView
+            android:id="@+id/card_about"
+            style="@style/Widget.MiniApp.SettingCard">
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:gravity="center_vertical"
+                android:orientation="horizontal"
+                android:paddingHorizontal="16dp"
+                android:paddingVertical="14dp">
+
+                <ImageView
+                    android:layout_width="24dp"
+                    android:layout_height="24dp"
+                    android:contentDescription="关于蜗壳"
+                    android:src="@android:drawable/ic_menu_help"
+                    android:tint="@color/brand_primary" />
+
+                <TextView
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="12dp"
+                    android:layout_weight="1"
+                    android:text="关于蜗壳"
+                    android:textColor="@color/text_primary"
+                    android:textSize="15sp" />
+            </LinearLayout>
+        </com.google.android.material.card.MaterialCardView>
 
     </LinearLayout>
 </ScrollView>

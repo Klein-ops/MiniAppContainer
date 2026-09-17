@@ -8,6 +8,7 @@ import androidx.fragment.app.DialogFragment
 import com.google.android.material.button.MaterialButton
 import com.miniapp.container.MiniAppApp
 import com.miniapp.container.R
+import com.miniapp.container.util.RoundedDialog
 
 /** 权限审批对话框（圆角，4 选项自定义按钮）。 */
 class PermissionDialogFragment : DialogFragment() {
@@ -37,7 +38,7 @@ class PermissionDialogFragment : DialogFragment() {
         fun submit(action: PermAction) {
             when (action) {
                 PermAction.ALLOW -> app.recordGrant(appKey, scope)
-                PermAction.ALLOW_ONCE -> app.recordTempGrant(appKey, scope)
+                PermAction.ALLOW_ONCE -> {}   // 只放行当前这次调用，不写任何持久状态
                 PermAction.DENY -> {}
                 PermAction.DENY_FOREVER -> app.recordDenyForever(appKey, scope)
             }
@@ -50,10 +51,10 @@ class PermissionDialogFragment : DialogFragment() {
         view.findViewById<MaterialButton>(R.id.btn_deny).setOnClickListener { submit(PermAction.DENY) }
         view.findViewById<MaterialButton>(R.id.btn_deny_forever).setOnClickListener { submit(PermAction.DENY_FOREVER) }
 
-        // 触摸外部不取消（强制选择）；window 透明让 view 的 24dp 圆角背景完整显示
+        // 触摸外部不取消（强制选择）；窗口背景统一圆角（跨 ROM 一致）
         val dialog = MaterialAlertDialogBuilder(requireContext()).setView(view).create()
         dialog.setCanceledOnTouchOutside(false)
-        dialog.window?.setBackgroundDrawableResource(android.R.color.transparent)
+        RoundedDialog.apply(dialog)
         return dialog
     }
 

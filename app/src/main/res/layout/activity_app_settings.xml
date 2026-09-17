@@ -1,101 +1,237 @@
 <?xml version="1.0" encoding="utf-8"?>
+<!-- 小程序独立设置页：内容可滚动（极小屏也能点到最底部的卸载）。
+     条目统一为 Widget.MiniApp.SettingCard 卡片风格。 -->
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:orientation="vertical"
-    android:background="@color/bg_window">
+    android:background="@color/bg_window"
+    android:orientation="vertical">
 
     <com.google.android.material.appbar.MaterialToolbar
         android:id="@+id/toolbar"
         android:layout_width="match_parent"
         android:layout_height="?attr/actionBarSize"
+        android:background="@color/brand_primary_dark"
         app:title="应用设置"
-        app:titleTextColor="#FFFFFF"
-        android:background="@color/brand_primary_dark" />
+        app:titleTextColor="#FFFFFF" />
 
-    <TextView
-        android:id="@+id/tv_app_info"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:padding="20dp"
-        android:textColor="@color/text_secondary"
-        android:textSize="14sp"
-        android:background="@color/bg_card" />
-
-    <com.google.android.material.button.MaterialButton
-        android:id="@+id/btn_rename"
-        style="@style/Widget.MaterialComponents.Button.TextButton"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:gravity="start|center_vertical"
-        android:paddingHorizontal="20dp"
-        android:text="重命名"
-        android:textColor="@color/text_primary"
-        app:icon="@android:drawable/ic_menu_edit"
-        app:iconTint="@color/brand_primary" />
-
-    <com.google.android.material.button.MaterialButton
-        android:id="@+id/btn_perm_manage"
-        style="@style/Widget.MaterialComponents.Button.TextButton"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:gravity="start|center_vertical"
-        android:paddingHorizontal="20dp"
-        android:text="权限管理"
-        android:textColor="@color/text_primary"
-        app:icon="@android:drawable/ic_lock_lock"
-        app:iconTint="@color/brand_primary" />
-
-    <com.google.android.material.button.MaterialButton
-        android:id="@+id/btn_move_category"
-        style="@style/Widget.MaterialComponents.Button.TextButton"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:gravity="start|center_vertical"
-        android:paddingHorizontal="20dp"
-        android:text="移动到分类"
-        android:textColor="@color/text_primary"
-        app:icon="@android:drawable/ic_menu_sort_by_size"
-        app:iconTint="@color/brand_primary" />
-
-    <com.google.android.material.button.MaterialButton
-        android:id="@+id/btn_shortcut"
-        style="@style/Widget.MaterialComponents.Button.TextButton"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:gravity="start|center_vertical"
-        android:paddingHorizontal="20dp"
-        android:text="创建桌面快捷方式"
-        android:textColor="@color/text_primary"
-        app:icon="@android:drawable/ic_menu_add"
-        app:iconTint="@color/brand_primary" />
-
-    <com.google.android.material.button.MaterialButton
-        android:id="@+id/btn_clear_data"
-        style="@style/Widget.MaterialComponents.Button.TextButton"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:gravity="start|center_vertical"
-        android:paddingHorizontal="20dp"
-        android:text="清空数据"
-        android:textColor="@color/danger"
-        app:icon="@android:drawable/ic_menu_delete"
-        app:iconTint="@color/danger" />
-
-    <View
+    <ScrollView
         android:layout_width="match_parent"
         android:layout_height="0dp"
-        android:layout_weight="1" />
+        android:layout_weight="1"
+        android:fillViewport="true">
 
-    <com.google.android.material.button.MaterialButton
-        android:id="@+id/btn_uninstall"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:layout_marginHorizontal="20dp"
-        android:layout_marginBottom="24dp"
-        android:text="卸载应用"
-        android:textColor="#FFFFFF"
-        app:backgroundTint="@color/danger"
-        app:cornerRadius="12dp" />
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:padding="16dp">
+
+            <!-- 应用信息 -->
+            <com.google.android.material.card.MaterialCardView
+                android:id="@+id/card_app_info"
+                style="@style/Widget.MiniApp.SettingCard"
+                android:clickable="false"
+                android:focusable="false"
+                android:foreground="@null">
+
+                <TextView
+                    android:id="@+id/tv_app_info"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:lineSpacingExtra="3dp"
+                    android:padding="16dp"
+                    android:textColor="@color/text_secondary"
+                    android:textSize="13sp" />
+            </com.google.android.material.card.MaterialCardView>
+
+            <!-- 重命名 -->
+            <com.google.android.material.card.MaterialCardView
+                android:id="@+id/btn_rename"
+                style="@style/Widget.MiniApp.SettingCard">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:gravity="center_vertical"
+                    android:orientation="horizontal"
+                    android:paddingHorizontal="16dp"
+                    android:paddingVertical="14dp">
+
+                    <ImageView
+                        android:layout_width="24dp"
+                        android:layout_height="24dp"
+                        android:contentDescription="重命名"
+                        android:src="@android:drawable/ic_menu_edit"
+                        android:tint="@color/brand_primary" />
+
+                    <TextView
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_marginStart="12dp"
+                        android:layout_weight="1"
+                        android:text="重命名"
+                        android:textColor="@color/text_primary"
+                        android:textSize="15sp" />
+                </LinearLayout>
+            </com.google.android.material.card.MaterialCardView>
+
+            <!-- 权限管理 -->
+            <com.google.android.material.card.MaterialCardView
+                android:id="@+id/btn_perm_manage"
+                style="@style/Widget.MiniApp.SettingCard">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:gravity="center_vertical"
+                    android:orientation="horizontal"
+                    android:paddingHorizontal="16dp"
+                    android:paddingVertical="14dp">
+
+                    <ImageView
+                        android:layout_width="24dp"
+                        android:layout_height="24dp"
+                        android:contentDescription="权限管理"
+                        android:src="@android:drawable/ic_lock_lock"
+                        android:tint="@color/brand_primary" />
+
+                    <TextView
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_marginStart="12dp"
+                        android:layout_weight="1"
+                        android:text="权限管理"
+                        android:textColor="@color/text_primary"
+                        android:textSize="15sp" />
+                </LinearLayout>
+            </com.google.android.material.card.MaterialCardView>
+
+            <!-- 移动到分类 -->
+            <com.google.android.material.card.MaterialCardView
+                android:id="@+id/btn_move_category"
+                style="@style/Widget.MiniApp.SettingCard">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:gravity="center_vertical"
+                    android:orientation="horizontal"
+                    android:paddingHorizontal="16dp"
+                    android:paddingVertical="14dp">
+
+                    <ImageView
+                        android:layout_width="24dp"
+                        android:layout_height="24dp"
+                        android:contentDescription="移动到分类"
+                        android:src="@android:drawable/ic_menu_sort_by_size"
+                        android:tint="@color/brand_primary" />
+
+                    <TextView
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_marginStart="12dp"
+                        android:layout_weight="1"
+                        android:text="移动到分类"
+                        android:textColor="@color/text_primary"
+                        android:textSize="15sp" />
+                </LinearLayout>
+            </com.google.android.material.card.MaterialCardView>
+
+            <!-- 创建桌面快捷方式 -->
+            <com.google.android.material.card.MaterialCardView
+                android:id="@+id/btn_shortcut"
+                style="@style/Widget.MiniApp.SettingCard">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:gravity="center_vertical"
+                    android:orientation="horizontal"
+                    android:paddingHorizontal="16dp"
+                    android:paddingVertical="14dp">
+
+                    <ImageView
+                        android:layout_width="24dp"
+                        android:layout_height="24dp"
+                        android:contentDescription="创建桌面快捷方式"
+                        android:src="@android:drawable/ic_menu_add"
+                        android:tint="@color/brand_primary" />
+
+                    <TextView
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_marginStart="12dp"
+                        android:layout_weight="1"
+                        android:text="创建桌面快捷方式"
+                        android:textColor="@color/text_primary"
+                        android:textSize="15sp" />
+                </LinearLayout>
+            </com.google.android.material.card.MaterialCardView>
+
+            <!-- 清空数据（危险操作） -->
+            <com.google.android.material.card.MaterialCardView
+                android:id="@+id/btn_clear_data"
+                style="@style/Widget.MiniApp.SettingCard">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:gravity="center_vertical"
+                    android:orientation="horizontal"
+                    android:paddingHorizontal="16dp"
+                    android:paddingVertical="14dp">
+
+                    <ImageView
+                        android:layout_width="24dp"
+                        android:layout_height="24dp"
+                        android:contentDescription="清空数据"
+                        android:src="@android:drawable/ic_menu_delete"
+                        android:tint="@color/danger" />
+
+                    <TextView
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_marginStart="12dp"
+                        android:layout_weight="1"
+                        android:text="清空数据"
+                        android:textColor="@color/danger"
+                        android:textSize="15sp" />
+                </LinearLayout>
+            </com.google.android.material.card.MaterialCardView>
+
+            <!-- 卸载应用（危险操作） -->
+            <com.google.android.material.card.MaterialCardView
+                android:id="@+id/btn_uninstall"
+                style="@style/Widget.MiniApp.SettingCard">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:gravity="center_vertical"
+                    android:orientation="horizontal"
+                    android:paddingHorizontal="16dp"
+                    android:paddingVertical="14dp">
+
+                    <ImageView
+                        android:layout_width="24dp"
+                        android:layout_height="24dp"
+                        android:contentDescription="卸载应用"
+                        android:src="@android:drawable/ic_menu_close_clear_cancel"
+                        android:tint="@color/danger" />
+
+                    <TextView
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_marginStart="12dp"
+                        android:layout_weight="1"
+                        android:text="卸载应用"
+                        android:textColor="@color/danger"
+                        android:textSize="15sp" />
+                </LinearLayout>
+            </com.google.android.material.card.MaterialCardView>
+
+        </LinearLayout>
+    </ScrollView>
 </LinearLayout>

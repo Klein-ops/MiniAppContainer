@@ -6,6 +6,7 @@ import android.webkit.JsResult
 import android.webkit.WebChromeClient
 import android.webkit.WebView
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
+import com.miniapp.container.util.showRounded
 
 class MiniAppWebChromeClient(
     private val onProgress: (Int) -> Unit = {},
@@ -25,7 +26,7 @@ class MiniAppWebChromeClient(
             .setMessage(message ?: "")
             .setOnCancelListener { result.cancel() }
             .setPositiveButton(android.R.string.ok) { _, _ -> result.confirm() }
-            .show()
+            .showRounded()
         return true
     }
 

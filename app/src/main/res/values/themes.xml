@@ -16,8 +16,11 @@
         <item name="materialAlertDialogTheme">@style/ThemeOverlay.MiniApp.RoundedDialog</item>
 </style>
 
-<!-- 圆角对话框主题覆盖：显式指定 24dp 大圆角 + Material 配色 -->
-<style name="ThemeOverlay.MiniApp.RoundedDialog" parent="ThemeOverlay.MaterialComponents.Dialog.Alert">
+<!-- 圆角对话框主题覆盖：显式指定 24dp 大圆角 + Material 配色。
+     父级用官方推荐的 ThemeOverlay.MaterialComponents.MaterialAlertDialog，
+     否则 shapeAppearanceOverlay 可能不生效（表现为直角）。 -->
+
+<style name="ThemeOverlay.MiniApp.RoundedDialog" parent="ThemeOverlay.MaterialComponents.MaterialAlertDialog">
         <item name="colorPrimary">@color/brand_primary</item>
         <item name="colorSecondary">@color/brand_accent</item>
         <item name="shapeAppearanceOverlay">@style/ShapeAppearance.MiniApp.Dialog</item>
@@ -31,6 +34,21 @@
         <item name="cornerFamily">rounded</item>
         <item name="cornerSize">24dp</item>
 </style>
+
+    <!-- 设置页/应用设置页统一卡片行：圆角、描边、可点击涟漪 -->
+    <style name="Widget.MiniApp.SettingCard" parent="Widget.MaterialComponents.CardView">
+        <item name="cardBackgroundColor">@color/bg_card</item>
+        <item name="cardCornerRadius">16dp</item>
+        <item name="cardElevation">0dp</item>
+        <item name="strokeColor">@color/divider</item>
+        <item name="strokeWidth">1dp</item>
+        <item name="android:layout_width">match_parent</item>
+        <item name="android:layout_height">wrap_content</item>
+        <item name="android:layout_marginTop">8dp</item>
+        <item name="android:clickable">true</item>
+        <item name="android:focusable">true</item>
+        <item name="android:foreground">?attr/selectableItemBackground</item>
+    </style>
 
     <style name="Widget.MiniApp.DialogButton" parent="Widget.MaterialComponents.Button.TextButton.Dialog">
         <item name="android:textColor">@color/brand_primary</item>

@@ -23,6 +23,7 @@ import com.miniapp.container.R
 import com.miniapp.container.core.BackupError
 import com.miniapp.container.core.WebdavError
 import com.miniapp.container.netdisk.WebdavConfig
+import com.miniapp.container.util.showRounded
 import com.miniapp.container.util.toast
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -116,7 +117,7 @@ class BackupActivity : AppCompatActivity() {
                 onConfirm(keys, swData.isChecked)
             }
             .setNegativeButton("取消", null)
-            .show()
+            .showRounded()
     }
 
     // ==================== 本地 ====================
@@ -216,7 +217,7 @@ class BackupActivity : AppCompatActivity() {
             .setTitle("选择要恢复的备份")
             .setView(view)
             .setNegativeButton("关闭", null)
-            .show()
+            .showRounded()
 
         listView.setOnItemClickListener { _, _, position, _ ->
             dialog.dismiss()
@@ -230,7 +231,7 @@ class BackupActivity : AppCompatActivity() {
                     lifecycleScope.launch { doDeleteBackup(name) }
                 }
                 .setNegativeButton("取消", null)
-                .show()
+                .showRounded()
         }
     }
 

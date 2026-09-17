@@ -21,6 +21,7 @@ import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.miniapp.container.MiniAppApp
 import com.miniapp.container.R
+import com.miniapp.container.util.showRounded
 import com.miniapp.container.util.toast
 import com.miniapp.container.core.MiniAppInfo
 import com.miniapp.container.permission.PermissionScope
@@ -147,7 +148,7 @@ class MainActivity : AppCompatActivity() {
                 refresh()
             }
             .setNegativeButton("取消", null)
-            .show()
+            .showRounded()
     }
 
     private fun showAddCategoryDialog() {
@@ -167,7 +168,7 @@ class MainActivity : AppCompatActivity() {
                 }
             }
             .setNegativeButton("取消", null)
-            .show()
+            .showRounded()
     }
 
     /** 显示"移动到分类"对话框。 */
@@ -185,7 +186,7 @@ class MainActivity : AppCompatActivity() {
                     toast("已移到 ${cats[which]}")
                 }
             }
-            .show()
+            .showRounded()
     }
 
     private fun showAddCategoryAndMove(info: MiniAppInfo) {
@@ -203,7 +204,7 @@ class MainActivity : AppCompatActivity() {
                 } else toast("分类名无效或已存在")
             }
             .setNegativeButton("取消", null)
-            .show()
+            .showRounded()
     }
 
     // ===== 列表刷新 =====
@@ -250,7 +251,7 @@ class MainActivity : AppCompatActivity() {
                 Toast.makeText(this, "未获得必要权限，无法运行", Toast.LENGTH_SHORT).show()
             }
             .setCancelable(false)
-            .show()
+            .showRounded()
     }
 
     private fun launchMiniApp(appKey: String) {
@@ -281,7 +282,7 @@ class MainActivity : AppCompatActivity() {
             .setPositiveButton("下载安装") { _, _ ->
                 val url = input.text.toString().trim()
                 if (url.isNotEmpty()) lifecycleScope.launch { installFromUrl(url) }
-            }.setNegativeButton("取消", null).show()
+            }.setNegativeButton("取消", null).showRounded()
     }
 
     private suspend fun installFromUrl(url: String) {
@@ -318,7 +319,7 @@ class MainActivity : AppCompatActivity() {
                     1 -> lifecycleScope.launch { installSample() }
                     2 -> showUrlInstallDialog()
                 }
-            }.show()
+            }.showRounded()
     }
 
     private fun openAppSettings(appKey: String) {
@@ -344,7 +345,7 @@ class MainActivity : AppCompatActivity() {
                 }
             }
             .setNegativeButton("取消", null)
-            .show()
+            .showRounded()
     }
 
     private suspend fun installFromUri(uri: Uri) {
@@ -401,13 +402,13 @@ class MainActivity : AppCompatActivity() {
             com.miniapp.container.debug.DebugBus.setEnabled(checked)
             toast(if (checked) "调试模式已开启" else "调试模式已关闭")
         }
-        findViewById<com.google.android.material.button.MaterialButton>(R.id.btn_debug_log)
+        findViewById<android.view.View>(R.id.card_debug_log)
             .setOnClickListener { startActivity(Intent(this, DebugActivity::class.java)) }
-        findViewById<com.google.android.material.button.MaterialButton>(R.id.btn_backup)
+        findViewById<android.view.View>(R.id.card_backup)
             .setOnClickListener { startActivity(Intent(this, BackupActivity::class.java)) }
-        findViewById<com.google.android.material.button.MaterialButton>(R.id.btn_netdisk)
+        findViewById<android.view.View>(R.id.card_netdisk)
             .setOnClickListener { startActivity(Intent(this, WebdavConfigActivity::class.java)) }
-        findViewById<com.google.android.material.button.MaterialButton>(R.id.btn_clean_storage)
+        findViewById<android.view.View>(R.id.card_clean)
             .setOnClickListener { cleanWebViewCache() }
         // 关于蜗壳：点击卡片直接打开 GitHub 仓库
         findViewById<android.view.View>(R.id.card_about).setOnClickListener {

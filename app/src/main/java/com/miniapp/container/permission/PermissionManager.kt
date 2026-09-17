@@ -15,14 +15,16 @@ import kotlin.coroutines.resume
  * - 出沙箱能力调用 [ensurePermission]：若已授权直接返回 true；
  *   若"不再询问"标记则返回 false（不再弹窗）；
  *   若清单未声明该 scope 返回 false；否则弹出审批对话框（4 选项）。
+ *
+ * 关于「仅允许一次」：它只放行**当前这次**调用——弹窗正是在某次调用中弹出的，
+ * 用户选择后该次调用即被放行（[resolve] 返回 true），不写入任何持久状态，
+ * 因此下一次调用会重新弹窗。不设"一次性令牌"，否则会多放行一次。
  */
 class PermissionManager(context: Context) {
 
     private val store = PermissionStore(
         java.io.File(context.filesDir, "miniapps/permissions.json")
     )
-    // 仅允许一次：一次性令牌，命中即消费（只放行紧接着的那一次调用）
-    private val tempGrants = ConcurrentHashMap<String, MutableSet<String>>()
     private val pending = ConcurrentHashMap<String, kotlinx.coroutines.CancellableContinuation<Boolean>>()
 
     /** 导入备份后重新加载授权记录。 */
@@ -53,8 +55,6 @@ class PermissionManager(context: Context) {
         // 「安全」级权限无需审批、也无需声明，直接放行
         if (PermissionRegistry.isSafe(scope)) return true
         if (store.isGranted(appKey, scope)) return true
-        // 一次性令牌：命中即移除，本次放行后失效，下次调用会重新弹窗
-        if (tempGrants[appKey]?.remove(scope) == true) return true
         if (store.isDeniedForever(appKey, scope)) return false
         if (scope !in declared) return false
         if (activity.isFinishing) return false
@@ -78,7 +78,7 @@ class PermissionManager(context: Context) {
         val cont = pending.remove(token) ?: return
         when (action) {
             PermAction.ALLOW -> { /* grant 在对话框内已 recordGrant */ }
-            PermAction.ALLOW_ONCE -> { /* 临时授权由 recordTempGrant 处理 */ }
+            PermAction.ALLOW_ONCE -> { /* 只放行本次调用：由下面的 resume(true) 完成 */ }
             PermAction.DENY -> { /* 无记录 */ }
             PermAction.DENY_FOREVER -> { /* denyForever 在对话框内已 record */ }
         }
@@ -86,9 +86,5 @@ class PermissionManager(context: Context) {
     }
 
     fun recordGrant(appKey: String, scope: String) = store.grant(appKey, scope)
-    /** 记录「仅允许一次」——供紧接着的单次调用消费。 */
-    fun recordTempGrant(appKey: String, scope: String) {
-        tempGrants.getOrPut(appKey) { ConcurrentHashMap.newKeySet() }.add(scope)
-    }
     fun recordDenyForever(appKey: String, scope: String) = store.denyForever(appKey, scope)
 }

@@ -65,7 +65,7 @@ class MiniAppDocumentsProvider : DocumentsProvider() {
         cursor.newRow().apply {
             add(DocumentsContract.Root.COLUMN_ROOT_ID, ROOT_ID)
             add(DocumentsContract.Root.COLUMN_DOCUMENT_ID, ROOT_ID)
-            add(DocumentsContract.Root.COLUMN_TITLE, "蜗壳应用数据")
+            add(DocumentsContract.Root.COLUMN_TITLE, "MiniAppContainer Data")
             add(
                 DocumentsContract.Root.COLUMN_FLAGS,
                 DocumentsContract.Root.FLAG_LOCAL_ONLY or DocumentsContract.Root.FLAG_SUPPORTS_IS_CHILD

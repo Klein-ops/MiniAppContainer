@@ -17,11 +17,13 @@ import com.miniapp.container.R
 import com.miniapp.container.bridge.MiniAppBridge
 import com.miniapp.container.core.MiniAppInfo
 import com.miniapp.container.file.FileService
+import com.miniapp.container.permission.PermissionScope
 import com.miniapp.container.sys.SystemInfoService
 import com.miniapp.container.web.FloatingExitView
 import com.miniapp.container.web.MiniAppWebChromeClient
 import com.miniapp.container.web.MiniAppWebViewClient
 import java.io.File
+import com.miniapp.container.util.showRounded
 
 /** WebView 容器：全屏渲染沙箱入口页面，注入 JS Bridge，悬浮按钮退出。 */
 class MiniAppActivity : AppCompatActivity() {
@@ -82,6 +84,46 @@ class MiniAppActivity : AppCompatActivity() {
         if (info == null) { finish(); return }
         appInfo = info
 
+        // 必要权限门禁：应用列表 / 桌面快捷方式 / 外部 Intent 等所有入口一律生效
+        if (!gateRequiredPermissions()) return
+
+        setupUi()
+    }
+
+    /**
+     * 必要权限门禁。
+     *
+     * 返回 true 表示已有全部必要权限，可直接进入；返回 false 表示已弹出审批框，
+     * 允许后继续 [setupUi]、拒绝则退出。放在这里而非应用列表，是为了让**所有入口**
+     * （含桌面快捷方式、外部 Intent、最近任务恢复）都受同一约束。
+     */
+    private fun gateRequiredPermissions(): Boolean {
+        val pm = (application as MiniAppApp).permissionManager
+        val ungranted = appInfo.requiredPermissions
+            .filter { PermissionScope.canBeRequired(it) }
+            .filter { !pm.isGranted(appInfo.appKey, it) }
+        if (ungranted.isEmpty()) return true
+
+        val msg = "该小程序需要以下权限才能运行：\n" +
+                ungranted.joinToString("\n") { "• " + PermissionScope.label(it) }
+        MaterialAlertDialogBuilder(this)
+            .setTitle("必要权限")
+            .setMessage(msg)
+            .setPositiveButton("允许") { _, _ ->
+                ungranted.forEach { pm.recordGrant(appInfo.appKey, it) }
+                setupUi()
+            }
+            .setNegativeButton("拒绝") { _, _ ->
+                Toast.makeText(this, "未获得必要权限，无法运行", Toast.LENGTH_SHORT).show()
+                finish()
+            }
+            .setCancelable(false)
+            .showRounded()
+        return false
+    }
+
+    /** 初始化界面（必要权限通过后调用）。 */
+    private fun setupUi() {
         setContentView(R.layout.activity_mini_app)
         progress = findViewById(R.id.progress)
         webView = findViewById(R.id.webView)
@@ -128,7 +170,7 @@ class MiniAppActivity : AppCompatActivity() {
                 .setTitle("错误")
                 .setMessage("入口文件不存在: ${appInfo.entry}")
                 .setOnDismissListener { finish() }
-                .show()
+                .showRounded()
             return
         }
         webView.loadUrl(Uri.fromFile(entryFile).toString())
@@ -153,6 +195,8 @@ class MiniAppActivity : AppCompatActivity() {
 
     @Deprecated("Deprecated in Java")
     override fun onBackPressed() {
+        // 必要权限未通过时界面尚未初始化
+        if (!::webView.isInitialized) { super.onBackPressed(); return }
         // 有历史页则向前推一页
         if (webView.canGoBack()) { webView.goBack(); return }
         // 已到入口页：二次确认才退出
@@ -163,6 +207,7 @@ class MiniAppActivity : AppCompatActivity() {
     }
 
     override fun onDestroy() {
+        if (!::webView.isInitialized) { super.onDestroy(); return }
         try {
             webView.stopLoading()
             webView.removeAllViews()
