@@ -357,8 +357,13 @@ await MiniApp.sys.openUrl('https://example.com');  // boolean true
 | `sys.vibrate(duration)` | `boolean` | 成功 `true` |
 | `sys.flashlight({ on })` | `boolean` | 成功 `true`（`on=true` 开 / `false` 关） |
 | `camera.takePhoto(path?)` | `object` | 成功 `{ ok: true, path: "tmp/photo_xxx.jpg" }`；取消 `{ ok: false, error: "cancelled" }` |
+| `sys.setOrientation(mode)` | `boolean` | 成功 `true`（`portrait` / `landscape` / `auto`） |
+| `sys.setStatusBar(visible)` | `boolean` | 成功 `true`（隐藏/显示状态栏） |
+| `sys.setStatusBarColor(color)` | `boolean` | 成功 `true`（`#RRGGBB` / `#AARRGGBB` / `transparent`） |
 
-**权限**：分别声明 `vibrate` / `flashlight` / `camera`（均为普通权限）。
+**权限**：`vibrate` / `flashlight` / `camera` 需声明并审批（均普通权限）；
+`setOrientation` / `setStatusBar` / `setStatusBarColor` 只影响小程序**自己的容器窗口**，
+**无需审批**。
 
 - `sys.vibrate(duration)`：震动指定毫秒数（1~5000，超范围自动夹紧）。
 - `sys.flashlight({ on })`：开关设备闪光灯（手电筒）；Android 6+ 首次调用会自动向系统
@@ -381,6 +386,11 @@ if (shot.ok) {
 } else if (shot.error === 'cancelled') {
   // 用户取消了拍照
 }
+
+// 容器界面控制（无需审批，只影响小程序自己的窗口）
+await MiniApp.sys.setOrientation('landscape');      // 全屏视频场景强制横屏
+await MiniApp.sys.setStatusBar(false);              // 隐藏状态栏
+await MiniApp.sys.setStatusBarColor('#000000');     // 页面黑色时状态栏同步变黑
 ```
 
 ### 4.9 预请求权限
