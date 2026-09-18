@@ -20,6 +20,7 @@ import com.miniapp.container.service.NotificationService
 import com.miniapp.container.sys.SystemInfoService
 import com.miniapp.container.ui.MiniAppActivity
 import com.miniapp.container.util.optBoolOr
+import com.miniapp.container.util.optStringList
 import com.miniapp.container.util.optStringOr
 import kotlinx.coroutines.launch
 import org.json.JSONArray
