@@ -168,7 +168,13 @@
       // 震动（毫秒，1~5000）
       vibrate: function (duration) { return B.call('sys.vibrate', { duration: Number(duration) || 300 }); },
       // 闪光灯/手电筒开关 { on: true|false }
-      flashlight: function (on) { return B.call('sys.flashlight', { on: !!on }); }
+      flashlight: function (on) { return B.call('sys.flashlight', { on: !!on }); },
+      // 屏幕方向 portrait | landscape | auto
+      setOrientation: function (mode) { return B.call('sys.setOrientation', { mode: String(mode || 'auto') }); },
+      // 状态栏显隐
+      setStatusBar: function (visible) { return B.call('sys.setStatusBar', { visible: !!visible }); },
+      // 状态栏颜色 #RRGGBB / transparent
+      setStatusBarColor: function (color) { return B.call('sys.setStatusBarColor', { color: String(color || '#000000') }); }
     },
     camera: {
       // 调用系统相机拍照，照片保存到自己的沙箱；path 可选（须 data/ 或 tmp/）

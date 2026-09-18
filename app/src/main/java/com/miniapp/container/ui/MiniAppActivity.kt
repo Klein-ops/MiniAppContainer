@@ -39,7 +39,8 @@ class MiniAppActivity : AppCompatActivity() {
     private lateinit var appInfo: MiniAppInfo
     private lateinit var bridge: MiniAppBridge
     private lateinit var webView: WebView
-    private lateinit var progress: ProgressBar
+    /** 全屏开屏层（页面加载完成前显示，完成后淡出）。 */
+    private lateinit var splash: android.widget.FrameLayout
     private lateinit var floatingExit: FloatingExitView
 
     private val importLauncher = registerForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
@@ -154,7 +155,7 @@ class MiniAppActivity : AppCompatActivity() {
     /** 初始化界面（必要权限通过后调用）。 */
     private fun setupUi() {
         setContentView(R.layout.activity_mini_app)
-        progress = findViewById(R.id.progress)
+        splash = findViewById(R.id.splash)
         webView = findViewById(R.id.webView)
         floatingExit = findViewById(R.id.floating_exit)
         floatingExit.onExit = { finish() }
@@ -179,6 +180,7 @@ class MiniAppActivity : AppCompatActivity() {
             fileService = FileService(sandboxRoot),
             permissionManager = hostApp.permissionManager,
             systemInfo = SystemInfoService(this),
+            containerUi = com.miniapp.container.sys.ContainerUiService(this),
             hostAppVersion = hostAppVersion
         )
         webView.addJavascriptInterface(bridge, "MiniAppNative")
@@ -186,11 +188,9 @@ class MiniAppActivity : AppCompatActivity() {
 
         webView.webViewClient = MiniAppWebViewClient(sandboxRoot, bridgeJs)
         webView.webChromeClient = MiniAppWebChromeClient(
-            onProgress = { p ->
-                progress.progress = p
-                progress.visibility = if (p in 1..99) View.VISIBLE else View.GONE
-            },
-            onTitle = { }
+            onProgress = { },
+            onTitle = { },
+            onPageFinished = { hideSplash() }
         )
 
         val entryFile = File(File(sandboxRoot, "app"), appInfo.entry)
@@ -203,6 +203,16 @@ class MiniAppActivity : AppCompatActivity() {
             return
         }
         webView.loadUrl(Uri.fromFile(entryFile).toString())
+    }
+
+    /** 页面加载完成：全屏开屏淡出，露出小程序界面。 */
+    private fun hideSplash() {
+        if (!::splash.isInitialized) return
+        splash.animate()
+            .alpha(0f)
+            .setDuration(SPLASH_FADE_MS)
+            .withEndAction { splash.visibility = View.GONE }
+            .start()
     }
 
     private fun configureWebView(w: WebView) {

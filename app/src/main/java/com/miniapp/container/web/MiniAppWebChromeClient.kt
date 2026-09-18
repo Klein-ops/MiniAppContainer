@@ -10,11 +10,13 @@ import com.miniapp.container.util.showRounded
 
 class MiniAppWebChromeClient(
     private val onProgress: (Int) -> Unit = {},
-    private val onTitle: (String) -> Unit = {}
+    private val onTitle: (String) -> Unit = {},
+    private val onPageFinished: (() -> Unit)? = null
 ) : WebChromeClient() {
 
     override fun onProgressChanged(view: WebView?, newProgress: Int) {
         onProgress(newProgress)
+        if (newProgress >= 100) onPageFinished?.invoke()
     }
 
     override fun onReceivedTitle(view: WebView?, title: String?) {

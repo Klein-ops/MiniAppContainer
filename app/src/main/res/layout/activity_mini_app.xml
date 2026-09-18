@@ -2,22 +2,42 @@
 <FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="#FFFFFF">
+    android:background="@color/bg_window">
 
     <WebView
         android:id="@+id/webView"
         android:layout_width="match_parent"
         android:layout_height="match_parent" />
 
-    <ProgressBar
-        android:id="@+id/progress"
-        style="?android:attr/progressBarStyleHorizontal"
+    <!-- 全屏开屏动画：页面加载完成前显示，之后淡出（替代原顶部进度条） -->
+    <FrameLayout
+        android:id="@+id/splash"
         android:layout_width="match_parent"
-        android:layout_height="3dp"
-        android:layout_gravity="top"
-        android:max="100"
-        android:progressTint="@color/brand_primary"
-        android:visibility="gone" />
+        android:layout_height="match_parent"
+        android:background="@color/bg_window">
+
+        <LinearLayout
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="center"
+            android:gravity="center"
+            android:orientation="vertical">
+
+            <ImageView
+                android:layout_width="96dp"
+                android:layout_height="96dp"
+                android:contentDescription="蜗壳"
+                android:src="@mipmap/ic_launcher" />
+
+            <ProgressBar
+                android:id="@+id/splash_spinner"
+                style="?android:attr/progressBarStyle"
+                android:layout_width="36dp"
+                android:layout_height="36dp"
+                android:layout_marginTop="20dp"
+                android:indeterminateTint="@color/brand_primary" />
+        </LinearLayout>
+    </FrameLayout>
 
     <com.miniapp.container.web.FloatingExitView
         android:id="@+id/floating_exit"

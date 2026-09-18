@@ -51,6 +51,7 @@ class MiniAppBridge(
     private val fileService: FileService,
     private val permissionManager: PermissionManager,
     private val systemInfo: SystemInfoService,
+    private val containerUi: com.miniapp.container.sys.ContainerUiService,
     private val hostAppVersion: String
 ) {
     private val main = Handler(Looper.getMainLooper())
@@ -171,6 +172,9 @@ companion object { private const val TAG = "MiniAppBridge" }
 
         // 其他
         "sys.openUrl" -> openUrl(p.optStringOr("url"))
+        "sys.setOrientation" -> containerUi.setOrientation(p)
+        "sys.setStatusBar" -> containerUi.setStatusBar(p)
+        "sys.setStatusBarColor" -> containerUi.setStatusBarColor(p)
         "sys.vibrate" -> vibrate.vibrate(p)
         "sys.flashlight" -> camera.setTorch(p)
         "camera.takePhoto" -> camera.takePhoto(p)
