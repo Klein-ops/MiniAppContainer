@@ -31,6 +31,9 @@ class MiniAppActivity : AppCompatActivity() {
 
     companion object {
         const val EXTRA_APP_KEY = "appKey"
+
+        /** 开屏淡出动画时长（毫秒）。 */
+        private const val SPLASH_FADE_MS = 400L
         private var importCallback: ((Uri?) -> Unit)? = null
         private var exportCallback: ((Uri?) -> Unit)? = null
         // permCallback 不能放 companion（launcher 实例相关），放实例字段

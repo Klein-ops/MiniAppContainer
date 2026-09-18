@@ -15,6 +15,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlinx.coroutines.withContext
 import kotlin.coroutines.resume
+import org.json.JSONObject
 
 /**
  * 通知服务（单一职责）：发送/取消状态栏通知，需 `notification` 权限。
