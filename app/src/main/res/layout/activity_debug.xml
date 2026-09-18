@@ -33,6 +33,24 @@
             android:text="调试模式未开启。" />
 
         <com.google.android.material.button.MaterialButton
+            android:id="@+id/btn_copy_log"
+            style="@style/Widget.MaterialComponents.Button.TextButton"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:minWidth="0dp"
+            android:text="复制"
+            android:textColor="@color/brand_primary" />
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btn_export_log"
+            style="@style/Widget.MaterialComponents.Button.TextButton"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:minWidth="0dp"
+            android:text="导出"
+            android:textColor="@color/brand_primary" />
+
+        <com.google.android.material.button.MaterialButton
             android:id="@+id/btn_clear_log"
             style="@style/Widget.MaterialComponents.Button.TextButton"
             android:layout_width="wrap_content"

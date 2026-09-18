@@ -1,28 +1,43 @@
 package com.miniapp.container.debug
 
+import java.io.File
+
 /**
- * 调试模式总线：记录所有小程序对 JS Bridge 接口的调用（方法、参数、返回值、耗时）。
- * 通过 [enabled] 开关控制；环形缓冲最多保留 [MAX] 条，避免内存无限增长。
+ * 调试模式总线：记录小程序对 JS Bridge 接口的调用（方法、参数、返回值、耗时）。
+ *
+ * **落盘而非常驻内存**：日志追加写入应用私有目录的 `debug/log.txt`，
+ * 由 [attach] 在应用启动时清空（与"日志只保留本次会话"效果一致），
+ * 避免长会话下内存无限增长。
+ *
+ * 清空时机：
+ * 1. 应用每次启动（[attach] 时清空）；
+ * 2. 在「调用日志」页手动点「清空」。
+ * 关闭「调试模式」开关不会清空，只是停止记录。
  */
 object DebugBus {
 
     private const val MAX = 500
+    private const val TRIM_THRESHOLD = 2 * MAX
 
     @Volatile
     var enabled: Boolean = false
         private set
 
-    private val logs = ArrayDeque<String>()
+    private val lock = Any()
+    private var logFile: File? = null
     private val listeners = mutableListOf<() -> Unit>()
 
-    /**
-     * 开关调试模式。
-     *
-     * **不清空已有日志**：关闭后只是停止记录新日志，旧日志仍可查看。
-     * 日志清空只有两种时机：
-     * 1. 蜗壳进程结束（被从后台划掉）——日志仅存内存，进程结束自然清空；
-     * 2. 在调用日志页手动点击「清空」。
-     */
+    /** 绑定日志文件并清空（应用启动时调用；仅主进程）。 */
+    fun attach(file: File) {
+        synchronized(lock) {
+            logFile = file.also {
+                it.parentFile?.mkdirs()
+                runCatching { it.writeText("") }   // 每次启动清空
+            }
+        }
+    }
+
+    /** 开关调试模式：不清空已有日志，只影响是否继续记录。 */
     fun setEnabled(on: Boolean) {
         enabled = on
         notifyChanged()
@@ -30,19 +45,34 @@ object DebugBus {
 
     fun log(line: String) {
         if (!enabled) return
-        synchronized(logs) {
-            logs.addLast(line)
-            while (logs.size > MAX) logs.removeFirst()
+        synchronized(lock) {
+            val f = logFile ?: return
+            runCatching { f.appendText(line + "\n") }
+            trimIfNeeded(f)
         }
         notifyChanged()
     }
 
-    fun snapshot(): List<String> = synchronized(logs) { logs.toList() }
+    fun snapshot(): List<String> = synchronized(lock) {
+        val f = logFile ?: return emptyList()
+        runCatching { f.readLines() }.getOrDefault(emptyList())
+    }
 
-    /** 清空全部日志（手动清空时调用），并通知 UI 刷新。 */
+    /** 手动清空（并通知 UI 刷新）。 */
     fun clear() {
-        synchronized(logs) { logs.clear() }
+        synchronized(lock) {
+            logFile?.let { runCatching { it.writeText("") } }
+        }
         notifyChanged()
+    }
+
+    /** 超过阈值时截断为最近 [MAX] 行（避免频繁重写）。 */
+    private fun trimIfNeeded(f: File) {
+        val size = runCatching { f.readLines().size }.getOrDefault(0)
+        if (size > TRIM_THRESHOLD) {
+            val tail = runCatching { f.readLines().takeLast(MAX) }.getOrDefault(emptyList())
+            runCatching { f.writeText(tail.joinToString("\n") + "\n") }
+        }
     }
 
     fun addListener(l: () -> Unit) {

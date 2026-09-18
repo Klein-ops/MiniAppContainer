@@ -13,6 +13,7 @@ import com.miniapp.container.core.AppRegistry
 import com.miniapp.container.core.BackupService
 import com.miniapp.container.core.CategoryManager
 import com.miniapp.container.core.SandboxManager
+import com.miniapp.container.debug.DebugBus
 import com.miniapp.container.permission.PermissionManager
 import java.io.File
 
@@ -79,6 +80,9 @@ class MiniAppApp : Application() {
         categoryManager = CategoryManager(File(base, "categories.json"))
         installer = AppInstaller(this, sandbox, registry, permissionManager)
         backupService = BackupService(this, installer)
+
+        // 调试日志落盘：应用启动即清空（日志只保留本次会话）
+        DebugBus.attach(File(filesDir, "debug/log.txt"))
 
         initialized = true
         unregisterUnlockReceiver()
