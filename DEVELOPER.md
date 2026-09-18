@@ -334,7 +334,41 @@ await MiniApp.notification.cancel();              // boolean true
 await MiniApp.sys.openUrl('https://example.com');  // boolean true
 ```
 
-### 4.8 预请求权限
+### 4.8 设备能力（震动 / 闪光灯 / 拍照，需审批）
+
+| 接口 | 返回类型 | 返回值 |
+|---|---|---|
+| `sys.vibrate(duration)` | `boolean` | 成功 `true` |
+| `sys.flashlight({ on })` | `boolean` | 成功 `true`（`on=true` 开 / `false` 关） |
+| `camera.takePhoto(path?)` | `object` | 成功 `{ ok: true, path: "tmp/photo_xxx.jpg" }`；取消 `{ ok: false, error: "cancelled" }` |
+
+**权限**：分别声明 `vibrate` / `flashlight` / `camera`（均为普通权限）。
+
+- `sys.vibrate(duration)`：震动指定毫秒数（1~5000，超范围自动夹紧）。
+- `sys.flashlight({ on })`：开关设备闪光灯（手电筒）；Android 6+ 首次调用会自动向系统
+  申请相机权限。
+- `camera.takePhoto(path?)`：**调用系统相机拍照**——
+  - 传 `path`（相对沙箱，仅 `data/` 或 `tmp/`）时保存到指定位置；
+  - **不传时自动保存到 `tmp/photo_<时间戳>.jpg`**（临时区）。
+  - 小程序只拿到拍好的成品图片，接触不到系统相机内部内容；
+  - 用户取消时返回 `{ ok:false, error:"cancelled" }`（不 reject）。
+
+```js
+await MiniApp.sys.vibrate(300);                 // 震动 300ms → boolean true
+
+await MiniApp.sys.flashlight({ on: true });     // 开手电筒
+await MiniApp.sys.flashlight({ on: false });    // 关手电筒
+
+const shot = await MiniApp.camera.takePhoto();  // 自动存到 tmp/photo_xxx.jpg
+if (shot.ok) {
+  const b64 = await MiniApp.fs.readBytes(shot.path);   // 拿照片字节
+} else if (shot.error === 'cancelled') {
+  // 用户取消了拍照
+}
+```
+
+### 4.9 预请求权限
+
 
 | 接口 | 返回类型 | 返回值 |
 |---|---|---|
@@ -344,7 +378,7 @@ await MiniApp.sys.openUrl('https://example.com');  // boolean true
 const granted = await MiniApp.permission.request('net');  // boolean
 ```
 
-### 4.9 Dex 执行（无需权限）
+### 4.10 Dex 执行（无需权限）
 
 | 接口 | 返回类型 | 返回值 |
 |---|---|---|
@@ -395,7 +429,7 @@ public static android.os.Bundle run(
 - 可行：Dex 加载、反射调用、FD 读写、Java 库（压缩/加密/正则/时间）、多线程、Bundle 通信。
 - 性能：无 AOT，首次解释执行；热点 JIT 后接近普通 Java；数值计算慢于 WASM，适合结构化逻辑、加密压缩等场景。
 
-### 4.10 网络存储（需审批）
+### 4.11 网络存储（需审批）
 
 小程序可把自己产生的数据存到用户在「设置 → 网络存储」中配置的 WebDAV 服务器上。
 
@@ -449,7 +483,7 @@ try {
 
 ---
 
-### 4.11 ADB / Shell（需审批，⚠ 危险）
+### 4.12 ADB / Shell（需审批，⚠ 危险）
 
 小程序可通过 Shizuku 以 adb shell 权限执行命令。**前提**：用户已安装并启动 Shizuku、激活服务。
 
@@ -535,6 +569,9 @@ if (!r2.ok && r2.timedOut) console.log('超时，已部分输出:', r2.stdout);
 | `clipboard` | 普通 | 读写系统剪贴板 | 拒绝 |
 | `notification` | 普通 | 发送状态栏通知 | 拒绝 |
 | `storage` | 普通 | 读写 WebDAV 网络存储（仅小程序自己的目录） | 拒绝 |
+| `vibrate` | 普通 | 设备震动 | 拒绝 |
+| `flashlight` | 普通 | 开关闪光灯（手电筒） | 拒绝 |
+| `camera` | 普通 | 调用系统相机拍照 | 拒绝 |
 | `adb` | **危险** | 通过 Shizuku 执行 SH 指令 | 拒绝 |
 
 ### 5.4 审批流程
@@ -793,6 +830,11 @@ adb logcat -s MiniAppJS MiniAppBridge
 | `shizuku not active` | Shizuku 未启动 | 启动 Shizuku 并激活服务 |
 | `timeout` | 命令超过指定超时 | 增大 `timeout` 或检查命令 |
 | `shizuku permission denied` | Shizuku 弹窗拒绝 | 在 Shizuku 弹窗授权 |
+| `permission denied: vibrate` | 未声明 `vibrate` 或用户拒绝 | manifest 声明并允许 |
+| `permission denied: flashlight` | 未声明 `flashlight` 或用户拒绝 | manifest 声明并允许 |
+| `permission denied: camera` | 未声明 `camera` 或用户拒绝 | manifest 声明并允许 |
+| `cancelled` | 用户取消拍照 | 按取消处理，不视为错误 |
+| `no camera` | 设备无可用后置相机/闪光灯 | 提示设备不支持 |
 | `dex 文件不存在: xxx` | `dex` 路径不对 | 路径相对沙箱根，确认 zip/`data/` 含该 dex |
 
 ---

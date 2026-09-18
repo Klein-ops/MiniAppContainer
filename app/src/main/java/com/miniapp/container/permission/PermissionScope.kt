@@ -14,6 +14,9 @@ object PermissionScope {
     const val NOTIFICATION = "notification"
     const val STORAGE = "storage"
     const val ADB = "adb"
+    const val VIBRATE = "vibrate"
+    const val FLASHLIGHT = "flashlight"
+    const val CAMERA = "camera"
 
     fun label(scope: String): String = PermissionRegistry.label(scope)
 

@@ -159,7 +159,17 @@
         });
       }
     },
-    sys: { openUrl: function (u) { return B.call('sys.openUrl', { url: u }); } },
+    sys: {
+      openUrl: function (u) { return B.call('sys.openUrl', { url: u }); },
+      // 震动（毫秒，1~5000）
+      vibrate: function (duration) { return B.call('sys.vibrate', { duration: Number(duration) || 300 }); },
+      // 闪光灯/手电筒开关 { on: true|false }
+      flashlight: function (on) { return B.call('sys.flashlight', { on: !!on }); }
+    },
+    camera: {
+      // 调用系统相机拍照，照片保存到自己的沙箱；path 可选（须 data/ 或 tmp/）
+      takePhoto: function (path) { return B.call('camera.takePhoto', { path: String(path || '') }); }
+    },
     adb: {
       // 通过 Shizuku 执行 SH 指令（需 adb 权限，危险，需用户审批）
       exec: function (command, opts) {

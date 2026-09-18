@@ -61,6 +61,8 @@ class MiniAppBridge(
     private val notification = NotificationService(activity, appInfo, permissionManager)
     private val storage = com.miniapp.container.service.StorageService(activity, appInfo, permissionManager)
     private val adb = com.miniapp.container.service.AdbService(activity, appInfo, permissionManager)
+    private val vibrate = com.miniapp.container.service.VibrateService(activity, appInfo, permissionManager)
+    private val camera = com.miniapp.container.service.CameraService(activity, appInfo, permissionManager, sandboxRoot)
 
     companion object { private const val TAG = "MiniAppBridge" }
 
@@ -160,6 +162,9 @@ class MiniAppBridge(
 
         // 其他
         "sys.openUrl" -> openUrl(p.optStringOr("url"))
+        "sys.vibrate" -> vibrate.vibrate(p)
+        "sys.flashlight" -> camera.setTorch(p)
+        "camera.takePhoto" -> camera.takePhoto(p)
         "perm.request" -> {
             val scope = p.optStringOr("scope")
             val granted = permissionManager.ensurePermission(

@@ -144,6 +144,10 @@ MiniApp.clipboard.read() / write(text)
 MiniApp.notification.show(title, body) / cancel()
 // 网络存储（需 storage 权限）：小程序在 WebDAV 上的独立目录
 MiniApp.storage.upload(path, base64) / download(path) / list(path) / delete(path)
+// 设备能力（各需对应权限）
+MiniApp.sys.vibrate(ms)   // 震动
+MiniApp.sys.flashlight({ on: true|false })   // 手电筒
+MiniApp.camera.takePhoto(path?)   // 系统相机拍照 → 存到沙箱 tmp/（或指定 data/tmp 路径）
 // ADB / Shell（需 adb 权限，⚠ 危险，经 Shizuku 执行）
 MiniApp.adb.exec(command, { timeout })   // → { ok, exitCode, stdout, stderr } 或 { ok:false, error, detail }
 // Dex 执行（无需权限，android:isolatedProcess 隔离进程内运行）
