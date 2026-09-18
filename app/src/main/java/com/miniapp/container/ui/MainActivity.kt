@@ -3,6 +3,9 @@ package com.miniapp.container.ui
 import android.content.Intent
 import android.net.Uri
 import android.os.Bundle
+import android.text.Editable
+import android.text.TextWatcher
+import android.view.inputmethod.InputMethodManager
 import android.view.LayoutInflater
 import android.view.View
 import android.widget.HorizontalScrollView
@@ -66,6 +69,7 @@ class MainActivity : AppCompatActivity() {
         adapter.onSettingsClick = { openAppSettings(it.appKey) }
         findViewById<View>(R.id.install_card).setOnClickListener { showInstallOptions() }
         setupBottomNav()
+        setupSearch()
         setupSettingsPage()
         recycler.layoutManager = LinearLayoutManager(this)
         recycler.adapter = adapter
@@ -251,6 +255,73 @@ class MainActivity : AppCompatActivity() {
             }
             .setCancelable(false)
             .showRounded()
+    }
+
+    /** 顶栏右上角放大镜 → 搜索小程序对话框。 */
+    private fun setupSearch() {
+        findViewById<Toolbar>(R.id.toolbar).apply {
+            inflateMenu(R.menu.main_menu)
+            setOnMenuItemClickListener {
+                if (it.itemId == R.id.action_search) {
+                    showSearchDialog()
+                    true
+                } else false
+            }
+        }
+    }
+
+    /** 搜索对话框：按名称/标识实时过滤，点击直接启动。 */
+    private fun showSearchDialog() {
+        val view = layoutInflater.inflate(R.layout.dialog_search, null)
+        val et = view.findViewById<com.google.android.material.textfield.TextInputEditText>(R.id.et_search)
+        val lv = view.findViewById<ListView>(R.id.list_search)
+        val empty = view.findViewById<android.widget.TextView>(R.id.tv_search_empty)
+
+        val dialog = MaterialAlertDialogBuilder(this)
+            .setTitle("搜索小程序")
+            .setView(view)
+            .setNegativeButton("关闭", null)
+            .showRounded()
+
+        var apps = emptyList<com.miniapp.container.core.MiniAppInfo>()
+        fun refresh(query: String) {
+            val q = query.trim()
+            apps = hostApp.registry.list().filter {
+                q.isEmpty() ||
+                    it.displayName.contains(q, ignoreCase = true) ||
+                    it.uname.contains(q, ignoreCase = true)
+            }
+            lv.adapter = ArrayAdapter(
+                this,
+                android.R.layout.simple_list_item_1,
+                apps.map { app ->
+                    val name = app.displayName.ifBlank { app.uname }
+                    "$name  ·  ${app.appKey}"
+                }
+            )
+            empty.visibility = if (apps.isEmpty() && q.isNotEmpty()) View.VISIBLE else View.GONE
+        }
+
+        et.addTextChangedListener(object : TextWatcher {
+            override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
+            override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {
+                refresh(s?.toString() ?: "")
+            }
+            override fun afterTextChanged(s: Editable?) {}
+        })
+
+        lv.setOnItemClickListener { _, _, pos, _ ->
+            val app = apps.getOrNull(pos) ?: return@setOnItemClickListener
+            dialog.dismiss()
+            startMiniApp(app)
+        }
+
+        refresh("")
+        et.requestFocus()
+        et.postDelayed({
+            val imm = getSystemService(INPUT_METHOD_SERVICE) as InputMethodManager
+            imm.showSoftInput(et, InputMethodManager.SHOW_IMPLICIT)
+        }, 250)
     }
 
     private fun launchMiniApp(appKey: String) {
