@@ -39,7 +39,7 @@
 
     <!-- 自行控制窗口尺寸的对话框主题（圆角由内容视图自身背景提供，
          故窗口背景透明；避免系统 inset 干扰高度计算） -->
-    <style name="Theme.MiniApp.FloatingDialog" parent="Theme.Material3.Dialog">
+    <style name="Theme.MiniApp.FloatingDialog" parent="Theme.Material3.DayNight.NoActionBar">
         <item name="android:windowBackground">@android:color/transparent</item>
         <item name="android:windowIsFloating">true</item>
         <item name="android:windowNoTitle">true</item>
@@ -60,7 +60,7 @@
     </style>
 
     <!-- 设置页/应用设置页统一卡片行：圆角、描边、可点击涟漪 -->
-    <style name="Widget.MiniApp.SettingCard" parent="Widget.Material3.CardView">
+    <style name="Widget.MiniApp.SettingCard" parent="Widget.Material3.CardView.Outlined">
         <item name="cardBackgroundColor">@color/bg_card</item>
         <item name="cardCornerRadius">16dp</item>
         <item name="cardElevation">0dp</item>
