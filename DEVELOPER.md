@@ -132,14 +132,26 @@ MiniApp.fs.write('data/test.txt', 'Hello').then(function () {
 | 接口 | 返回类型 | 返回值 |
 |---|---|---|
 | `MiniApp.info()` | `object` | `{ uid, uname, version, entry, permissions, appKey }` |
-| `MiniApp.system()` | `object` | `{ platform, model, manufacturer, brand, osVersion, sdk, hostAppVersion, density, densityDpi, widthPixels, heightPixels }`（`sdk`、`densityDpi`、`widthPixels`、`heightPixels` 为整数，`density` 为浮点数） |
+| `MiniApp.system(fields?)` | `object` | 全量：`{ platform, model, manufacturer, brand, osVersion, sdk, hostAppVersion, apiVersion, webviewVersion, density, densityDpi, widthPixels, heightPixels }`（`sdk`、`densityDpi`、`widthPixels`、`heightPixels` 为整数，`density` 浮点数）；`fields` 传字符串或字符串数组时**只返回指定字段** |
 | `MiniApp.ui.toast(msg)` | `boolean` | 固定 `true` |
 
 `MiniApp.toast(msg)` 与 `MiniApp.ui.toast(msg)` 等价。
 
+**字段说明**：
+
+| 字段 | 含义 |
+|---|---|
+| `hostAppVersion` | 蜗壳 App 版本（App 更新即变化） |
+| `apiVersion` | **接口版本**：只在接口行为变化时递增，不随 App 版本变动 |
+| `webviewVersion` | 当前 WebView 实现版本（如 `113.0.5672.136`） |
+
 ```js
 const info = await MiniApp.info();       // object
 const ok = await MiniApp.ui.toast('提示'); // boolean true
+
+// 只取需要的字段，不必每次解析全量
+const v = await MiniApp.system('hostAppVersion');     // { hostAppVersion: "1.9.0" }
+const v2 = await MiniApp.system(['apiVersion', 'webviewVersion']);
 ```
 
 ### 4.2 文件系统（沙箱内）
@@ -316,6 +328,10 @@ await MiniApp.clipboard.write('复制内容');     // boolean true
 | `notification.cancel()` | `boolean` | 成功 `true` |
 
 需声明 `"notification"`。通知栏以 `[小程序名] 标题` 标注发送来源；每个小程序独立通知渠道。Android 13+ 首次会额外申请系统通知权限（`POST_NOTIFICATIONS`）。
+
+> **系统通知总开关检测**：部分 ROM 在 Android 13 运行时授权之外还有一个系统级通知总开关。
+> 若总开关被关闭，`show` 会先提示用户并**自动跳转系统通知设置页**，返回
+> `{ ok: false, error: "notifications disabled" }`（不 reject）。
 
 ```js
 await MiniApp.notification.show('标题', '内容');  // boolean true
@@ -830,6 +846,7 @@ adb logcat -s MiniAppJS MiniAppBridge
 | `shizuku not active` | Shizuku 未启动 | 启动 Shizuku 并激活服务 |
 | `timeout` | 命令超过指定超时 | 增大 `timeout` 或检查命令 |
 | `shizuku permission denied` | Shizuku 弹窗拒绝 | 在 Shizuku 弹窗授权 |
+| `notifications disabled` | 系统通知总开关被关闭 | 已自动跳转设置，打开通知后重试 |
 | `permission denied: vibrate` | 未声明 `vibrate` 或用户拒绝 | manifest 声明并允许 |
 | `permission denied: flashlight` | 未声明 `flashlight` 或用户拒绝 | manifest 声明并允许 |
 | `permission denied: camera` | 未声明 `camera` 或用户拒绝 | manifest 声明并允许 |

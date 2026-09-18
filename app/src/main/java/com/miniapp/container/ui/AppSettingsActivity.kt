@@ -74,25 +74,31 @@ class AppSettingsActivity : AppCompatActivity() {
         toast("已请求创建快捷方式")
     }
 
-    /** 加载小程序自有图标（SVG/PNG → Bitmap → Icon），无图标返回 null。 */
+    /**
+     * 加载小程序自有图标（SVG/PNG → Bitmap → Icon），无图标返回 null。
+     *
+     * 统一缩放到 launcher 标准 **48dp** 物理尺寸：原实现固定 96px、PNG 原图直用，
+     * 在高/低密度屏上会被 launcher 原样铺开，看起来比别的应用图标大一圈。
+     */
     private fun loadAppIcon(): Icon? {
         if (info.icon.isBlank()) return null
         val sandbox = File(filesDir, "miniapps/${info.uid}_${info.uname}")
         val iconFile = File(sandbox, "app/${info.icon}")
         if (!iconFile.exists()) return null
         return try {
-            val size = 96
+            val targetSize = (48 * resources.displayMetrics.density).toInt().coerceAtLeast(48)
             val bmp = if (info.icon.endsWith(".svg", ignoreCase = true)) {
                 val svg = SVG.getFromInputStream(iconFile.inputStream())
-                svg.setDocumentWidth(size.toFloat())
-                svg.setDocumentHeight(size.toFloat())
+                svg.setDocumentWidth(targetSize.toFloat())
+                svg.setDocumentHeight(targetSize.toFloat())
                 val picture = svg.renderToPicture()
-                Bitmap.createBitmap(size, size, Bitmap.Config.ARGB_8888).also { b ->
+                Bitmap.createBitmap(targetSize, targetSize, Bitmap.Config.ARGB_8888).also { b ->
                     picture.draw(Canvas(b))
                 }
             } else {
-                BitmapFactory.decodeFile(iconFile.absolutePath)
-            } ?: return null
+                val raw = BitmapFactory.decodeFile(iconFile.absolutePath) ?: return null
+                Bitmap.createScaledBitmap(raw, targetSize, targetSize, true)
+            }
             Icon.createWithBitmap(bmp)
         } catch (_: Exception) { null }
     }

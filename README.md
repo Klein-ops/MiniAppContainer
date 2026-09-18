@@ -119,7 +119,7 @@ zip 内含 `manifest.json`（可在根目录或子目录，递归查找），以
 
 ```js
 MiniApp.info()                          // 应用信息
-MiniApp.system()                        // 系统信息
+MiniApp.system(fields?)               // 系统信息（可按需取字段；含 apiVersion / webviewVersion）
 MiniApp.ui.toast(msg)                   // 提示
 
 // 沙箱内文件（data/ tmp/ 可写，app/ 只读）

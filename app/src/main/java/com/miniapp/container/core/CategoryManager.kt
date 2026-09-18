@@ -91,7 +91,9 @@ class CategoryManager(private val file: File) {
         if (name == DEFAULT) return
         val apps = categories.remove(name) ?: return
         order.remove(name)
-        categories.getOrPut(DEFAULT) { mutableListOf() }.addAll(0, apps)
+        // 移回默认分类时**追加到末尾**（原来 addAll(0, ...) 会插到最前，
+        // 与用户预期"落到最下面"不符）
+        categories.getOrPut(DEFAULT) { mutableListOf() }.addAll(apps)
         save()
     }
 

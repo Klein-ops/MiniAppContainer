@@ -77,6 +77,22 @@ class MiniAppActivity : AppCompatActivity() {
         takePhotoLauncher.launch(outputUri)
     }
 
+    /**
+     * 打开本应用的通知设置页（供通知总开关被系统关闭时引导用户开启）。
+     * 优先跳通知专用设置，失败则回退到应用详情页。
+     */
+    fun openNotificationSettings() {
+        val direct = android.content.Intent(android.provider.Settings.ACTION_APP_NOTIFICATION_SETTINGS)
+            .putExtra(android.provider.Settings.EXTRA_APP_PACKAGE, packageName)
+        if (runCatching { startActivity(direct) }.isSuccess) return
+        runCatching {
+            startActivity(
+                android.content.Intent(android.provider.Settings.ACTION_APPLICATION_DETAILS_SETTINGS)
+                    .setData(Uri.parse("package:$packageName"))
+            )
+        }
+    }
+
     private var permCallback: ((Map<String, Boolean>) -> Unit)? = null
     private val permLauncher = registerForActivityResult(
         ActivityResultContracts.RequestMultiplePermissions()

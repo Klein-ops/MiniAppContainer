@@ -4,7 +4,9 @@ import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.os.Build
 import androidx.core.app.NotificationCompat
+import androidx.core.app.NotificationManagerCompat
 import com.miniapp.container.R
+import com.miniapp.container.util.toast
 import com.miniapp.container.core.MiniAppInfo
 import com.miniapp.container.permission.PermissionManager
 import com.miniapp.container.permission.PermissionScope
@@ -28,6 +30,18 @@ class NotificationService(
 
     suspend fun show(title: String, body: String): String = withContext(Dispatchers.Main) {
         ensurePermission()
+
+        // 系统通知总开关检测（国产 ROM 常见：即使 Android 13 运行时授权被通过，
+        // 系统设置里的总开关也可能是关的，此时发通知无效）。
+        if (!NotificationManagerCompat.from(activity).areNotificationsEnabled()) {
+            activity.toast("通知权限已关闭，跳转系统设置打开…")
+            activity.openNotificationSettings()
+            return@withContext JSONObject()
+                .put("ok", false)
+                .put("error", "notifications disabled")
+                .toString()
+        }
+
         val nm = activity.getSystemService(NotificationManager::class.java)
         val channelId = appInfo.appKey   // 渠道名 = uid_uname，便于卸载时清理
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {

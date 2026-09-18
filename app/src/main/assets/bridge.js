@@ -40,7 +40,11 @@
   window.MiniApp = {
     call: function (m, p) { return B.call(m, p); },
     info: function () { return B.call('app.info'); },
-    system: function () { return B.call('system.info'); },
+    system: function (fields) {
+      if (fields == null) return B.call('system.info', {});
+      var arr = Array.isArray(fields) ? fields : [String(fields)];
+      return B.call('system.info', { fields: arr });
+    },
     toast: function (msg) { return B.call('ui.toast', { message: String(msg) }); },
     ui: {
       toast: function (msg) { return B.call('ui.toast', { message: String(msg) }); }
