@@ -1,37 +1,45 @@
+<?xml version="1.0" encoding="utf-8"?>
 <resources xmlns:tools="http://schemas.android.com/tools">
 
-    <style name="Theme.MiniApp" parent="Theme.MaterialComponents.DayNight.NoActionBar">
+    <!-- 全局主题：Material 3（DayNight 自动切换浅色/暗色） -->
+    <style name="Theme.MiniApp" parent="Theme.Material3.DayNight.NoActionBar">
+        <!-- M3 color role（缺失时组件会退回默认紫，务必按需补齐） -->
         <item name="colorPrimary">@color/brand_primary</item>
-        <item name="colorPrimaryVariant">@color/brand_primary_dark</item>
-        <item name="colorOnPrimary">#FFFFFF</item>
+        <item name="colorOnPrimary">@color/brand_on_primary</item>
+        <item name="colorPrimaryContainer">@color/brand_primary_container</item>
+        <item name="colorOnPrimaryContainer">@color/brand_on_primary_container</item>
         <item name="colorSecondary">@color/brand_accent</item>
-        <item name="colorOnSecondary">@color/text_primary</item>
+        <item name="colorOnSecondary">@color/brand_on_secondary</item>
+        <item name="colorSurface">@color/bg_card</item>
+        <item name="colorOnSurface">@color/text_primary</item>
+        <item name="colorSurfaceVariant">@color/bg_card_raised</item>
+        <item name="colorOnSurfaceVariant">@color/text_secondary</item>
+        <item name="colorOutline">@color/divider</item>
+        <item name="colorError">@color/danger</item>
+        <item name="colorOnError">#FFFFFF</item>
         <item name="android:windowBackground">@color/bg_window</item>
         <item name="android:statusBarColor" tools:targetApi="l">@color/brand_primary_dark</item>
         <!-- 页面切换动画 -->
         <item name="android:windowAnimationStyle">@style/Animation.MiniApp.Activity</item>
-        <!-- 所有 AlertDialog 统一圆角（24dp 大弧度，显式指定避免 Material 默认小圆角） -->
+        <!-- 所有 AlertDialog 统一圆角（24dp 大弧度） -->
         <item name="android:alertDialogTheme">@style/ThemeOverlay.MiniApp.RoundedDialog</item>
         <item name="alertDialogTheme">@style/ThemeOverlay.MiniApp.RoundedDialog</item>
         <item name="materialAlertDialogTheme">@style/ThemeOverlay.MiniApp.RoundedDialog</item>
-</style>
+    </style>
 
-<!-- 圆角对话框主题覆盖：显式指定 24dp 大圆角 + Material 配色。
-     父级用官方推荐的 ThemeOverlay.MaterialComponents.MaterialAlertDialog，
-     否则 shapeAppearanceOverlay 可能不生效（表现为直角）。 -->
-
-<style name="ThemeOverlay.MiniApp.RoundedDialog" parent="ThemeOverlay.MaterialComponents.MaterialAlertDialog">
+    <!-- 圆角对话框主题覆盖：Material3 官方 overlay，显式指定 24dp 大圆角 -->
+    <style name="ThemeOverlay.MiniApp.RoundedDialog" parent="ThemeOverlay.Material3.MaterialAlertDialog">
         <item name="colorPrimary">@color/brand_primary</item>
         <item name="colorSecondary">@color/brand_accent</item>
         <item name="shapeAppearanceOverlay">@style/ShapeAppearance.MiniApp.Dialog</item>
         <item name="buttonBarPositiveButtonStyle">@style/Widget.MiniApp.DialogButton</item>
         <item name="buttonBarNegativeButtonStyle">@style/Widget.MiniApp.DialogButton</item>
         <item name="buttonBarNeutralButtonStyle">@style/Widget.MiniApp.DialogButton</item>
-</style>
+    </style>
 
     <!-- 自行控制窗口尺寸的对话框主题（圆角由内容视图自身背景提供，
-         故窗口背景透明；避免 Material 默认 inset 干扰高度计算） -->
-    <style name="Theme.MiniApp.FloatingDialog" parent="Theme.MaterialComponents.Dialog">
+         故窗口背景透明；避免系统 inset 干扰高度计算） -->
+    <style name="Theme.MiniApp.FloatingDialog" parent="Theme.Material3.Dialog">
         <item name="android:windowBackground">@android:color/transparent</item>
         <item name="android:windowIsFloating">true</item>
         <item name="android:windowNoTitle">true</item>
@@ -45,10 +53,14 @@
     <style name="ShapeAppearance.MiniApp.Dialog" parent="">
         <item name="cornerFamily">rounded</item>
         <item name="cornerSize">24dp</item>
-</style>
+    </style>
+
+    <style name="Widget.MiniApp.DialogButton" parent="Widget.Material3.Button.TextButton.Dialog">
+        <item name="android:textColor">@color/brand_primary</item>
+    </style>
 
     <!-- 设置页/应用设置页统一卡片行：圆角、描边、可点击涟漪 -->
-    <style name="Widget.MiniApp.SettingCard" parent="Widget.MaterialComponents.CardView">
+    <style name="Widget.MiniApp.SettingCard" parent="Widget.Material3.CardView">
         <item name="cardBackgroundColor">@color/bg_card</item>
         <item name="cardCornerRadius">16dp</item>
         <item name="cardElevation">0dp</item>
@@ -60,10 +72,6 @@
         <item name="android:clickable">true</item>
         <item name="android:focusable">true</item>
         <item name="android:foreground">?attr/selectableItemBackground</item>
-    </style>
-
-    <style name="Widget.MiniApp.DialogButton" parent="Widget.MaterialComponents.Button.TextButton.Dialog">
-        <item name="android:textColor">@color/brand_primary</item>
     </style>
 
     <!-- 页面进入/退出动画 -->

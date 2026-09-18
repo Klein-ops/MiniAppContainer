@@ -1,12 +1,22 @@
 <resources>
+    <!-- 品牌色 -->
     <color name="brand_primary">#3B5BDB</color>
     <color name="brand_primary_dark">#26398C</color>
     <color name="brand_accent">#FFC24B</color>
+    <color name="danger">#E03131</color>
+    <color name="ok">#2F9E44</color>
+
+    <!-- M3 color role 补充 -->
+    <color name="brand_on_primary">#FFFFFF</color>
+    <color name="brand_primary_container">#DCE1FB</color>
+    <color name="brand_on_primary_container">#0F1855</color>
+    <color name="brand_on_secondary">#1A1504</color>
+
+    <!-- 通用语义色 -->
     <color name="bg_window">#F4F5F8</color>
     <color name="bg_card">#FFFFFF</color>
+    <color name="bg_card_raised">#EEF0F6</color>
     <color name="text_primary">#1A1A2E</color>
     <color name="text_secondary">#6B7280</color>
     <color name="divider">#E5E7EB</color>
-    <color name="danger">#E03131</color>
-    <color name="ok">#2F9E44</color>
 </resources>

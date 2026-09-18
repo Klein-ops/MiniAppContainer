@@ -7,7 +7,6 @@
 > 本质：专用浏览器 + 小程序容器 + 本地 Web 运行时。
 
 - **写小程序**：接口手册见 [DEVELOPER.md](./DEVELOPER.md)
-- **改蜗壳本身**：项目文档见 [PROJECT.md](./PROJECT.md)
 
 ---
 
