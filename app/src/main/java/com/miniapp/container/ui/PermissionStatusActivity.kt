@@ -4,9 +4,11 @@ import android.Manifest
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.os.Build
+import android.os.Bundle
 import android.os.Environment
 import android.provider.Settings
 import android.view.LayoutInflater
+import android.view.View
 import android.widget.LinearLayout
 import android.widget.TextView
 import androidx.appcompat.app.AppCompatActivity
@@ -22,56 +24,39 @@ import rikka.shizuku.Shizuku
  * 权限状态：展示各小程序接口在**宿主侧**是否可用，并提供跳转配置入口。
  *
  * 视角不是"某个小程序被授予了什么"，而是"如果任意小程序调用此接口，能否真正工作"。
- * 例如：未给蜗壳存储权限 → 读写内部存储接口不可用；Shizuku 未激活 → adb 不可用；
- * 未配置 WebDAV → 网络存储不可用。点击不可用项跳到对应系统/应用设置页。
+ * 绿点=可用；红点=不可用。点击红点项直接跳对应系统/应用设置页（onResume 自动刷新）。
  */
 class PermissionStatusActivity : AppCompatActivity() {
 
     private data class Item(
         val label: String,
         val available: Boolean,
-        val reason: String = "",
         val action: (() -> Unit)? = null
     )
 
-    override fun onCreate(savedInstanceState: android.os.Bundle?) {
+    override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_permission_status)
         setSupportActionBar(findViewById<MaterialToolbar>(R.id.toolbar))
         supportActionBar?.setDisplayHomeAsUpEnabled(true)
         findViewById<MaterialToolbar>(R.id.toolbar).setNavigationOnClickListener { finish() }
+    }
 
+    /** 从设置页返回后自动重探最新状态。 */
+    override fun onResume() {
+        super.onResume()
         val container = findViewById<LinearLayout>(R.id.container)
-        buildItems().forEachIndexed { index, item ->
-            if (index > 0) {
-                val div = android.view.View(this).apply {
-                    layoutParams = LinearLayout.LayoutParams(
-                        LinearLayout.LayoutParams.MATCH_PARENT,
-                        (resources.displayMetrics.density * 0.5f).toInt()
-                    ).apply { setMargins(0, 0, 0, 0) }
-                    setBackgroundColor(getColor(R.color.divider))
-                }
-                container.addView(div)
-            }
+        container.removeAllViews()
+        buildItems().forEach { item ->
             val row = LayoutInflater.from(this).inflate(R.layout.item_permission_status, container, false)
             row.findViewById<TextView>(R.id.tv_name).text = item.label
+            val color = getColor(if (item.available) R.color.ok else R.color.danger)
+            row.findViewById<View>(R.id.dot_status).setBackgroundColor(color)
             val tvStatus = row.findViewById<TextView>(R.id.tv_status)
-            val tvAction = row.findViewById<TextView>(R.id.tv_action)
-            if (item.available) {
-                tvStatus.text = "可用"
-                tvStatus.setTextColor(getColor(R.color.ok))
-                tvAction.visibility = android.view.View.GONE
-            } else {
-                tvStatus.text = "不可用 · ${item.reason}"
-                tvStatus.setTextColor(getColor(R.color.danger))
-                tvAction.visibility = android.view.View.VISIBLE
-            }
+            tvStatus.text = if (item.available) "可用" else "不可用"
+            tvStatus.setTextColor(color)
             row.setOnClickListener {
-                if (item.available) {
-                    toast("${item.label}：可用，无需配置")
-                } else {
-                    item.action?.invoke() ?: toast("无法打开配置")
-                }
+                if (!item.available) item.action?.invoke() ?: toast("无法打开配置")
             }
             container.addView(row)
         }
@@ -83,7 +68,6 @@ class PermissionStatusActivity : AppCompatActivity() {
         items.add(Item(
             label = "发送通知",
             available = NotificationManagerCompat.from(this).areNotificationsEnabled(),
-            reason = "通知权限已关闭",
             action = ::openNotificationSettings
         ))
         // 读写内部存储
@@ -94,14 +78,12 @@ class PermissionStatusActivity : AppCompatActivity() {
         items.add(Item(
             label = "读写内部存储",
             available = storageOk,
-            reason = "未授予存储权限",
             action = ::openStorageSettings
         ))
         // 网络存储（WebDAV）
         items.add(Item(
             label = "网络存储（WebDAV）",
             available = WebdavConfig(this).configured,
-            reason = "未配置 WebDAV",
             action = { startActivity(Intent(this, WebdavConfigActivity::class.java)) }
         ))
         // ADB / Shell（Shizuku）
@@ -109,14 +91,12 @@ class PermissionStatusActivity : AppCompatActivity() {
         items.add(Item(
             label = "ADB / Shell（Shizuku）",
             available = st == 2,
-            reason = when (st) { 0 -> "未安装 Shizuku"; else -> "Shizuku 未激活" },
             action = ::openShizuku
         ))
         // 闪光灯（相机权限）
         items.add(Item(
             label = "闪光灯（手电筒）",
             available = ContextCompat.checkSelfPermission(this, Manifest.permission.CAMERA) == PackageManager.PERMISSION_GRANTED,
-            reason = "未授予相机权限",
             action = ::openAppDetailsSettings
         ))
         // 创建桌面快捷方式
@@ -127,7 +107,6 @@ class PermissionStatusActivity : AppCompatActivity() {
         items.add(Item(
             label = "创建桌面快捷方式",
             available = shortcutSupported,
-            reason = "当前桌面不支持",
             action = ::openAppDetailsSettings
         ))
         // 始终可用的接口

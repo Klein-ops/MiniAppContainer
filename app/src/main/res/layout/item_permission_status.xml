@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- 权限状态页单项：图标 + 名称 + 状态文本 -->
+<!-- 权限状态页单项：色点（红/绿）+ 名称 + 可用/不可用，点击即跳转 -->
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
@@ -9,46 +9,25 @@
     android:gravity="center_vertical"
     android:orientation="horizontal"
     android:paddingHorizontal="16dp"
-    android:paddingVertical="14dp">
+    android:paddingVertical="13dp">
 
-    <ImageView
-        android:id="@+id/iv_icon"
-        android:layout_width="24dp"
-        android:layout_height="24dp"
-        android:contentDescription=""
-        android:src="@android:drawable/ic_menu_info_details"
-        android:tint="@color/brand_primary" />
+    <View
+        android:id="@+id/dot_status"
+        android:layout_width="10dp"
+        android:layout_height="10dp" />
 
-    <LinearLayout
+    <TextView
+        android:id="@+id/tv_name"
         android:layout_width="0dp"
         android:layout_height="wrap_content"
         android:layout_marginStart="12dp"
         android:layout_weight="1"
-        android:orientation="vertical">
-
-        <TextView
-            android:id="@+id/tv_name"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:textColor="@color/text_primary"
-            android:textSize="15sp" />
-
-        <TextView
-            android:id="@+id/tv_status"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="2dp"
-            android:textColor="@color/text_secondary"
-            android:textSize="12sp" />
-    </LinearLayout>
+        android:textColor="@color/text_primary"
+        android:textSize="15sp" />
 
     <TextView
-        android:id="@+id/tv_action"
+        android:id="@+id/tv_status"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:paddingStart="12dp"
-        android:text="去设置"
-        android:textColor="@color/brand_primary"
-        android:textSize="14sp"
-        android:visibility="gone" />
+        android:textSize="13sp" />
 </LinearLayout>
