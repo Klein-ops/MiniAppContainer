@@ -28,9 +28,10 @@ import rikka.shizuku.Shizuku
  */
 class PermissionStatusActivity : AppCompatActivity() {
 
+    /** available: true=可用 false=不可用 null=无法检测（黄点）。 */
     private data class Item(
         val label: String,
-        val available: Boolean,
+        val available: Boolean?,
         val action: (() -> Unit)? = null
     )
 
@@ -50,13 +51,21 @@ class PermissionStatusActivity : AppCompatActivity() {
         buildItems().forEach { item ->
             val row = LayoutInflater.from(this).inflate(R.layout.item_permission_status, container, false)
             row.findViewById<TextView>(R.id.tv_name).text = item.label
-            val color = getColor(if (item.available) R.color.ok else R.color.danger)
+            val color = when (item.available) {
+                true -> getColor(R.color.ok)
+                false -> getColor(R.color.danger)
+                null -> getColor(R.color.brand_accent)   // 无法检测（黄）
+            }
             row.findViewById<View>(R.id.dot_status).setBackgroundColor(color)
             val tvStatus = row.findViewById<TextView>(R.id.tv_status)
-            tvStatus.text = if (item.available) "可用" else "不可用"
+            tvStatus.text = when (item.available) {
+                true -> "可用"
+                false -> "不可用"
+                null -> "无法检测，请自行查看"
+            }
             tvStatus.setTextColor(color)
             row.setOnClickListener {
-                if (!item.available) item.action?.invoke() ?: toast("无法打开配置")
+                if (item.available != true) item.action?.invoke() ?: toast("无法打开配置")
             }
             container.addView(row)
         }
@@ -99,10 +108,14 @@ class PermissionStatusActivity : AppCompatActivity() {
             available = ContextCompat.checkSelfPermission(this, Manifest.permission.CAMERA) == PackageManager.PERMISSION_GRANTED,
             action = ::openAppDetailsSettings
         ))
-        // 注：不列「创建桌面快捷方式」——Android 无可靠的事前检测 API
-        // （isRequestPinShortcutSupported 返回 true 也不保证真能 pin；国产 ROM
-        // 更有独立的快捷方式权限开关）。该项可用性由创建时的反馈体现
-        // （AppSettingsActivity 已有事前检测 + 不支持弹窗）。
+        // 创建桌面快捷方式：无可靠的事前检测 API（isRequestPinShortcutSupported
+        // 返回 true 也不保证真能 pin；国产 ROM 更有独立的快捷方式权限开关），
+        // 因此显示为"无法检测"（黄点），点击跳应用详情设置自行查看。
+        items.add(Item(
+            label = "创建桌面快捷方式",
+            available = null,
+            action = ::openAppDetailsSettings
+        ))
         // 始终可用的接口
         items.add(Item("网络访问", available = true))
         items.add(Item("打开外部链接", available = true))
