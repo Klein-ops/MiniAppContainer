@@ -173,6 +173,9 @@ const v2 = await MiniApp.system(['apiVersion', 'webviewVersion']);
 | `fs.grep(path, pattern, opts)` | `array` | 匹配的行（字符串数组）；`opts={regex:boolean, ignoreCase:boolean, invert:boolean}` |
 | `fs.sed(path, script)` | `boolean` | 对文本文件应用编辑脚本并写回（仅 `data/`/`tmp/` 可写） |
 
+> **行的定义**：按 `\n` 分隔，**文件末尾的换行不产生额外空行**（`"a\nb\n"` 是 2 行）。
+> 因此 `invert:true` 不会返回多余的空串；`sed` 的行号（含 `$` 末行）也按此计算，写回时保留原末尾换行。
+
 ```js
 const text = await MiniApp.fs.read('data/test.txt');        // string
 const b64  = await MiniApp.fs.readBytes('app/image.png');   // string (base64)

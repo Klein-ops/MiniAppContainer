@@ -18,7 +18,12 @@ import java.util.regex.Pattern
  */
 object TextEditor {
 
-    /** grep：返回匹配（或反转后不匹配）的行内容。 */
+    /**
+     * grep：返回匹配（或反转后不匹配）的行内容。
+     *
+     * 行按 `\n` 分隔，**末尾换行不产生额外空行**（`"a\n"` 只有 1 行 `"a"`），
+     * 否则 `invert` 会把文件尾的空串当成一行返回。
+     */
     fun grep(
         text: String,
         pattern: String,
@@ -34,7 +39,7 @@ object TextEditor {
                 return out   // 非法正则 → 空结果
             }
         } else null
-        for (line in text.split("\n")) {
+        for (line in logicalLines(text)) {
             val hit = if (compiled != null) compiled.matcher(line).find()
                       else line.contains(pattern, ignoreCase)
             if (hit != invert) out.add(line)
@@ -42,9 +47,18 @@ object TextEditor {
         return out
     }
 
-    /** sed：返回编辑后的全文。 */
+    /**
+     * sed：返回编辑后的全文。
+     *
+     * 末尾换行只是"文件以换行结尾"的标记，**不参与行编辑**——否则 `$d` 会删掉
+     * 空串而不是真正的最后一行，`Nd` 的行号也会偏移一位；输出保留原末尾换行状态。
+     */
     fun sed(text: String, script: String): String {
+        val trailingNewline = text.endsWith("\n")
         val lines = text.split("\n").toMutableList()
+        if (trailingNewline && lines.isNotEmpty() && lines.last().isEmpty()) {
+            lines.removeAt(lines.size - 1)
+        }
         for (raw in script.split("\n")) {
             val cmd = raw.trim()
             if (cmd.isEmpty() || cmd.startsWith("#")) continue
@@ -52,7 +66,14 @@ object TextEditor {
                 applyCommand(lines, cmd)
             } catch (_: Throwable) { /* 单条命令失败跳过，保证脚本不中断 */ }
         }
-        return lines.joinToString("\n")
+        val out = lines.joinToString("\n")
+        return if (trailingNewline) out + "\n" else out
+    }
+
+    /** 逻辑行：按 `\n` 切分，并丢弃"末尾换行"产生的空串。 */
+    private fun logicalLines(text: String): List<String> {
+        val arr = text.split("\n")
+        return if (arr.isNotEmpty() && arr.last().isEmpty()) arr.dropLast(1) else arr
     }
 
     private fun applyCommand(lines: MutableList<String>, cmd: String) {
