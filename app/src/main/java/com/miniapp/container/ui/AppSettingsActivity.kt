@@ -75,10 +75,14 @@ class AppSettingsActivity : AppCompatActivity() {
     }
 
     /**
-     * 加载小程序自有图标（SVG/PNG → Bitmap → Icon），无图标返回 null。
+     * 加载小程序自有图标（SVG/PNG → AdaptiveIcon 位图），无图标返回 null。
      *
-     * 统一缩放到 launcher 标准 **48dp** 物理尺寸：原实现固定 96px、PNG 原图直用，
-     * 在高/低密度屏上会被 launcher 原样铺开，看起来比别的应用图标大一圈。
+     * 之前用 `Icon.createWithBitmap`（普通位图）：MIUI 等 launcher 会把 legacy 位图
+     * **填满整个图标区域**（108dp）显示，而正常应用图标是自适应图标（内容只占中间
+     * 66% 安全区），于是看起来大一圈。
+     *
+     * 正确做法：生成 **108dp 画布**，把源图标内容缩放到中心 60% 安全区、四周留透明，
+     * 再 `Icon.createWithAdaptiveBitmap`——系统按自适应图标规格渲染，与其他图标一致。
      */
     private fun loadAppIcon(): Icon? {
         if (info.icon.isBlank()) return null
@@ -86,20 +90,25 @@ class AppSettingsActivity : AppCompatActivity() {
         val iconFile = File(sandbox, "app/${info.icon}")
         if (!iconFile.exists()) return null
         return try {
-            val targetSize = (48 * resources.displayMetrics.density).toInt().coerceAtLeast(48)
-            val bmp = if (info.icon.endsWith(".svg", ignoreCase = true)) {
+            val density = resources.displayMetrics.density
+            val full = (108 * density).toInt().coerceAtLeast(108)      // 自适应画布 108dp
+            val content = (full * 0.60f).toInt().coerceAtLeast(1)      // 安全区内容 ~64.8dp
+            val src = if (info.icon.endsWith(".svg", ignoreCase = true)) {
                 val svg = SVG.getFromInputStream(iconFile.inputStream())
-                svg.setDocumentWidth(targetSize.toFloat())
-                svg.setDocumentHeight(targetSize.toFloat())
+                svg.setDocumentWidth(content.toFloat())
+                svg.setDocumentHeight(content.toFloat())
                 val picture = svg.renderToPicture()
-                Bitmap.createBitmap(targetSize, targetSize, Bitmap.Config.ARGB_8888).also { b ->
+                Bitmap.createBitmap(content, content, Bitmap.Config.ARGB_8888).also { b ->
                     picture.draw(Canvas(b))
                 }
             } else {
                 val raw = BitmapFactory.decodeFile(iconFile.absolutePath) ?: return null
-                Bitmap.createScaledBitmap(raw, targetSize, targetSize, true)
+                Bitmap.createScaledBitmap(raw, content, content, true)
             }
-            Icon.createWithBitmap(bmp)
+            // 居中放上透明画布 → 自适应图标（系统只显示安全区）
+            val canvas = Bitmap.createBitmap(full, full, Bitmap.Config.ARGB_8888)
+            Canvas(canvas).drawBitmap(src, (full - content) / 2f, (full - content) / 2f, null)
+            Icon.createWithAdaptiveBitmap(canvas)
         } catch (_: Exception) { null }
     }
 
