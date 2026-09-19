@@ -191,6 +191,9 @@ await MiniApp.fs.remove('data/tmp');                        // boolean
 | `fs.importFile(destPath)` | `boolean` | 导入成功 `true`；**用户取消时 `false`**（不 reject） |
 | `fs.exportFile(path)` | `boolean` | 导出成功 `true`；**用户取消时 `false`**（不 reject） |
 
+> 读取/写入失败（如所选位置无权限、provider 未返回数据流）会**以错误返回**（`ok:false`），
+> 不会写入空文件、也不会假报成功；仅"用户取消选择"返回 `false`。
+
 ```js
 await MiniApp.fs.importFile('data/imported.bin');  // boolean true
 await MiniApp.fs.exportFile('data/report.txt');    // boolean true
@@ -831,6 +834,8 @@ adb logcat -s MiniAppJS MiniAppBridge
 | `文件不存在: xxx` / `目录不存在: xxx` | 目标路径不存在 | 先用 `fs.exists` 判断或创建 |
 | `禁止访问应用私有目录: xxx` | `fs.external` 访问 `/data/data/` | 只访问内部储存 `/storage/emulated/0` |
 | `已跳转系统设置，请开启「所有文件访问权限」后重试` | Android 11+ 未开 `MANAGE_EXTERNAL_STORAGE` | 在设置页开启后返回重试 |
+| `无法读取所选文件（provider 未返回数据流）` | SAF 导入时选中的文件无法访问 | 换一个文件或位置重试 |
+| `无法写入所选位置（provider 未返回数据流）` | SAF 导出时目标位置无写权限 | 换一个位置重试 |
 | `[MiniApp.wasm] instantiate failed: ...` | WASM 格式错误或 import 缺失 | 检查 import object 是否提供 `env.memory` 等必需项 |
 | `unknown method: xxx` | 方法名拼写错误 | 对照本手册 API 清单 |
 | `permission denied: storage` | 未声明 `storage` 或用户拒绝 | manifest 声明并允许 |
