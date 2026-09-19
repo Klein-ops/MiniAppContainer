@@ -462,6 +462,9 @@ class MainActivity : AppCompatActivity() {
 
     private fun showInstallConfirmDialog(preview: PreviewInfo, zipFile: File) {
         val existing = hostApp.registry.get(com.miniapp.container.core.PathGuard.appKey(preview.uid, preview.uname))
+        // 只有全新安装才把应用放进当前选中的分类；
+        // 更新/降级/替换已存在的应用时保持其原分类不动
+        val isNew = existing == null
         val (verb, full) = buildInstallAction(existing?.version, preview.version)
         val msg = buildString {
             append("名称：").append(preview.uname).append('\n')
@@ -476,7 +479,7 @@ class MainActivity : AppCompatActivity() {
             .setPositiveButton(full) { _, _ ->
                 lifecycleScope.launch {
                     val r = hostApp.installer.installFromZip(zipFile)
-                    if (r.success) moveToCurrentCategory(r.info?.appKey)
+                    if (r.success && isNew) moveToCurrentCategory(r.info?.appKey)
                     toast(if (r.success) "已安装: ${r.info?.uname}" else "安装失败: ${r.message}")
                     zipFile.delete()
                     refresh()
@@ -511,9 +514,27 @@ class MainActivity : AppCompatActivity() {
 
     private suspend fun installSample() {
         installCategory = currentFilter
-        val r = hostApp.installer.installFromAssets("sample/sample_app.zip")
-        if (r.success) moveToCurrentCategory(r.info?.appKey)
+        // 先解出示例包清单，判断是否全新安装（只有全新才移入当前分类）
+        val cache = File(cacheDir, "sample_${System.currentTimeMillis()}.zip")
+        try {
+            assets.open("sample/sample_app.zip").use { input -> cache.outputStream().use { input.copyTo(it) } }
+        } catch (t: Throwable) {
+            toast("示例包缺失")
+            return
+        }
+        val preview = hostApp.installer.previewZip(cache)
+        if (preview == null) {
+            toast("示例包清单解析失败")
+            cache.delete()
+            return
+        }
+        val isNew = hostApp.registry.get(
+            com.miniapp.container.core.PathGuard.appKey(preview.uid, preview.uname)
+        ) == null
+        val r = hostApp.installer.installFromZip(cache)
+        if (r.success && isNew) moveToCurrentCategory(r.info?.appKey)
         toast(if (r.success) "示例已安装" else "示例安装失败: ${r.message}")
+        cache.delete()
         refresh()
     }
 
