@@ -1,7 +1,5 @@
 package com.miniapp.container.core
 
-/** zip 包内小程序清单摘要（安装前二次确认用）。 */
-data class PreviewInfo(val uid: String, val uname: String, val version: String)
 import android.content.Context
 import com.miniapp.container.permission.PermissionManager
 import com.miniapp.container.permission.PermissionRegistry
@@ -11,6 +9,9 @@ import kotlinx.coroutines.withContext
 import java.io.File
 import java.util.zip.ZipInputStream
 import org.json.JSONObject
+/** zip 包内小程序清单摘要（安装前二次确认用）。 */
+data class PreviewInfo(val uid: String, val uname: String, val version: String)
+
 /** 应用包安装结果。 */
 data class InstallResult(
     val success: Boolean,

@@ -462,23 +462,18 @@ class MainActivity : AppCompatActivity() {
 
     private fun showInstallConfirmDialog(preview: PreviewInfo, zipFile: File) {
         val existing = hostApp.registry.get(com.miniapp.container.core.PathGuard.appKey(preview.uid, preview.uname))
-        val action = buildInstallAction(existing?.version, preview.version)
+        val (verb, full) = buildInstallAction(existing?.version, preview.version)
         val msg = buildString {
-            append("名称：").append(preview.uname).append('
-')
-            append("appKey：").append(preview.uid).append('_').append(preview.uname).append('
-')
+            append("名称：").append(preview.uname).append('\n')
+            append("appKey：").append(preview.uid).append('_').append(preview.uname).append('\n')
             append("版本：").append(preview.version)
-            if (existing != null) append("
-已安装版本：").append(existing.version)
-            append("
-
-更新保留数据，仅替换应用文件。")
+            if (existing != null) append("\n已安装版本：").append(existing.version)
+            append("\n\n更新保留数据，仅替换应用文件。")
         }
         MaterialAlertDialogBuilder(this)
-            .setTitle("确认${action.verb}「${preview.uname}」？")
+            .setTitle("确认${verb}「${preview.uname}」？")
             .setMessage(msg)
-            .setPositiveButton(action.full) { _, _ ->
+            .setPositiveButton(full) { _, _ ->
                 lifecycleScope.launch {
                     val r = hostApp.installer.installFromZip(zipFile)
                     if (r.success) moveToCurrentCategory(r.info?.appKey)
