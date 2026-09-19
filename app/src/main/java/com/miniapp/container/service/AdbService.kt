@@ -100,7 +100,7 @@ class AdbService(
 
         // 4) 执行（并发读 stdout/stderr，防管道缓冲死锁；带超时）
         return runCatching {
-            withContext(Dispatchers.IO) { runCommand(command, timeout) }
+            withContext(Dispatchers.IO) { runCommand(command, timeoutMs) }
         }.getOrElse { fail("adb error", it.message ?: it.javaClass.simpleName) }
     }
 

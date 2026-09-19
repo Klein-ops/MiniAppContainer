@@ -1,5 +1,8 @@
 package com.miniapp.container.ui
 
+import android.graphics.Bitmap
+import android.graphics.BitmapFactory
+import android.graphics.Canvas
 import android.net.Uri
 import android.os.Bundle
 import androidx.activity.result.contract.ActivityResultContracts
@@ -9,8 +12,10 @@ import android.view.View
 import android.view.ViewGroup
 import android.webkit.WebSettings
 import android.webkit.WebView
+import android.widget.ImageView
 import android.widget.ProgressBar
 import android.widget.Toast
+import com.caverock.androidsvg.SVG
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import androidx.appcompat.app.AppCompatActivity
 import com.miniapp.container.MiniAppApp
@@ -159,7 +164,7 @@ class MiniAppActivity : AppCompatActivity() {
     private fun setupUi() {
         setContentView(R.layout.activity_mini_app)
         splash = findViewById(R.id.splash)
-        loadSplashIcon(findViewById(R.id.splash_logo))
+        loadSplashIcon(findViewById<ImageView>(R.id.splash_logo))
         webView = findViewById(R.id.webView)
         floatingExit = findViewById(R.id.floating_exit)
         floatingExit.onExit = { finish() }
