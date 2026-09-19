@@ -126,16 +126,6 @@ class CategoryManager(
         moveTo(appKey, category)
     }
 
-    /**
-     * 迁移/兜底：把宿主聚合视图的归属回填到各应用 meta.json。
-     * 启动时调用一次（老应用 meta.json 无 category 字段；备份依赖它）。
-     * updateCategory 幂等，无变化不写文件。
-     */
-    fun backfillMeta() {
-        for ((cat, list) in categories) {
-            list.forEach { registry.updateCategory(it, cat) }
-        }
-    }
 
     /** 拖动排序：在 category 内将 fromPos 移到 toPos。 */
     fun reorder(category: String, fromPos: Int, toPos: Int) {

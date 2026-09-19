@@ -78,7 +78,6 @@ class MiniAppApp : Application() {
         registry = AppRegistry(base)   // 数据源 = 各沙箱 meta.json（随应用走）
         permissionManager = PermissionManager(this)
         categoryManager = CategoryManager(File(base, "categories.json"), registry)
-        categoryManager.backfillMeta()   // 宿主归属回填 meta.json（幂等）
         installer = AppInstaller(this, sandbox, registry, permissionManager)
         backupService = BackupService(this, installer)
 

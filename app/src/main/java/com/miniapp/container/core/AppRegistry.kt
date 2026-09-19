@@ -18,28 +18,7 @@ class AppRegistry(private val sandboxRoot: File) {
     private val apps = LinkedHashMap<String, MiniAppInfo>()
 
     init {
-        migrateLegacy()
         load()
-    }
-
-    /** 一次性迁移：旧版宿主级 registry.json → 补全各沙箱 meta.json（含 icon/displayName），随后删除。 */
-    private fun migrateLegacy() {
-        val legacy = File(sandboxRoot, "registry.json")
-        if (!legacy.isFile) return
-        try {
-            val root = JSONObject(legacy.readText(Charsets.UTF_8))
-            val arr = root.optJSONArray("apps") ?: JSONArray()
-            for (i in 0 until arr.length()) {
-                val o = arr.getJSONObject(i)
-                val key = o.optString("appKey")
-                if (key.isBlank()) continue
-                val metaF = File(File(sandboxRoot, key), "meta.json")
-                if (metaF.isFile) metaF.writeText(o.toString(), Charsets.UTF_8)
-            }
-            legacy.delete()
-        } catch (t: Throwable) {
-            // 迁移失败不阻断；缺失字段走默认值
-        }
     }
 
     /** 全量扫描沙箱重建缓存（备份恢复等外部改动后调用）。 */

@@ -136,23 +136,21 @@ class AppInstaller(
         displayName: String
     ): Boolean = withContext(Dispatchers.IO) {
         val appKey = PathGuard.appKey(uid, uname)
-        val manifestFile = File(extractedDir, "app/manifest.json")
-        if (!manifestFile.isFile) return@withContext false
-        val manifest = AppManifest.parse(manifestFile) ?: return@withContext false
-        // 危险权限不允许作为必要权限
-        val safeRequired = PermissionRegistry.sanitizeRequired(
-            manifest.requiredPermissions, manifest.permissions
-        )
 
-        // 1) 重建沙箱：只替换 app/，data/ 若有则合并
-        //    注意：资源必须写入沙箱的 app/ 子目录（与 installFromZip 一致）。
-        //    曾误写成 sandbox.appDir(appKey)（即 <appKey>/ 本身），导致资源少了
-        //    app/ 这一层，恢复后入口与图标都找不到。
+        // 1) 元数据：备份携带的 meta.json 是唯一权威（2.0 起要求；
+        //    老备份无此文件则恢复失败，不再从 manifest 重建）
+        val metaBackup = File(extractedDir, "meta.json")
+        if (!metaBackup.isFile) return@withContext false
+        val info = runCatching {
+            MiniAppInfo.fromJson(JSONObject(metaBackup.readText(Charsets.UTF_8)))
+        }.getOrNull() ?: return@withContext false
+        if (info.appKey != appKey) return@withContext false   // 元数据与目录不一致，拒绝
+
+        // 2) 重建沙箱：只替换 app/，data/ 若有则合并
         val appSrc = File(extractedDir, "app")
         if (!appSrc.isDirectory) return@withContext false
-        sandbox.create(appKey)                      // 确保 app/ data/ tmp/ 存在
-        cleanupSandboxRoot(appKey)                  // 清掉可能残留的历史错误文件
-        val resDir = sandbox.resDir(appKey)         // <appKey>/app
+        sandbox.create(appKey)
+        val resDir = sandbox.resDir(appKey)
         resDir.deleteRecursively()
         resDir.mkdirs()
         appSrc.copyRecursively(resDir, overwrite = true)
@@ -165,56 +163,9 @@ class AppInstaller(
             dataSrc.copyRecursively(dataDst, overwrite = true)
         }
 
-        // 2) 注册（upsert）；registry.put 会写沙箱 meta.json。
-        //    元数据优先取备份携带的 meta.json（含 category/icon/displayName/权限声明），
-        //    老备份没有则从 manifest 重建（category 空 → 恢复后回默认/现有分类）
-        val existing = registry.get(appKey)
-        val metaBackup = File(extractedDir, "meta.json")
-        val restored = if (metaBackup.isFile) {
-            runCatching {
-                MiniAppInfo.fromJson(JSONObject(metaBackup.readText(Charsets.UTF_8)))
-            }.getOrNull()?.let { m ->
-                MiniAppInfo(
-                    uid = uid, uname = uname,
-                    version = manifest.version,
-                    entry = manifest.entry,
-                    wasm = manifest.wasm,
-                    permissions = manifest.permissions,
-                    requiredPermissions = safeRequired,
-                    icon = manifest.icon,
-                    displayName = displayName.ifBlank { m.displayName },
-                    installedAt = System.currentTimeMillis(),
-                    category = m.category
-                )
-            }
-        } else null
-        val info = restored ?: MiniAppInfo(
-            uid = uid, uname = uname,
-            version = manifest.version,
-            entry = manifest.entry,
-            wasm = manifest.wasm,
-            permissions = manifest.permissions,
-            requiredPermissions = safeRequired,
-            icon = manifest.icon,
-            displayName = displayName.ifBlank { existing?.displayName ?: "" },
-            installedAt = System.currentTimeMillis()
-        )
-        registry.put(info)   // 内部写沙箱 meta.json
+        // 3) 注册（upsert）：displayName 以备份清单为准，其余信任 meta.json
+        registry.put(info.copy(displayName = displayName.ifBlank { info.displayName }))
         true
-    }
-
-    /**
-     * 清理沙箱根目录下**不属于**沙箱结构（`app/` `data/` `tmp/` `meta.json`）的残留。
-     *
-     * 用途：早期版本的备份恢复曾把资源错写到 `<appKey>/` 根下（少了 `app/` 一层），
-     * 这些文件不会被正常的资源替换清掉，会一直堆着。此处顺手清理，
-     * 使用户无需卸载重装即可恢复干净状态。
-     */
-    private fun cleanupSandboxRoot(appKey: String) {
-        val keep = setOf("app", "data", "tmp", "meta.json")
-        sandbox.appDir(appKey).listFiles()?.forEach { f ->
-            if (f.name !in keep) runCatching { f.deleteRecursively() }
-        }
     }
 
     suspend fun installFromAssets(assetName: String): InstallResult = withContext(Dispatchers.IO) {
