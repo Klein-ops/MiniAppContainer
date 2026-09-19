@@ -102,8 +102,11 @@ class MiniAppDocumentsProvider : DocumentsProvider() {
 
     override fun queryDocument(documentId: String, projection: Array<out String>?): Cursor {
         if (!canServe()) return emptyCursor(projection, DEFAULT_DOCUMENT_PROJECTION)
-        val cursor = MatrixCursor(projection ?: DEFAULT_DOCUMENT_PROJECTION)
         val file = fileFor(documentId)
+        // 不存在的 document 必须抛异常：此前返回空行导致 MT 等管理器
+        // 查询目标时误判"文件已存在"，拒绝新建/新建文件夹
+        if (!file.exists()) throw FileNotFoundException("不存在: $documentId")
+        val cursor = MatrixCursor(projection ?: DEFAULT_DOCUMENT_PROJECTION)
         includeFile(cursor, file)
         return cursor
     }
@@ -159,6 +162,23 @@ class MiniAppDocumentsProvider : DocumentsProvider() {
         return docIdFor(file)
     }
 
+    /** 删除文件/目录（MT 等管理器"覆盖保存"先建临时文件再删旧文件）。 */
+    override fun deleteDocument(documentId: String) {
+        val file = fileFor(documentId)
+        if (!file.exists()) throw FileNotFoundException("不存在: $documentId")
+        if (!file.delete()) throw java.io.IOException("删除失败: $documentId")
+    }
+
+    /** 重命名（"覆盖保存"流程把临时文件改回原名时调用）。 */
+    override fun renameDocument(documentId: String, displayName: String): String {
+        val file = fileFor(documentId)
+        if (!file.exists()) throw FileNotFoundException("不存在: $documentId")
+        val safe = displayName.replace('/', '_').replace('\\', '_')
+        val target = File(file.parentFile, safe)
+        if (!file.renameTo(target)) throw java.io.IOException("重命名失败: $documentId")
+        return docIdFor(target)
+    }
+
     /** 重名时追加 (2)、(3)… 生成唯一文件名。 */
     private fun uniqueFile(parent: File, displayName: String): File {
         var file = File(parent, displayName)
@@ -186,6 +206,8 @@ class MiniAppDocumentsProvider : DocumentsProvider() {
         val flags = if (file.isDirectory)
             DocumentsContract.Document.FLAG_DIR_SUPPORTS_CREATE
         else DocumentsContract.Document.FLAG_SUPPORTS_WRITE
+            or DocumentsContract.Document.FLAG_SUPPORTS_DELETE
+            or DocumentsContract.Document.FLAG_SUPPORTS_RENAME
         // 只输出调用方 projection 声明过的列，避免按列名 add 未声明列崩溃
         cursor.newRow().apply {
             if (cursor.getColumnIndex(DocumentsContract.Document.COLUMN_DOCUMENT_ID) >= 0)
