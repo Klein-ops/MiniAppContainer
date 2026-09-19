@@ -101,21 +101,6 @@ class AppInstaller(
                 manifest.requiredPermissions, manifest.permissions
             )
 
-            // 写 meta.json
-            val meta = MetaInfo(
-                uid = uid,
-                uname = uname,
-                version = manifest.version,
-                entry = manifest.entry,
-                wasm = manifest.wasm,
-                permissions = manifest.permissions,
-                requiredPermissions = safeRequired,
-                installedAt = System.currentTimeMillis(),
-                appKey = appKey,
-                sandboxPath = sandbox.appDir(appKey).absolutePath
-            )
-            sandbox.metaFile(appKey).writeText(meta.toJson().toString(), Charsets.UTF_8)
-
             val existing = registry.get(appKey)
             val info = MiniAppInfo(
                 uid = uid,
@@ -129,8 +114,7 @@ class AppInstaller(
                 displayName = existing?.displayName ?: "",
                 installedAt = System.currentTimeMillis()
             )
-            registry.put(info)
-            registry.save()
+            registry.put(info)   // 内存缓存 + 写沙箱 meta.json（随应用走）
 
             InstallResult(true, info = info)
         } finally {
@@ -181,22 +165,7 @@ class AppInstaller(
             dataSrc.copyRecursively(dataDst, overwrite = true)
         }
 
-        // 2) 写 meta.json（权限取自重新解析的 manifest）
-        val meta = MetaInfo(
-            uid = uid,
-            uname = uname,
-            version = manifest.version,
-            entry = manifest.entry,
-            wasm = manifest.wasm,
-            permissions = manifest.permissions,
-            requiredPermissions = safeRequired,
-            installedAt = System.currentTimeMillis(),
-            appKey = appKey,
-            sandboxPath = sandbox.appDir(appKey).absolutePath
-        )
-        sandbox.metaFile(appKey).writeText(meta.toJson().toString(), Charsets.UTF_8)
-
-        // 3) 注册（upsert，displayName 来自备份）
+        // 2) 注册（upsert，displayName 来自备份）；registry.put 会写沙箱 meta.json
         val existing = registry.get(appKey)
         registry.put(
             MiniAppInfo(
@@ -211,8 +180,7 @@ class AppInstaller(
                 displayName = displayName.ifBlank { existing?.displayName ?: "" },
                 installedAt = System.currentTimeMillis()
             )
-        )
-        registry.save()
+        )   // registry.put 内部写沙箱 meta.json
         true
     }
 
@@ -243,8 +211,7 @@ class AppInstaller(
     }
 
     suspend fun uninstall(appKey: String): Boolean = withContext(Dispatchers.IO) {
-        registry.remove(appKey)
-        registry.save()
+        registry.remove(appKey)   // meta.json 随沙箱目录删除
         permissionManager.clearApp(appKey)   // 卸载时清除权限记录
         val deleted = sandbox.delete(appKey)
         // 移除该小程序的独立通知渠道（渠道名 = appKey = uid_uname）

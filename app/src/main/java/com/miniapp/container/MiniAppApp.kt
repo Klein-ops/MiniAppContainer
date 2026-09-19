@@ -75,7 +75,7 @@ class MiniAppApp : Application() {
 
         val base = File(filesDir, "miniapps")
         sandbox = SandboxManager(base)
-        registry = AppRegistry(File(base, "registry.json"))
+        registry = AppRegistry(base)   // 数据源 = 各沙箱 meta.json（随应用走）
         permissionManager = PermissionManager(this)
         categoryManager = CategoryManager(File(base, "categories.json"))
         installer = AppInstaller(this, sandbox, registry, permissionManager)

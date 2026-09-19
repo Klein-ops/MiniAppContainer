@@ -125,8 +125,7 @@ class AppSettingsActivity : AppCompatActivity() {
             .setView(view)
             .setPositiveButton("确定") { _, _ ->
                 val name = input.text.toString().trim()
-                hostApp.registry.put(info.copy(displayName = name))
-                hostApp.registry.save()
+                hostApp.registry.put(info.copy(displayName = name))   // 写沙箱 meta.json
                 info = hostApp.registry.get(info.appKey) ?: return@setPositiveButton
                 findViewById<android.widget.TextView>(R.id.tv_app_info).text =
                     "${info.displayName.ifBlank { info.uname }}\n版本 ${info.version}\n${info.appKey}"

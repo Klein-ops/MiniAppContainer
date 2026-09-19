@@ -57,7 +57,7 @@ class BackupService(
         compressionLevel: Int = 6
     ) {
         val base = File(context.filesDir, "miniapps")
-        val registry = AppRegistry(File(base, "registry.json")).also { it.load() }
+        val registry = MiniAppApp.require(context).registry
         val all = appKeys.isEmpty()
         val selected = if (all) registry.list().map { it.appKey } else appKeys
 
@@ -100,10 +100,13 @@ class BackupService(
                     val rel = f.relativeTo(base).path.replace(File.separatorChar, '/')
                     if (rel.startsWith("$key/app/")) {
                         writeEntry(zos, "miniapps/$rel", f.readBytes())
+                    } else if (rel == "$key/meta.json") {
+                        // 应用元数据（声明/入口/图标/displayName）随应用走，始终备份
+                        writeEntry(zos, "miniapps/$rel", f.readBytes())
                     } else if (includeData && rel.startsWith("$key/data/")) {
                         writeEntry(zos, "miniapps/$rel", f.readBytes())
                     }
-                    // tmp/、meta.json、其它一律不备份
+                    // tmp/、其它一律不备份
                 }
             }
         }
