@@ -6,10 +6,15 @@
     android:paddingHorizontal="4dp">
 
     <TextView
+        android:id="@+id/tv_backup_pick"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_marginTop="8dp"
-        android:text="选择要备份的应用："
+        android:paddingVertical="10dp"
+        android:clickable="true"
+        android:focusable="true"
+        android:gravity="center_vertical"
+        android:text="选择要备份的应用 ▾"
         android:textColor="@color/text_secondary"
         android:textSize="13sp" />
 
@@ -17,6 +22,7 @@
         android:id="@+id/list_apps"
         android:layout_width="match_parent"
         android:layout_height="240dp"
+        android:visibility="gone"
         android:divider="@color/divider"
         android:dividerHeight="1dp" />
 

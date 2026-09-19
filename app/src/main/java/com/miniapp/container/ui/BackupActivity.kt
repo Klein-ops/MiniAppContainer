@@ -102,10 +102,25 @@ class BackupActivity : AppCompatActivity() {
         val swData = view.findViewById<SwitchCompat>(R.id.switch_include_data)
         swData.isChecked = true
 
+        // 应用列表默认折叠：点「选择要备份的应用」展开/收起（避免列表撑高挤掉下方选项）
+        list.visibility = android.view.View.GONE
+        val toggle = view.findViewById<android.widget.TextView>(R.id.tv_backup_pick)
+        var expanded = false
+        toggle.setOnClickListener {
+            expanded = !expanded
+            if (expanded) {
+                list.visibility = android.view.View.VISIBLE
+                toggle.text = "收起已选应用 ▴"
+            } else {
+                list.visibility = android.view.View.GONE
+                toggle.text = "选择要备份的应用 ▾"
+            }
+        }
+
         val names = apps.map { it.displayName.ifBlank { it.uname } }
         list.adapter = ArrayAdapter(this, android.R.layout.simple_list_item_multiple_choice, names)
         list.choiceMode = ListView.CHOICE_MODE_MULTIPLE
-        for (i in names.indices) list.setItemChecked(i, true)
+        for (i in names.indices) list.setItemChecked(i, true)   // 默认全选（折叠时确定=全部）
 
         MaterialAlertDialogBuilder(this)
             .setTitle("选择备份内容")
