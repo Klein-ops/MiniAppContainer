@@ -52,6 +52,9 @@ class MainActivity : AppCompatActivity() {
 
     private val hostApp: MiniAppApp get() = MiniAppApp.require(application)
 
+    /** 本次安装的目标分类：当前选中的分类；"全部"时为 null（落默认分类）。 */
+    private var installCategory: String? = null
+
     private val pickZip = registerForActivityResult(
         ActivityResultContracts.OpenDocument()
     ) { uri ->
@@ -357,7 +360,19 @@ class MainActivity : AppCompatActivity() {
             }.setNegativeButton("取消", null).showRounded()
     }
 
+    /**
+     * 安装成功后把新应用移入本次安装的目标分类（当前选中的分类）。
+     * [installCategory] 为 null（"全部"视图）时不移动，应用落到默认分类。
+     * 必须在 refresh() 的 syncApps 之前调用，避免被当作未分类再塞进默认。
+     */
+    private fun moveToCurrentCategory(appKey: String?) {
+        if (appKey == null) return
+        val cat = installCategory ?: return
+        hostApp.categoryManager.moveTo(appKey, cat)
+    }
+
     private suspend fun installFromUrl(url: String) {
+        installCategory = currentFilter
         val zipFile = java.io.File(cacheDir, "remote_${System.currentTimeMillis()}.zip")
         try {
             Toast.makeText(this, "下载中…", Toast.LENGTH_SHORT).show()
@@ -373,6 +388,7 @@ class MainActivity : AppCompatActivity() {
                 conn.disconnect()
             }
             val result = hostApp.installer.installFromZip(zipFile)
+            if (result.success) moveToCurrentCategory(result.info?.appKey)
             Toast.makeText(this, result.message, Toast.LENGTH_SHORT).show()
         } catch (e: Exception) {
             Toast.makeText(this, "下载失败: ${e.message}", Toast.LENGTH_SHORT).show()
@@ -421,6 +437,7 @@ class MainActivity : AppCompatActivity() {
     }
 
     private suspend fun installFromUri(uri: Uri) {
+        installCategory = currentFilter
         val cache = File(cacheDir, "pick_${System.currentTimeMillis()}.zip")
         try {
             val ok = try {
@@ -428,6 +445,7 @@ class MainActivity : AppCompatActivity() {
             } catch (t: Throwable) { false }
             if (!ok) { toast("无法读取文件"); return }
             val r = hostApp.installer.installFromZip(cache)
+            if (r.success) moveToCurrentCategory(r.info?.appKey)
             toast(if (r.success) "已安装: ${r.info?.uname}" else "安装失败: ${r.message}")
         } finally {
             cache.delete()
@@ -436,7 +454,9 @@ class MainActivity : AppCompatActivity() {
     }
 
     private suspend fun installSample() {
+        installCategory = currentFilter
         val r = hostApp.installer.installFromAssets("sample/sample_app.zip")
+        if (r.success) moveToCurrentCategory(r.info?.appKey)
         toast(if (r.success) "示例已安装" else "示例安装失败: ${r.message}")
         refresh()
     }
