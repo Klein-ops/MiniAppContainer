@@ -52,9 +52,22 @@ class AppSettingsActivity : AppCompatActivity() {
     private fun createDesktopShortcut() {
         val sm = getSystemService(android.content.Context.SHORTCUT_SERVICE)
             as android.content.pm.ShortcutManager
-        // 提前检查桌面是否支持快捷方式功能（国产 ROM 可能禁用）
+        // 提前检查桌面是否支持快捷方式功能（国产 ROM 可能禁用）。
+        // 不支持时弹窗 + 提供跳转应用详情设置（MIUI 等详情页里有"桌面快捷方式"开关）
         if (!sm.isRequestPinShortcutSupported) {
-            toast("当前桌面不支持创建快捷方式")
+            MaterialAlertDialogBuilder(this)
+                .setTitle("无法创建快捷方式")
+                .setMessage("当前桌面/系统不支持创建桌面快捷方式。可能是桌面被禁用了该能力，或应用详情里的快捷方式权限被关闭。")
+                .setPositiveButton("去设置") { _, _ ->
+                    runCatching {
+                        startActivity(
+                            android.content.Intent(android.provider.Settings.ACTION_APPLICATION_DETAILS_SETTINGS)
+                                .setData(android.net.Uri.parse("package:$packageName"))
+                        )
+                    }.onFailure { toast("无法打开系统设置") }
+                }
+                .setNegativeButton("知道了", null)
+                .showRounded()
             return
         }
         // data 唯一化 → 每个小程序的快捷方式对应独立 task（多开互不干扰）

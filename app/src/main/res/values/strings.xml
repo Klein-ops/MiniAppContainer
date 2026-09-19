@@ -13,4 +13,5 @@
     <string name="back">返回</string>
     <string name="loading">加载中…</string>
     <string name="err_no_zip">未选择文件</string>
+    <string name="title_permission_status">权限状态</string>
 </resources>
