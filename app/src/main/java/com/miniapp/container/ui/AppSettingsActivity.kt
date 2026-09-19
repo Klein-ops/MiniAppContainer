@@ -12,13 +12,12 @@ import java.io.File
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import androidx.appcompat.app.AppCompatActivity
 import androidx.lifecycle.lifecycleScope
-import com.google.android.material.appbar.MaterialToolbar
 import com.miniapp.container.MiniAppApp
 import com.miniapp.container.R
 import com.miniapp.container.util.InputDialog
+import com.miniapp.container.util.setupBackToolbar
 import com.miniapp.container.util.showRounded
 import com.miniapp.container.util.toast
-import com.miniapp.container.core.CategoryManager
 import com.miniapp.container.core.MiniAppInfo
 import kotlinx.coroutines.launch
 
@@ -34,7 +33,7 @@ class AppSettingsActivity : AppCompatActivity() {
         val appKey = intent.getStringExtra(EXTRA_APP_KEY) ?: run { finish(); return }
         info = hostApp.registry.get(appKey) ?: run { finish(); return }
 
-        findViewById<MaterialToolbar>(R.id.toolbar).also { setSupportActionBar(it); title = info.uname }
+        setupBackToolbar(info.uname)
         findViewById<android.view.View>(R.id.btn_rename).setOnClickListener { showRename() }
         findViewById<android.view.View>(R.id.btn_perm_manage).setOnClickListener {
             startActivity(Intent(this, PermissionManageActivity::class.java)

@@ -15,11 +15,13 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
 import androidx.appcompat.widget.SwitchCompat
 import androidx.lifecycle.lifecycleScope
-import com.google.android.material.appbar.MaterialToolbar
 import com.google.android.material.button.MaterialButton
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.miniapp.container.MiniAppApp
 import com.miniapp.container.R
+import com.miniapp.container.util.SafIo
+import com.miniapp.container.util.setupBackToolbar
+import com.miniapp.container.util.stamp
 import com.miniapp.container.core.BackupError
 import com.miniapp.container.core.WebdavError
 import com.miniapp.container.netdisk.WebdavConfig
@@ -29,9 +31,6 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.io.File
-import java.text.SimpleDateFormat
-import java.util.Date
-import java.util.Locale
 
 /** 备份与恢复：本地 zip + WebDAV（备份内容精简、可选应用与数据、WebDAV 可删备份）。 */
 class BackupActivity : AppCompatActivity() {
@@ -54,10 +53,7 @@ class BackupActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_backup)
-        setSupportActionBar(findViewById<MaterialToolbar>(R.id.toolbar))
-        supportActionBar?.setDisplayHomeAsUpEnabled(true)
-        findViewById<MaterialToolbar>(R.id.toolbar).setNavigationOnClickListener { finish() }
-        findViewById<MaterialToolbar>(R.id.toolbar).navigationIcon?.setTint(android.graphics.Color.WHITE)
+        setupBackToolbar()
 
         findViewById<MaterialButton>(R.id.btn_export_local).setOnClickListener {
             chooseBackupOptions { keys, data ->
@@ -144,9 +140,7 @@ class BackupActivity : AppCompatActivity() {
                 val tmp = File(cacheDir, "backup_${stamp()}.zip")
                 withContext(Dispatchers.IO) {
                     backup.exportToZip(tmp, pendingKeys, pendingData, webdavConfig.compressionLevel)
-                    contentResolver.openOutputStream(uri)?.use { out ->
-                        tmp.inputStream().use { it.copyTo(out) }
-                    }
+                    SafIo.writeFile(this@BackupActivity, uri, tmp)
                 }
                 tmp.delete()
                 toast("导出成功")
@@ -161,9 +155,7 @@ class BackupActivity : AppCompatActivity() {
             try {
                 val tmp = File(cacheDir, "restore_${stamp()}.zip")
                 withContext(Dispatchers.IO) {
-                    contentResolver.openInputStream(uri)?.use { input ->
-                        tmp.outputStream().use { input.copyTo(it) }
-                    }
+                    SafIo.readToFile(this@BackupActivity, uri, tmp)
                     backup.importFromZip(tmp)
                     tmp.delete()
                 }
@@ -299,8 +291,6 @@ class BackupActivity : AppCompatActivity() {
         hostApp.permissionManager.reload()
     }
 
-    private fun stamp() =
-        SimpleDateFormat("yyyyMMdd_HHmmss", Locale.US).format(Date())
 }
 
 /** WebDAV 备份列表行：名称 + 删除按钮。 */

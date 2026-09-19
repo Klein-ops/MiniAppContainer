@@ -11,6 +11,7 @@ import android.content.Context
 import android.os.Process
 import android.os.UserManager
 import com.miniapp.container.R
+import com.miniapp.container.core.PathGuard
 import java.io.File
 import java.io.FileNotFoundException
 
@@ -68,7 +69,7 @@ class MiniAppDocumentsProvider : DocumentsProvider() {
         val root = rootDir().canonicalFile
         val target = if (docId == ROOT_ID || docId.isEmpty()) root
         else File(root, docId).canonicalFile
-        if (target != root && !target.path.startsWith(root.path + File.separator)) {
+        if (!PathGuard.isInSandbox(root, target)) {
             throw SecurityException("禁止访问开放目录之外: $docId")
         }
         return target

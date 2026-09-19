@@ -16,6 +16,7 @@ import androidx.core.app.NotificationManagerCompat
 import androidx.core.content.ContextCompat
 import com.google.android.material.appbar.MaterialToolbar
 import com.miniapp.container.R
+import com.miniapp.container.util.setupBackToolbar
 import com.miniapp.container.netdisk.WebdavConfig
 import com.miniapp.container.util.toast
 import rikka.shizuku.Shizuku
@@ -38,10 +39,7 @@ class PermissionStatusActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_permission_status)
-        setSupportActionBar(findViewById<MaterialToolbar>(R.id.toolbar))
-        supportActionBar?.setDisplayHomeAsUpEnabled(true)
-        findViewById<MaterialToolbar>(R.id.toolbar).setNavigationOnClickListener { finish() }
-        findViewById<MaterialToolbar>(R.id.toolbar).navigationIcon?.setTint(android.graphics.Color.WHITE)
+        setupBackToolbar()
     }
 
     /** 从设置页返回后自动重探最新状态。 */

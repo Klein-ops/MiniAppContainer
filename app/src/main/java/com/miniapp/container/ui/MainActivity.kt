@@ -3,9 +3,6 @@ package com.miniapp.container.ui
 import android.content.Intent
 import android.net.Uri
 import android.os.Bundle
-import android.text.Editable
-import android.text.TextWatcher
-import android.view.inputmethod.InputMethodManager
 import android.view.LayoutInflater
 import android.view.Menu
 import android.view.MenuItem
@@ -13,21 +10,16 @@ import android.view.View
 import android.widget.HorizontalScrollView
 import android.widget.LinearLayout
 import android.widget.TextView
-import android.widget.EditText
 import android.widget.Toast
-import android.widget.ArrayAdapter
-import android.widget.ListView
 import androidx.activity.result.contract.ActivityResultContracts
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import androidx.appcompat.app.AppCompatActivity
-import androidx.appcompat.widget.PopupMenu
 import androidx.appcompat.widget.Toolbar
 import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.ItemTouchHelper
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.miniapp.container.MiniAppApp
-import com.miniapp.container.core.PreviewInfo
 import com.miniapp.container.R
 import com.miniapp.container.util.InputDialog
 import com.miniapp.container.util.showRounded
@@ -35,10 +27,7 @@ import com.miniapp.container.util.toast
 import com.miniapp.container.core.MiniAppInfo
 import com.miniapp.container.permission.PermissionScope
 import com.miniapp.container.util.IoUtil
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
-import java.io.File
 
 /** 应用管理界面：分类栏 + 拖动排序 + 安装/卸载/权限管理/移动分类。 */
 class MainActivity : AppCompatActivity() {
@@ -53,13 +42,29 @@ class MainActivity : AppCompatActivity() {
 
     private val hostApp: MiniAppApp get() = MiniAppApp.require(application)
 
-    /** 本次安装的目标分类：当前选中的分类；"全部"时为 null（落默认分类）。 */
-    private var installCategory: String? = null
+    /** 安装流程内核：选包 → 二次确认（版本对比）→ 安装。 */
+    private val installFlow by lazy {
+        InstallFlow(
+            activity = this,
+            registry = hostApp.registry,
+            installer = hostApp.installer,
+            currentCategory = { currentFilter },
+            launchPickZip = { types -> pickZip.launch(types) },
+            onInstalled = { category, appKey ->
+                // 全新安装才归入当前分类；必须在 refresh() 的 syncApps 之前完成
+                if (category != null && appKey != null) {
+                    hostApp.categoryManager.moveTo(appKey, category)
+                }
+                refresh()
+            },
+            onRefresh = { refresh() }
+        )
+    }
 
     private val pickZip = registerForActivityResult(
         ActivityResultContracts.OpenDocument()
     ) { uri ->
-        if (uri != null) lifecycleScope.launch { installFromUri(uri) }
+        if (uri != null) lifecycleScope.launch { installFlow.installFromUri(uri) }
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -75,7 +80,7 @@ class MainActivity : AppCompatActivity() {
         adapter = AppListAdapter()
         adapter.onItemClick = { startMiniApp(it) }
         adapter.onSettingsClick = { openAppSettings(it.appKey) }
-        findViewById<View>(R.id.install_card).setOnClickListener { showInstallOptions() }
+        findViewById<View>(R.id.install_card).setOnClickListener { installFlow.showOptions() }
         setupBottomNav()
         setupSettingsPage()
         recycler.layoutManager = LinearLayoutManager(this)
@@ -285,58 +290,9 @@ class MainActivity : AppCompatActivity() {
             super.onOptionsItemSelected(item)
         }
 
-    /** 搜索对话框：按名称/标识实时过滤，点击直接启动。 */
+    /** 搜索对话框：实现见 [SearchDialog]。 */
     private fun showSearchDialog() {
-        val view = layoutInflater.inflate(R.layout.dialog_search, null)
-        val et = view.findViewById<com.google.android.material.textfield.TextInputEditText>(R.id.et_search)
-        val lv = view.findViewById<ListView>(R.id.list_search)
-        val empty = view.findViewById<android.widget.TextView>(R.id.tv_search_empty)
-
-        val dialog = MaterialAlertDialogBuilder(this)
-            .setTitle("搜索小程序")
-            .setView(view)
-            .setNegativeButton("关闭", null)
-            .showRounded()
-
-        var apps = emptyList<com.miniapp.container.core.MiniAppInfo>()
-        fun refresh(query: String) {
-            val q = query.trim()
-            apps = hostApp.registry.list().filter {
-                q.isEmpty() ||
-                    it.displayName.contains(q, ignoreCase = true) ||
-                    it.uname.contains(q, ignoreCase = true)
-            }
-            lv.adapter = ArrayAdapter(
-                this,
-                android.R.layout.simple_list_item_1,
-                apps.map { app ->
-                    val name = app.displayName.ifBlank { app.uname }
-                    "$name  ·  ${app.appKey}"
-                }
-            )
-            empty.visibility = if (apps.isEmpty() && q.isNotEmpty()) View.VISIBLE else View.GONE
-        }
-
-        et.addTextChangedListener(object : TextWatcher {
-            override fun beforeTextChanged(s: CharSequence?, start: Int, count: Int, after: Int) {}
-            override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {
-                refresh(s?.toString() ?: "")
-            }
-            override fun afterTextChanged(s: Editable?) {}
-        })
-
-        lv.setOnItemClickListener { _, _, pos, _ ->
-            val app = apps.getOrNull(pos) ?: return@setOnItemClickListener
-            dialog.dismiss()
-            startMiniApp(app)
-        }
-
-        refresh("")
-        et.requestFocus()
-        et.postDelayed({
-            val imm = getSystemService(INPUT_METHOD_SERVICE) as InputMethodManager
-            imm.showSoftInput(et, InputMethodManager.SHOW_IMPLICIT)
-        }, 250)
+        SearchDialog.show(this, hostApp.registry) { startMiniApp(it) }
     }
 
     private fun launchMiniApp(appKey: String) {
@@ -354,66 +310,6 @@ class MainActivity : AppCompatActivity() {
             .setData(Uri.parse("miniapp://$appKey"))
             .putExtra(MiniAppActivity.EXTRA_APP_KEY, appKey)
             .addFlags(Intent.FLAG_ACTIVITY_NEW_DOCUMENT)
-
-    private fun showUrlInstallDialog() {
-        val (view, input) = InputDialog.create(
-            this, "https://example.com/app.zip", inputType = android.text.InputType.TYPE_TEXT_VARIATION_URI
-        )
-        MaterialAlertDialogBuilder(this)
-            .setTitle("从 URL 安装")
-            .setMessage("输入 zip 文件直链")
-            .setView(view)
-            .setPositiveButton("下载安装") { _, _ ->
-                val url = input.text.toString().trim()
-                if (url.isNotEmpty()) lifecycleScope.launch { installFromUrl(url) }
-            }.setNegativeButton("取消", null).showRounded()
-    }
-
-    /**
-     * 安装成功后把新应用移入本次安装的目标分类（当前选中的分类）。
-     * [installCategory] 为 null（"全部"视图）时不移动，应用落到默认分类。
-     * 必须在 refresh() 的 syncApps 之前调用，避免被当作未分类再塞进默认。
-     */
-    private fun moveToCurrentCategory(appKey: String?) {
-        if (appKey == null) return
-        val cat = installCategory ?: return
-        hostApp.categoryManager.moveTo(appKey, cat)
-    }
-
-    private suspend fun installFromUrl(url: String) {
-        installCategory = currentFilter
-        val zipFile = java.io.File(cacheDir, "remote_${System.currentTimeMillis()}.zip")
-        try {
-            Toast.makeText(this, "下载中…", Toast.LENGTH_SHORT).show()
-            withContext(Dispatchers.IO) {
-                val conn = (java.net.URL(url).openConnection() as java.net.HttpURLConnection).apply {
-                    connectTimeout = 30000
-                    readTimeout = 60000
-                    instanceFollowRedirects = true
-                }
-                conn.inputStream.use { input ->
-                    zipFile.outputStream().use { input.copyTo(it) }
-                }
-                conn.disconnect()
-            }
-            requestConfirmInstall(zipFile)   // 二次确认后安装
-        } catch (e: Exception) {
-            Toast.makeText(this, "下载失败: ${e.message}", Toast.LENGTH_SHORT).show()
-            zipFile.delete()
-        }
-    }
-
-    private fun showInstallOptions() {
-        MaterialAlertDialogBuilder(this)
-            .setTitle("安装")
-            .setItems(arrayOf("安装应用包（zip）", "安装内置示例", "从 URL 安装")) { _, which ->
-                when (which) {
-                    0 -> pickZip.launch(arrayOf("application/zip", "application/octet-stream", "*/*"))
-                    1 -> lifecycleScope.launch { installSample() }
-                    2 -> showUrlInstallDialog()
-                }
-            }.showRounded()
-    }
 
     private fun openAppSettings(appKey: String) {
         startActivity(Intent(this, AppSettingsActivity::class.java).putExtra(AppSettingsActivity.EXTRA_APP_KEY, appKey))
@@ -439,111 +335,6 @@ class MainActivity : AppCompatActivity() {
             }
             .setNegativeButton("取消", null)
             .showRounded()
-    }
-
-    private suspend fun installFromUri(uri: Uri) {
-        installCategory = currentFilter
-        val cache = File(cacheDir, "pick_${System.currentTimeMillis()}.zip")
-        val ok = try {
-            contentResolver.openInputStream(uri)?.use { IoUtil.copy(it, cache); true } ?: false
-        } catch (t: Throwable) { false }
-        if (!ok) { toast("无法读取文件"); return }
-        requestConfirmInstall(cache)   // 二次确认后安装
-    }
-
-    /**
-     * 安装前二次确认：读取 zip 内 manifest.json，展示名称 / appKey / 版本，
-     * 并按已装版本对比给出「安装 / 更新 / 降级 / 替换」按钮。确认后才真正安装。
-     */
-    private fun requestConfirmInstall(zipFile: File) {
-        lifecycleScope.launch {
-            val preview = withContext(Dispatchers.IO) { hostApp.installer.previewZip(zipFile) }
-            if (preview == null) {
-                toast("无法读取应用清单 manifest.json")
-                zipFile.delete()
-                refresh()
-                return@launch
-            }
-            showInstallConfirmDialog(preview, zipFile)
-        }
-    }
-
-    private fun showInstallConfirmDialog(preview: PreviewInfo, zipFile: File) {
-        val existing = hostApp.registry.get(com.miniapp.container.core.PathGuard.appKey(preview.uid, preview.uname))
-        // 只有全新安装才把应用放进当前选中的分类；
-        // 更新/降级/替换已存在的应用时保持其原分类不动
-        val isNew = existing == null
-        val (verb, full) = buildInstallAction(existing?.version, preview.version)
-        val msg = buildString {
-            append("名称：").append(preview.uname).append('\n')
-            append("appKey：").append(preview.uid).append('_').append(preview.uname).append('\n')
-            append("版本：").append(preview.version)
-            if (existing != null) append("\n已安装版本：").append(existing.version)
-            append("\n\n更新保留数据，仅替换应用文件。")
-        }
-        MaterialAlertDialogBuilder(this)
-            .setTitle("确认${verb}「${preview.uname}」？")
-            .setMessage(msg)
-            .setPositiveButton(full) { _, _ ->
-                lifecycleScope.launch {
-                    val r = hostApp.installer.installFromZip(zipFile)
-                    if (r.success && isNew) moveToCurrentCategory(r.info?.appKey)
-                    toast(if (r.success) "已安装: ${r.info?.uname}" else "安装失败: ${r.message}")
-                    zipFile.delete()
-                    refresh()
-                }
-            }
-            .setNegativeButton("取消") { _, _ -> zipFile.delete() }
-            .showRounded()
-    }
-
-    /** 根据已装版本与新包版本判断安装动作语义。 */
-    private fun buildInstallAction(existingVer: String?, newVer: String): Pair<String, String> {
-        if (existingVer == null) return "安装" to "安装"
-        return when {
-            versionCompare(existingVer, newVer) < 0 -> "更新" to "更新到 $newVer"
-            versionCompare(existingVer, newVer) > 0 -> "降级" to "降级到 $newVer"
-            else -> "替换" to "替换"
-        }
-    }
-
-    /** 语义化版本比较：1.2 < 1.10；非数字段忽略。 */
-    private fun versionCompare(a: String, b: String): Int {
-        val pa = a.split('.').mapNotNull { it.toIntOrNull() }
-        val pb = b.split('.').mapNotNull { it.toIntOrNull() }
-        val n = maxOf(pa.size, pb.size)
-        for (i in 0 until n) {
-            val x = pa.getOrElse(i) { 0 }
-            val y = pb.getOrElse(i) { 0 }
-            if (x != y) return if (x > y) 1 else -1
-        }
-        return 0
-    }
-
-    private suspend fun installSample() {
-        installCategory = currentFilter
-        // 先解出示例包清单，判断是否全新安装（只有全新才移入当前分类）
-        val cache = File(cacheDir, "sample_${System.currentTimeMillis()}.zip")
-        try {
-            assets.open("sample/sample_app.zip").use { input -> cache.outputStream().use { input.copyTo(it) } }
-        } catch (t: Throwable) {
-            toast("示例包缺失")
-            return
-        }
-        val preview = hostApp.installer.previewZip(cache)
-        if (preview == null) {
-            toast("示例包清单解析失败")
-            cache.delete()
-            return
-        }
-        val isNew = hostApp.registry.get(
-            com.miniapp.container.core.PathGuard.appKey(preview.uid, preview.uname)
-        ) == null
-        val r = hostApp.installer.installFromZip(cache)
-        if (r.success && isNew) moveToCurrentCategory(r.info?.appKey)
-        toast(if (r.success) "示例已安装" else "示例安装失败: ${r.message}")
-        cache.delete()
-        refresh()
     }
 
 

@@ -11,6 +11,7 @@ import androidx.lifecycle.lifecycleScope
 import com.google.android.material.appbar.MaterialToolbar
 import com.google.android.material.button.MaterialButton
 import com.miniapp.container.R
+import com.miniapp.container.util.setupBackToolbar
 import com.miniapp.container.netdisk.WebdavClient
 import com.miniapp.container.netdisk.WebdavConfig
 import com.miniapp.container.util.toast
@@ -32,10 +33,7 @@ class WebdavConfigActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_webdav_config)
-        setSupportActionBar(findViewById<MaterialToolbar>(R.id.toolbar))
-        supportActionBar?.setDisplayHomeAsUpEnabled(true)
-        findViewById<MaterialToolbar>(R.id.toolbar).setNavigationOnClickListener { finish() }
-        findViewById<MaterialToolbar>(R.id.toolbar).navigationIcon?.setTint(android.graphics.Color.WHITE)
+        setupBackToolbar()
 
         config = WebdavConfig(this)
         etUrl = findViewById<EditText>(R.id.et_url).also { it.setText(config.url) }

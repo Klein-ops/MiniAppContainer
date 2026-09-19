@@ -6,14 +6,13 @@ import android.widget.ScrollView
 import android.widget.TextView
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
-import com.google.android.material.appbar.MaterialToolbar
 import com.miniapp.container.R
+import com.miniapp.container.util.setupBackToolbar
 import com.google.android.material.button.MaterialButton
 import com.miniapp.container.debug.DebugBus
+import com.miniapp.container.util.SafIo
+import com.miniapp.container.util.stamp
 import com.miniapp.container.util.toast
-import java.text.SimpleDateFormat
-import java.util.Date
-import java.util.Locale
 
 /** 显示调试模式记录的接口调用日志，实时刷新。 */
 class DebugActivity : AppCompatActivity() {
@@ -29,10 +28,7 @@ class DebugActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_debug)
-        setSupportActionBar(findViewById<MaterialToolbar>(R.id.toolbar))
-        supportActionBar?.setDisplayHomeAsUpEnabled(true)
-        findViewById<MaterialToolbar>(R.id.toolbar).setNavigationOnClickListener { finish() }
-        findViewById<MaterialToolbar>(R.id.toolbar).navigationIcon?.setTint(android.graphics.Color.WHITE)
+        setupBackToolbar()
 
         tvLog = findViewById(R.id.tv_log)
         scroll = findViewById(R.id.scroll)
@@ -54,13 +50,11 @@ class DebugActivity : AppCompatActivity() {
             uri ?: return@registerForActivityResult
             val text = DebugBus.snapshot().joinToString("\n")
             runCatching {
-                contentResolver.openOutputStream(uri)?.use { out ->
-                    out.write(text.toByteArray(Charsets.UTF_8))
-                }
+                SafIo.writeBytes(this, uri, text.toByteArray(Charsets.UTF_8))
             }.onSuccess { toast("已导出日志") }.onFailure { toast("导出失败: ${it.message}") }
         }
         findViewById<MaterialButton>(R.id.btn_export_log).setOnClickListener {
-            exportLauncher.launch("debug_log_${SimpleDateFormat("yyyyMMdd_HHmmss", Locale.US).format(Date())}.txt")
+            exportLauncher.launch("debug_log_${stamp()}.txt")
         }
 
         // 手动清空
