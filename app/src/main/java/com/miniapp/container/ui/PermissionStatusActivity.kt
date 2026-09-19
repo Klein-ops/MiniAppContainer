@@ -64,8 +64,9 @@ class PermissionStatusActivity : AppCompatActivity() {
                 null -> "无法检测，请自行查看"
             }
             tvStatus.setTextColor(color)
+            // 一律可点：不管绿/红/黄都跳到对应授权/配置页
             row.setOnClickListener {
-                if (item.available != true) item.action?.invoke() ?: toast("无法打开配置")
+                item.action?.invoke() ?: toast("该接口无需配置")
             }
             container.addView(row)
         }
