@@ -142,7 +142,9 @@ class BackupService(
 
             // 4) 分类回填：以备份 meta.json 里的 category 为准——
             //    分类已存在则移入，不存在则创建（moveToCreate）
-            val cm = MiniAppApp.require(context).categoryManager
+            val host = MiniAppApp.require(context)
+            val registry = host.registry
+            val cm = host.categoryManager
             for (i in 0 until apps.length()) {
                 val o = apps.getJSONObject(i)
                 val appKey = PathGuard.appKey(o.optString("uid"), o.optString("uname"))

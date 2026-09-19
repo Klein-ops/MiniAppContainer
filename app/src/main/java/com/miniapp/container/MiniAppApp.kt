@@ -127,7 +127,11 @@ class MiniAppApp : Application() {
     companion object {
         fun get(app: Application): MiniAppApp = app as MiniAppApp
 
-        /** 取得 [MiniAppApp] 并确保已初始化（用于 Activity / Provider 入口）。 */
-        fun require(app: Application): MiniAppApp = (app as MiniAppApp).also { it.ensureInitialized() }
+        /**
+         * 取得 [MiniAppApp] 并确保已初始化（用于 Activity / Provider 入口）。
+         * 接受任意 Context（Application 亦兼容）。
+         */
+        fun require(context: Context): MiniAppApp =
+            (context.applicationContext as MiniAppApp).also { it.ensureInitialized() }
     }
 }
