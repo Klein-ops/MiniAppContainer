@@ -92,7 +92,10 @@ class AppSettingsActivity : AppCompatActivity() {
         return try {
             val density = resources.displayMetrics.density
             val full = (108 * density).toInt().coerceAtLeast(108)      // 自适应画布 108dp
-            val content = (full * 0.60f).toInt().coerceAtLeast(1)      // 安全区内容 ~64.8dp
+            // 内容 80%：60% 时四周留白太多，MIUI 快捷方式白底从透明区透出形成白边；
+            // 80% 接近自适应安全区边缘，白边基本不可见（内容四角会被圆形 mask
+            // 轻微裁圆，与正常应用图标一致）.
+            val content = (full * 0.80f).toInt().coerceAtLeast(1)      // 内容 ~86.4dp
             val src = if (info.icon.endsWith(".svg", ignoreCase = true)) {
                 val svg = SVG.getFromInputStream(iconFile.inputStream())
                 svg.setDocumentWidth(content.toFloat())
