@@ -17,6 +17,7 @@ import com.miniapp.container.ui.MiniAppActivity
 import com.miniapp.container.util.optBoolOr
 import com.miniapp.container.util.optStringOr
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlinx.coroutines.withContext
 import org.json.JSONObject
@@ -66,16 +67,22 @@ class CameraService(
             File(activity.cacheDir, "camera/photo_${System.currentTimeMillis()}.jpg")
         }
 
+        // 启动前清除历史残留（同名目标），避免上次的文件导致误判成功
+        target.delete()
+
         return suspendCancellableCoroutine { cont ->
             val uri = uriFor(target)
             activity.launchTakePhoto(uri) { ok ->
                 if (!cont.isActive) return@launchTakePhoto
                 // 双判定：result 成功 **或** 目标文件已写入都算成功。
                 // 部分 ROM 相机写入了 EXTRA_OUTPUT 却返回 RESULT_CANCELED，
-                // 仅凭 resultCode 会把"真拍了"误报成取消。
-                val saved = target.exists() && target.length() > 0L
+                // 或异步慢写盘——先轮询等待落盘再判定，最多约 1.2s。
+                val saved = waitForFile(target)
                 if (!ok && !saved) {
-                    cont.resume(fail("cancelled"))
+                    cont.resume(fail(
+                        "cancelled",
+                        "未在约定位置发现照片文件——部分系统相机不保存到指定位置，照片可能已存入系统相册"
+                    ))
                     return@launchTakePhoto
                 }
                 // 自动生成路径时：把照片复制进沙箱 tmp/（临时区）
@@ -94,6 +101,15 @@ class CameraService(
                 }
             }
         }
+    }
+
+    /** 轮询等待照片落盘：立即查一次，再延迟查几次（覆盖异步写盘/返回取消但已保存）。 */
+    private suspend fun waitForFile(f: File): Boolean {
+        repeat(5) { i ->
+            if (f.exists() && f.length() > 0L) return true
+            delay(if (i < 2) 200L else 300L)
+        }
+        return f.exists() && f.length() > 0L
     }
 
     // ==================== 闪光灯 ====================

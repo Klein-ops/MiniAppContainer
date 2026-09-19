@@ -323,7 +323,7 @@ await MiniApp.clipboard.write('复制内容');     // boolean true
 
 | 接口 | 返回类型 | 返回值 |
 |---|---|---|
-| `notification.show(title, body)` | `boolean` | 成功 `true` |
+| `notification.show(title, body)` | `boolean` 或 `object` | 成功 `true`；系统通知总开关关闭时返回 `{ ok:false, error:"notifications disabled" }` 并自动跳转设置（见下） |
 | `notification.cancel()` | `boolean` | 成功 `true` |
 
 需声明 `"notification"`。通知栏以 `[小程序名] 标题` 标注发送来源；每个小程序独立通知渠道。Android 13+ 首次会额外申请系统通知权限（`POST_NOTIFICATIONS`）。
@@ -353,12 +353,12 @@ await MiniApp.sys.openUrl('https://example.com');  // boolean true
 
 | 接口 | 返回类型 | 返回值 |
 |---|---|---|
-| `sys.vibrate(duration)` | `boolean` | 成功 `true` |
-| `sys.flashlight({ on })` | `boolean` | 成功 `true`（`on=true` 开 / `false` 关） |
-| `camera.takePhoto(path?)` | `object` | 成功 `{ ok: true, path: "tmp/photo_xxx.jpg" }`；取消 `{ ok: false, error: "cancelled" }` |
-| `sys.setOrientation(mode)` | `boolean` | 成功 `true`（`portrait` / `landscape` / `auto`） |
+| `sys.vibrate(duration)` | `boolean` | 成功 `true`；系统震动不可用时 `{ ok:false, error:"vibrate failed", detail }` |
+| `sys.flashlight({ on })` | `object` | 成功 `{ ok:true, on:bool }`（`on` 回显开关状态）；失败 `{ ok:false, error }`（如 `"camera permission denied"` / `"torch error"`） |
+| `camera.takePhoto(path?)` | `object` | 成功 `{ ok: true, path: "tmp/photo_xxx.jpg" }`；未拍照/相机不可用 `{ ok: false, error: "cancelled", detail }` |
+| `sys.setOrientation(mode)` | `boolean` | 成功 `true`（`portrait` / `landscape` / `auto`）；参数非法 `{ ok:false, error:"invalid mode" }` |
 | `sys.setStatusBar(visible)` | `boolean` | 成功 `true`（隐藏/显示状态栏） |
-| `sys.setStatusBarColor(color)` | `boolean` | 成功 `true`（`#RRGGBB` / `#AARRGGBB` / `transparent`） |
+| `sys.setStatusBarColor(color)` | `boolean` | 成功 `true`（`#RRGGBB` / `#AARRGGBB` / `transparent`）；非法颜色 `{ ok:false, error:"invalid color" }` |
 
 **权限**：`vibrate` / `flashlight` / `camera` 需声明并审批（均普通权限）；
 `setOrientation` / `setStatusBar` / `setStatusBarColor` 只影响小程序**自己的容器窗口**，
@@ -376,8 +376,8 @@ await MiniApp.sys.openUrl('https://example.com');  // boolean true
 ```js
 await MiniApp.sys.vibrate(300);                 // 震动 300ms → boolean true
 
-await MiniApp.sys.flashlight({ on: true });     // 开手电筒
-await MiniApp.sys.flashlight({ on: false });    // 关手电筒
+const l1 = await MiniApp.sys.flashlight({ on: true });   // 开手电筒 → { ok:true, on:true }
+const l2 = await MiniApp.sys.flashlight(false);            // 关手电筒 → { ok:true, on:false }（也支持布尔写法）
 
 const shot = await MiniApp.camera.takePhoto();  // 自动存到 tmp/photo_xxx.jpg
 if (shot.ok) {

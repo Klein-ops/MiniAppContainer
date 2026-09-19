@@ -23,6 +23,11 @@ class VibrateService(
     private val permissionManager: PermissionManager
 ) {
 
+    /** 震动 [duration] 毫秒（1~5000，超范围夹紧）。成功返回 boolean `true`；
+     *  系统震动不可用时返回 `{ok:false, error, detail}`。 */
+    private fun failJson(error: String, detail: String): String =
+        JSONObject().put("ok", false).put("error", error).put("detail", detail).toString()
+
     /** 震动 [duration] 毫秒（1~5000，超范围夹紧）。返回 boolean。 */
     suspend fun vibrate(p: JSONObject): String {
         val granted = permissionManager.ensurePermission(
@@ -35,9 +40,9 @@ class VibrateService(
             vibrator().vibrate(
                 VibrationEffect.createOneShot(duration, VibrationEffect.DEFAULT_AMPLITUDE)
             )
-            JSONObject().put("ok", true).toString()
+            "true"   // 手册：boolean，成功 true
         } catch (t: Throwable) {
-            JSONObject().put("ok", false).put("error", "vibrate failed").put("detail", t.message ?: "").toString()
+            failJson("vibrate failed", t.message ?: "")
         }
     }
 
