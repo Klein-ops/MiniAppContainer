@@ -203,11 +203,13 @@ class MiniAppDocumentsProvider : DocumentsProvider() {
     }
 
     private fun includeFile(cursor: MatrixCursor, file: File) {
-        val flags = if (file.isDirectory)
+        val flags = if (file.isDirectory) {
             DocumentsContract.Document.FLAG_DIR_SUPPORTS_CREATE
-        else DocumentsContract.Document.FLAG_SUPPORTS_WRITE
-            or DocumentsContract.Document.FLAG_SUPPORTS_DELETE
-            or DocumentsContract.Document.FLAG_SUPPORTS_RENAME
+        } else {
+            DocumentsContract.Document.FLAG_SUPPORTS_WRITE
+                or DocumentsContract.Document.FLAG_SUPPORTS_DELETE
+                or DocumentsContract.Document.FLAG_SUPPORTS_RENAME
+        }
         // 只输出调用方 projection 声明过的列，避免按列名 add 未声明列崩溃
         cursor.newRow().apply {
             if (cursor.getColumnIndex(DocumentsContract.Document.COLUMN_DOCUMENT_ID) >= 0)
