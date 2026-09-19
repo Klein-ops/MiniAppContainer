@@ -40,9 +40,10 @@ class FlashlightService(
         if (!granted) throw SecurityException("permission denied: flashlight")
 
         // 系统相机权限：setTorchMode 需要 CAMERA（Android 6+ 运行时申请）
-        val osGranted = Build.VERSION.SDK_INT < 23 ||
+        val osGranted = Build.VERSION.SDK_INT < 23 || (
             ContextCompat.checkSelfPermission(activity, android.Manifest.permission.CAMERA)
-            == PackageManager.PERMISSION_GRANTED
+                == PackageManager.PERMISSION_GRANTED
+        )
         if (!osGranted) {
             val result = suspendCancellableCoroutine<Boolean> { cont ->
                 activity.requestRuntimePerms(arrayOf(android.Manifest.permission.CAMERA)) { r ->
