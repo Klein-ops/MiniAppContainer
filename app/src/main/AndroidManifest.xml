@@ -9,6 +9,7 @@
     <uses-permission android:name="com.android.launcher.permission.INSTALL_SHORTCUT" />
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
     <uses-permission android:name="android.permission.VIBRATE" />
+    <!-- setTorchMode 要求（闪光灯/手电筒 sys.flashlight）；拍照接口已移除 -->
     <uses-permission android:name="android.permission.CAMERA" />
     <!-- Shizuku：允许通过 Shizuku 服务执行 shell（可选能力） -->
     <uses-permission android:name="moe.shizuku.manager.permission.API_V23" />
@@ -88,16 +89,6 @@
             </intent-filter>
         </provider>
 
-        <!-- 系统相机拍照输出（CameraService） -->
-        <provider
-            android:name="androidx.core.content.FileProvider"
-            android:authorities="${applicationId}.fileprovider"
-            android:exported="false"
-            android:grantUriPermissions="true">
-            <meta-data
-                android:name="android.support.FILE_PROVIDER_PATHS"
-                android:resource="@xml/file_paths" />
-        </provider>
 
         <service
             android:name=".dex.DexService"

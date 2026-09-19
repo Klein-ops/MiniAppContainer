@@ -6,7 +6,6 @@ import android.graphics.Canvas
 import android.net.Uri
 import android.os.Bundle
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.core.content.FileProvider
 import androidx.core.content.ContextCompat
 import android.view.View
 import android.view.ViewGroup
@@ -72,18 +71,6 @@ class MiniAppActivity : AppCompatActivity() {
     fun launchExport(defaultName: String, cb: (Uri?) -> Unit) {
         exportCallback = cb
         exportLauncher.launch(defaultName)
-    }
-
-    // 系统相机拍照结果（CameraService 使用）
-    private var takePhotoCallback: ((Boolean) -> Unit)? = null
-    private val takePhotoLauncher = registerForActivityResult(
-        ActivityResultContracts.TakePicture()
-    ) { ok -> takePhotoCallback?.invoke(ok); takePhotoCallback = null }
-
-    /** 启动系统相机拍照，输出到 [outputUri]，完成后回调是否成功。 */
-    fun launchTakePhoto(outputUri: Uri, cb: (Boolean) -> Unit) {
-        takePhotoCallback = cb
-        takePhotoLauncher.launch(outputUri)
     }
 
     /**

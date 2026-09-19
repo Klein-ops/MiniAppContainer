@@ -16,7 +16,6 @@ object PermissionScope {
     const val ADB = "adb"
     const val VIBRATE = "vibrate"
     const val FLASHLIGHT = "flashlight"
-    const val CAMERA = "camera"
 
     fun label(scope: String): String = PermissionRegistry.label(scope)
 

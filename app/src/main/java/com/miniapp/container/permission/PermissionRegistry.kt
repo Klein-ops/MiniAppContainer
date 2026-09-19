@@ -97,12 +97,6 @@ object PermissionRegistry {
             level = PermLevel.NORMAL
         ),
         PermissionDef(
-            scope = "camera",
-            label = "拍照",
-            description = "该小程序请求调用系统相机拍照，照片保存到其自己的沙箱数据目录。",
-            level = PermLevel.NORMAL
-        ),
-        PermissionDef(
             scope = "adb",
             label = "ADB / Shell（Shizuku）",
             description = "该小程序请求通过 Shizuku 以 adb shell 权限执行命令。",

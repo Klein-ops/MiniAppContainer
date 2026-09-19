@@ -349,42 +349,28 @@ await MiniApp.notification.cancel();              // boolean true
 await MiniApp.sys.openUrl('https://example.com');  // boolean true
 ```
 
-### 4.8 设备能力（震动 / 闪光灯 / 拍照，需审批）
+### 4.8 设备能力（震动 / 闪光灯，需审批）
 
 | 接口 | 返回类型 | 返回值 |
 |---|---|---|
 | `sys.vibrate(duration)` | `boolean` | 成功 `true`；系统震动不可用时 `{ ok:false, error:"vibrate failed", detail }` |
 | `sys.flashlight({ on })` | `object` | 成功 `{ ok:true, on:bool }`（`on` 回显开关状态）；失败 `{ ok:false, error }`（如 `"camera permission denied"` / `"torch error"`） |
-| `camera.takePhoto(path?)` | `object` | 成功 `{ ok: true, path: "tmp/photo_xxx.jpg" }`；未拍照/相机不可用 `{ ok: false, error: "cancelled", detail }` |
 | `sys.setOrientation(mode)` | `boolean` | 成功 `true`（`portrait` / `landscape` / `auto`）；参数非法 `{ ok:false, error:"invalid mode" }` |
 | `sys.setStatusBar(visible)` | `boolean` | 成功 `true`（隐藏/显示状态栏） |
 | `sys.setStatusBarColor(color)` | `boolean` | 成功 `true`（`#RRGGBB` / `#AARRGGBB` / `transparent`）；非法颜色 `{ ok:false, error:"invalid color" }` |
 
-**权限**：`vibrate` / `flashlight` / `camera` 需声明并审批（均普通权限）；
+**权限**：`vibrate` / `flashlight` 需声明并审批（均普通权限）；
 `setOrientation` / `setStatusBar` / `setStatusBarColor` 只影响小程序**自己的容器窗口**，
 **无需审批**。
 
 - `sys.vibrate(duration)`：震动指定毫秒数（1~5000，超范围自动夹紧）。
 - `sys.flashlight({ on })`：开关设备闪光灯（手电筒）；Android 6+ 首次调用会自动向系统
   申请相机权限。
-- `camera.takePhoto(path?)`：**调用系统相机拍照**——
-  - 传 `path`（相对沙箱，仅 `data/` 或 `tmp/`）时保存到指定位置；
-  - **不传时自动保存到 `tmp/photo_<时间戳>.jpg`**（临时区）。
-  - 小程序只拿到拍好的成品图片，接触不到系统相机内部内容；
-  - 用户取消时返回 `{ ok:false, error:"cancelled" }`（不 reject）。
-
 ```js
 await MiniApp.sys.vibrate(300);                 // 震动 300ms → boolean true
 
 const l1 = await MiniApp.sys.flashlight({ on: true });   // 开手电筒 → { ok:true, on:true }
 const l2 = await MiniApp.sys.flashlight(false);            // 关手电筒 → { ok:true, on:false }（也支持布尔写法）
-
-const shot = await MiniApp.camera.takePhoto();  // 自动存到 tmp/photo_xxx.jpg
-if (shot.ok) {
-  const b64 = await MiniApp.fs.readBytes(shot.path);   // 拿照片字节
-} else if (shot.error === 'cancelled') {
-  // 用户取消了拍照
-}
 
 // 容器界面控制（无需审批，只影响小程序自己的窗口）
 await MiniApp.sys.setOrientation('landscape');      // 全屏视频场景强制横屏
@@ -596,7 +582,6 @@ if (!r2.ok && r2.timedOut) console.log('超时，已部分输出:', r2.stdout);
 | `storage` | 普通 | 读写 WebDAV 网络存储（仅小程序自己的目录） | 拒绝 |
 | `vibrate` | 普通 | 设备震动 | 拒绝 |
 | `flashlight` | 普通 | 开关闪光灯（手电筒） | 拒绝 |
-| `camera` | 普通 | 调用系统相机拍照 | 拒绝 |
 | `adb` | **危险** | 通过 Shizuku 执行 SH 指令 | 拒绝 |
 
 ### 5.4 审批流程
@@ -858,9 +843,6 @@ adb logcat -s MiniAppJS MiniAppBridge
 | `notifications disabled` | 系统通知总开关被关闭 | 已自动跳转设置，打开通知后重试 |
 | `permission denied: vibrate` | 未声明 `vibrate` 或用户拒绝 | manifest 声明并允许 |
 | `permission denied: flashlight` | 未声明 `flashlight` 或用户拒绝 | manifest 声明并允许 |
-| `permission denied: camera` | 未声明 `camera` 或用户拒绝 | manifest 声明并允许 |
-| `cancelled` | 用户取消拍照 | 按取消处理，不视为错误 |
-| `no camera` | 设备无可用后置相机/闪光灯 | 提示设备不支持 |
 | `dex 文件不存在: xxx` | `dex` 路径不对 | 路径相对沙箱根，确认 zip/`data/` 含该 dex |
 
 ---

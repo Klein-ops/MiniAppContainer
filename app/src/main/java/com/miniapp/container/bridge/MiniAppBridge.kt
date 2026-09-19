@@ -64,7 +64,7 @@ class MiniAppBridge(
     private val storage = com.miniapp.container.service.StorageService(activity, appInfo, permissionManager)
     private val adb = com.miniapp.container.service.AdbService(activity, appInfo, permissionManager)
     private val vibrate = com.miniapp.container.service.VibrateService(activity, appInfo, permissionManager)
-    private val camera = com.miniapp.container.service.CameraService(activity, appInfo, permissionManager, sandboxRoot)
+    private val flashlight = com.miniapp.container.service.FlashlightService(activity, appInfo, permissionManager)
 
     companion object {
         /**
@@ -72,7 +72,7 @@ class MiniAppBridge(
          * （App 可能仅调整 UI / 修 Bug 就升级，但那不影响接口契约。）
          * 首次引入定为 1.0.0；将来接口行为变化（新增/修改/删除接口）时递增。
          */
-        const val API_VERSION = "1.0.0"
+        const val API_VERSION = "1.1.0"
         private const val TAG = "MiniAppBridge"
     }
 
@@ -176,8 +176,7 @@ class MiniAppBridge(
         "sys.setStatusBar" -> containerUi.setStatusBar(p)
         "sys.setStatusBarColor" -> containerUi.setStatusBarColor(p)
         "sys.vibrate" -> vibrate.vibrate(p)
-        "sys.flashlight" -> camera.setTorch(p)
-        "camera.takePhoto" -> camera.takePhoto(p)
+        "sys.flashlight" -> flashlight.setTorch(p)
         "perm.request" -> {
             val scope = p.optStringOr("scope")
             val granted = permissionManager.ensurePermission(

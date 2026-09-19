@@ -1,6 +1,0 @@
-<?xml version="1.0" encoding="utf-8"?>
-<!-- FileProvider 暴露路径：cacheDir（相机缓存）与 filesDir（沙箱数据） -->
-<paths>
-    <cache-path name="cache" path="camera/" />
-    <files-path name="files" path="." />
-</paths>
