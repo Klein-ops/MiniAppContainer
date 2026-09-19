@@ -20,10 +20,10 @@ import java.util.concurrent.TimeUnit
  * GET/POST/HEAD/OPTIONS/PUT/DELETE/TRACE，发送 PATCH 等自定义方法会失败。
  */
 class NetService(
-    private val activity: MiniAppActivity,
-    private val appInfo: MiniAppInfo,
-    private val permissionManager: PermissionManager
-) {
+    activity: MiniAppActivity,
+    appInfo: MiniAppInfo,
+    permissionManager: PermissionManager
+) : BaseService(activity, appInfo, permissionManager) {
 
     private val client: OkHttpClient by lazy {
         OkHttpClient.Builder()
@@ -40,10 +40,7 @@ class NetService(
 
     /** 通用 HTTP 请求（GET/POST/PUT/DELETE/PATCH 等）。 */
     suspend fun request(p: JSONObject): String = withContext(Dispatchers.IO) {
-        val granted = permissionManager.ensurePermission(
-            activity, appInfo.appKey, appInfo.permissions, PermissionScope.NET
-        )
-        if (!granted) throw SecurityException("permission denied: net")
+        requirePermission(PermissionScope.NET)
 
         val url = p.optStringOr("url")
         if (url.isBlank()) throw IllegalArgumentException("url required")

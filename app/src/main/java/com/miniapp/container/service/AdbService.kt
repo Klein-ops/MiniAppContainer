@@ -44,10 +44,10 @@ enum class ShizukuState { NOT_INSTALLED, NOT_ACTIVE, ACTIVE }
  * `timeout`（毫秒）由调用方指定，未指定默认 30000；超时后强杀进程。
  */
 class AdbService(
-    private val activity: MiniAppActivity,
-    private val appInfo: MiniAppInfo,
-    private val permissionManager: PermissionManager
-) {
+    activity: MiniAppActivity,
+    appInfo: MiniAppInfo,
+    permissionManager: PermissionManager
+) : BaseService(activity, appInfo, permissionManager) {
 
     companion object {
         private const val DEFAULT_TIMEOUT_MS = 30_000L
@@ -67,19 +67,16 @@ class AdbService(
         else rawTimeout.coerceIn(MIN_TIMEOUT_MS, MAX_TIMEOUT_MS)
 
         // 1) 蜗壳 adb 权限（含危险警告弹窗）
-        val granted = permissionManager.ensurePermission(
-            activity, appInfo.appKey, appInfo.permissions, PermissionScope.ADB
-        )
-        if (!granted) throw SecurityException("permission denied: adb")
+        requirePermission(PermissionScope.ADB)
 
         // 2) Shizuku 状态
         // 注意：binder 由 Shizuku 服务端主动推送（经 ShizukuProvider），是异步的。
         // 应用刚启动时可能尚未到达，故未激活时短暂等待再判定，避免误报。
         when (awaitShizukuState()) {
             ShizukuState.NOT_INSTALLED ->
-                return fail("shizuku not installed", "未检测到 Shizuku，请先安装并激活。")
+                return failJson("shizuku not installed", "未检测到 Shizuku，请先安装并激活。")
             ShizukuState.NOT_ACTIVE ->
-                return fail(
+                return failJson(
                     "shizuku not active",
                     "Shizuku 已安装但服务未就绪。请在 Shizuku 中确认已启动，" +
                         "并确认蜗壳出现在 Shizuku 的应用列表中；首次启用后稍等片刻再试。"
@@ -92,25 +89,25 @@ class AdbService(
             if (Shizuku.checkSelfPermission() == PackageManager.PERMISSION_GRANTED) true
             else ensureShizukuPermission()
         } catch (t: Throwable) {
-            return fail("shizuku error", t.message ?: "无法查询 Shizuku 权限状态。")
+            return failJson("shizuku error", t.message ?: "无法查询 Shizuku 权限状态。")
         }
         if (!shizukuGranted) {
-            return fail("shizuku permission denied", "用户未在 Shizuku 中授予权限。")
+            return failJson("shizuku permission denied", "用户未在 Shizuku 中授予权限。")
         }
 
         // 4) 执行（并发读 stdout/stderr，防管道缓冲死锁；带超时）
         return runCatching {
             withContext(Dispatchers.IO) { runCommand(command, timeoutMs) }
-        }.getOrElse { fail("adb error", it.message ?: it.javaClass.simpleName) }
+        }.getOrElse { failJson("adb error", it.message ?: it.javaClass.simpleName) }
     }
 
     /** 执行命令：并发读取两个流，超时强杀。timeoutMs 为 null 表示永不超时。 */
     private fun runCommand(command: String, timeoutMs: Long?): String {
         val binder = Shizuku.getBinder()
-            ?: return fail("shizuku not active", "Shizuku 服务未就绪。")
+            ?: return failJson("shizuku not active", "Shizuku 服务未就绪。")
         val service = IShizukuService.Stub.asInterface(binder)
         val proc = service.newProcess(arrayOf("sh", "-c", command), null, null)
-            ?: return fail("adb error", "Shizuku 返回空进程。")
+            ?: return failJson("adb error", "Shizuku 返回空进程。")
 
         // 并发读，避免 stderr 写满管道导致死锁
         val outRef = AtomicReference("")
@@ -225,9 +222,4 @@ class AdbService(
         cont.invokeOnCancellation { Shizuku.removeRequestPermissionResultListener(listener) }
     }
 
-    private fun fail(error: String, detail: String): String = JSONObject()
-        .put("ok", false)
-        .put("error", error)
-        .put("detail", detail)
-        .toString()
 }

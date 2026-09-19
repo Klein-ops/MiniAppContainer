@@ -22,10 +22,10 @@ import org.json.JSONObject
  * 通知标题以 `[小程序名]` 标注来源；每个小程序独立通知渠道。
  */
 class NotificationService(
-    private val activity: MiniAppActivity,
-    private val appInfo: MiniAppInfo,
-    private val permissionManager: PermissionManager
-) {
+    activity: MiniAppActivity,
+    appInfo: MiniAppInfo,
+    permissionManager: PermissionManager
+) : BaseService(activity, appInfo, permissionManager) {
 
     private fun label(): String = appInfo.displayName.ifBlank { appInfo.uname }
 
@@ -68,10 +68,7 @@ class NotificationService(
 
     /** 蜗壳审批 + Android 13+ 运行时通知权限。 */
     private suspend fun ensurePermission() {
-        val granted = permissionManager.ensurePermission(
-            activity, appInfo.appKey, appInfo.permissions, PermissionScope.NOTIFICATION
-        )
-        if (!granted) throw SecurityException("permission denied: notification")
+        requirePermission(PermissionScope.NOTIFICATION)
         if (Build.VERSION.SDK_INT >= 33) {
             if (activity.checkSelfPermission(android.Manifest.permission.POST_NOTIFICATIONS)
                 == android.content.pm.PackageManager.PERMISSION_GRANTED

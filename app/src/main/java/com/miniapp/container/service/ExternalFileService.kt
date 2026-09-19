@@ -11,6 +11,7 @@ import com.miniapp.container.permission.PermissionManager
 import com.miniapp.container.permission.PermissionScope
 import com.miniapp.container.ui.MiniAppActivity
 import com.miniapp.container.util.IoUtil
+import com.miniapp.container.util.SafIo
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.suspendCancellableCoroutine
@@ -30,11 +31,11 @@ import kotlin.coroutines.resume
  * 安全：禁止访问应用私有目录（`/data/data/...`）。
  */
 class ExternalFileService(
-    private val activity: MiniAppActivity,
-    private val appInfo: MiniAppInfo,
-    private val permissionManager: PermissionManager,
+    activity: MiniAppActivity,
+    appInfo: MiniAppInfo,
+    permissionManager: PermissionManager,
     private val fileService: FileService
-) {
+) : BaseService(activity, appInfo, permissionManager) {
 
     // ---------- content:// URI ----------
 
@@ -64,9 +65,7 @@ class ExternalFileService(
 
     suspend fun readUri(uri: String): String = withContext(Dispatchers.IO) {
         ensurePermission()
-        val parsed = Uri.parse(uri)
-        val bytes = activity.contentResolver.openInputStream(parsed)?.use { it.readBytes() }
-            ?: throw java.io.IOException("无法读取: $uri")
+        val bytes = SafIo.readBytes(activity, Uri.parse(uri))
         JSONObject.quote(IoUtil.toBase64(bytes))
     }
 
@@ -81,9 +80,7 @@ class ExternalFileService(
                 if (uri == null) { if (cont.isActive) cont.resume("false"); return@launchImport }
                 activity.lifecycleScope.launch {
                     try {
-                        val bytes = activity.contentResolver.openInputStream(uri)?.use { it.readBytes() }
-                            ?: ByteArray(0)
-                        fileService.writeBytes(destPath, IoUtil.toBase64(bytes))
+                        fileService.writeBytes(destPath, IoUtil.toBase64(SafIo.readBytes(activity, uri)))
                         if (cont.isActive) cont.resume("true")
                     } catch (e: Throwable) {
                         if (cont.isActive) cont.resumeWith(Result.failure(e))
@@ -104,8 +101,7 @@ class ExternalFileService(
                 if (uri == null) { if (cont.isActive) cont.resume("false"); return@launchExport }
                 activity.lifecycleScope.launch {
                     try {
-                        activity.contentResolver.openOutputStream(uri)?.use { it.write(bytes) }
-                            ?: throw java.io.IOException("无法写入")
+                        SafIo.writeBytes(activity, uri, bytes)
                         if (cont.isActive) cont.resume("true")
                     } catch (e: Throwable) {
                         if (cont.isActive) cont.resumeWith(Result.failure(e))
@@ -188,12 +184,7 @@ class ExternalFileService(
 
     // ---------- 内部 ----------
 
-    private suspend fun ensurePermission() {
-        val granted = permissionManager.ensurePermission(
-            activity, appInfo.appKey, appInfo.permissions, PermissionScope.FS_EXTERNAL
-        )
-        if (!granted) throw SecurityException("permission denied: fs.external")
-    }
+    private suspend fun ensurePermission() = requirePermission(PermissionScope.FS_EXTERNAL)
 
     /** 前置：权限 + 系统存储权限 + 路径防私有目录。 */
     private suspend fun assertGranted(f: File) {

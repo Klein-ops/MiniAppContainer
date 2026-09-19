@@ -24,20 +24,17 @@ import kotlin.coroutines.resume
  * `CAMERA` 运行时权限（`setTorchMode` 要求持有相机权限）。
  */
 class FlashlightService(
-    private val activity: MiniAppActivity,
-    private val appInfo: MiniAppInfo,
-    private val permissionManager: PermissionManager
-) {
+    activity: MiniAppActivity,
+    appInfo: MiniAppInfo,
+    permissionManager: PermissionManager
+) : BaseService(activity, appInfo, permissionManager) {
 
     /**
      * 开关手电筒：成功 `{ ok:true, on:bool }`（`on` 回显开关状态）；
      * 失败 `{ ok:false, error, detail }`。
      */
     suspend fun setTorch(p: JSONObject): String {
-        val granted = permissionManager.ensurePermission(
-            activity, appInfo.appKey, appInfo.permissions, PermissionScope.FLASHLIGHT
-        )
-        if (!granted) throw SecurityException("permission denied: flashlight")
+        requirePermission(PermissionScope.FLASHLIGHT)
 
         // 系统相机权限：setTorchMode 需要 CAMERA（Android 6+ 运行时申请）
         val osGranted = Build.VERSION.SDK_INT < 23 || (
@@ -51,7 +48,7 @@ class FlashlightService(
                 }
             }
             if (!result) {
-                return fail("camera permission denied", "系统相机权限被拒绝，无法使用闪光灯")
+                return failJson("camera permission denied", "系统相机权限被拒绝，无法使用闪光灯")
             }
         }
 
@@ -63,9 +60,9 @@ class FlashlightService(
                     cm.setTorchMode(id, on)
                     JSONObject().put("ok", true).put("on", on).toString()
                 }.getOrElse {
-                    fail("torch error", it.message ?: it.javaClass.simpleName)
+                    failJson("torch error", it.message ?: it.javaClass.simpleName)
                 }
-            } ?: fail("no camera", "设备无可用带闪光灯的后置相机")
+            } ?: failJson("no camera", "设备无可用带闪光灯的后置相机")
         }
     }
 
@@ -84,9 +81,4 @@ class FlashlightService(
         }
     }
 
-    private fun fail(error: String, detail: String): String = JSONObject()
-        .put("ok", false)
-        .put("error", error)
-        .put("detail", detail)
-        .toString()
 }

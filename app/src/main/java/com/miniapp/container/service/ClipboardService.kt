@@ -13,10 +13,10 @@ import org.json.JSONObject
 
 /** 剪贴板服务（单一职责）：读写系统剪贴板，需 `clipboard` 权限。 */
 class ClipboardService(
-    private val activity: MiniAppActivity,
-    private val appInfo: MiniAppInfo,
-    private val permissionManager: PermissionManager
-) {
+    activity: MiniAppActivity,
+    appInfo: MiniAppInfo,
+    permissionManager: PermissionManager
+) : BaseService(activity, appInfo, permissionManager) {
 
     suspend fun read(): String = withContext(Dispatchers.Main) {
         ensurePermission()
@@ -31,10 +31,5 @@ class ClipboardService(
         "true"
     }
 
-    private suspend fun ensurePermission() {
-        val granted = permissionManager.ensurePermission(
-            activity, appInfo.appKey, appInfo.permissions, PermissionScope.CLIPBOARD
-        )
-        if (!granted) throw SecurityException("permission denied: clipboard")
-    }
+    private suspend fun ensurePermission() = requirePermission(PermissionScope.CLIPBOARD)
 }

@@ -18,22 +18,17 @@ import org.json.JSONObject
  * 宿主已持有系统 `android.permission.VIBRATE`（安装即授予），小程序侧仅需蜗壳审批。
  */
 class VibrateService(
-    private val activity: MiniAppActivity,
-    private val appInfo: MiniAppInfo,
-    private val permissionManager: PermissionManager
-) {
+    activity: MiniAppActivity,
+    appInfo: MiniAppInfo,
+    permissionManager: PermissionManager
+) : BaseService(activity, appInfo, permissionManager) {
 
     /** 震动 [duration] 毫秒（1~5000，超范围夹紧）。成功返回 boolean `true`；
      *  系统震动不可用时返回 `{ok:false, error, detail}`。 */
-    private fun failJson(error: String, detail: String): String =
-        JSONObject().put("ok", false).put("error", error).put("detail", detail).toString()
 
     /** 震动 [duration] 毫秒（1~5000，超范围夹紧）。返回 boolean。 */
     suspend fun vibrate(p: JSONObject): String {
-        val granted = permissionManager.ensurePermission(
-            activity, appInfo.appKey, appInfo.permissions, PermissionScope.VIBRATE
-        )
-        if (!granted) throw SecurityException("permission denied: vibrate")
+        requirePermission(PermissionScope.VIBRATE)
 
         val duration = p.optLong("duration").coerceIn(1L, 5000L)
         return try {

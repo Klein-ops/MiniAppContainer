@@ -25,10 +25,10 @@ import java.io.File
  * - 权限已获但未配置 WebDAV → 抛 `IOException("storage not configured")`
  */
 class StorageService(
-    private val activity: MiniAppActivity,
-    private val appInfo: MiniAppInfo,
-    private val permissionManager: PermissionManager
-) {
+    activity: MiniAppActivity,
+    appInfo: MiniAppInfo,
+    permissionManager: PermissionManager
+) : BaseService(activity, appInfo, permissionManager) {
 
     private val config = WebdavConfig(activity)
 
@@ -45,12 +45,7 @@ class StorageService(
         return appRoot() + parts
     }
 
-    private suspend fun ensurePermission() {
-        val granted = permissionManager.ensurePermission(
-            activity, appInfo.appKey, appInfo.permissions, PermissionScope.STORAGE
-        )
-        if (!granted) throw SecurityException("permission denied: storage")
-    }
+    private suspend fun ensurePermission() = requirePermission(PermissionScope.STORAGE)
 
     private fun ensureConfigured() {
         if (!config.configured) {
