@@ -89,7 +89,8 @@ class BackupService(
             //     排序/列表是宿主视图，不需要随备份走）
             writeEntry(zos, "backup.json", manifest.toString().toByteArray(Charsets.UTF_8))
 
-            // 2) 各应用沙箱：只备份 app/ 与（可选）data/，不备份 meta.json
+            // 2) 各应用沙箱：app/（资源）+ meta.json（应用元数据，含分类归属，始终备份）
+            //    + data/（可选，受 includeData 控制）；tmp/ 及其它一律不备份
             selected.forEach appLoop@{ key ->
                 val dir = File(base, key)
                 if (!dir.isDirectory) return@appLoop
