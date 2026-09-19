@@ -148,10 +148,15 @@ class StorageAccessActivity : AppCompatActivity() {
 
     // ---------- 状态 ----------
 
-    private fun systemAvailable(): Boolean =
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) Environment.isExternalStorageManager()
-        else ContextCompat.checkSelfPermission(this, android.Manifest.permission.WRITE_EXTERNAL_STORAGE)
-            == PackageManager.PERMISSION_GRANTED
+    private fun systemAvailable(): Boolean {
+        return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+            Environment.isExternalStorageManager()
+        } else {
+            ContextCompat.checkSelfPermission(
+                this, android.Manifest.permission.WRITE_EXTERNAL_STORAGE
+            ) == PackageManager.PERMISSION_GRANTED
+        }
+    }
 
     private fun systemStatusText(): String =
         if (systemAvailable()) "已授权 · 点按去设置" else "未授权 · 点按去授权"

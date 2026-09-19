@@ -109,6 +109,13 @@ class MiniAppActivity : AppCompatActivity() {
         if (info == null) { finish(); return }
         appInfo = info
 
+        // 任务视图（最近任务）里显示小程序自己的名字，而不是宿主的名字
+        @Suppress("DEPRECATION")
+        setTaskDescription(
+            android.app.ActivityManager.TaskDescription(info.displayName.ifBlank { info.uname })
+        )
+        title = info.displayName.ifBlank { info.uname }
+
         // 必要权限门禁：应用列表 / 桌面快捷方式 / 外部 Intent 等所有入口一律生效
         if (!gateRequiredPermissions()) return
 

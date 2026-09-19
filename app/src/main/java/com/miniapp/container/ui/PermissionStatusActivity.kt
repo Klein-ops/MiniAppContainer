@@ -85,11 +85,15 @@ class PermissionStatusActivity : AppCompatActivity() {
         val storageAccess = StorageAccessConfig(this)
         val storageOk = when (storageAccess.mode) {
             StorageMode.SHIZUKU -> ShizukuShell.ready(this)
-            StorageMode.SYSTEM -> if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R)
-                Environment.isExternalStorageManager()
-            else
-                ContextCompat.checkSelfPermission(this, Manifest.permission.WRITE_EXTERNAL_STORAGE)
-                    == PackageManager.PERMISSION_GRANTED
+            StorageMode.SYSTEM -> {
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+                    Environment.isExternalStorageManager()
+                } else {
+                    ContextCompat.checkSelfPermission(
+                        this, Manifest.permission.WRITE_EXTERNAL_STORAGE
+                    ) == PackageManager.PERMISSION_GRANTED
+                }
+            }
         }
         items.add(Item(
             label = "读写内部存储",
