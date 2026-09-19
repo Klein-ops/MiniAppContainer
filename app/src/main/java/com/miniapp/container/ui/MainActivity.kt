@@ -11,6 +11,7 @@ import android.widget.HorizontalScrollView
 import android.widget.LinearLayout
 import android.widget.TextView
 import android.widget.Toast
+import androidx.activity.result.ActivityResultLauncher
 import androidx.activity.result.contract.ActivityResultContracts
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import androidx.appcompat.app.AppCompatActivity
@@ -43,7 +44,7 @@ class MainActivity : AppCompatActivity() {
     private val hostApp: MiniAppApp get() = MiniAppApp.require(application)
 
     /** 安装流程内核：选包 → 二次确认（版本对比）→ 安装。 */
-    private val installFlow by lazy {
+    private val installFlow: InstallFlow by lazy {
         InstallFlow(
             activity = this,
             registry = hostApp.registry,
@@ -61,9 +62,9 @@ class MainActivity : AppCompatActivity() {
         )
     }
 
-    private val pickZip = registerForActivityResult(
+    private val pickZip: ActivityResultLauncher<Array<String>> = registerForActivityResult(
         ActivityResultContracts.OpenDocument()
-    ) { uri ->
+    ) { uri: Uri? ->
         if (uri != null) lifecycleScope.launch { installFlow.installFromUri(uri) }
     }
 
