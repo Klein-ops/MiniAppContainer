@@ -91,7 +91,9 @@ class MiniAppDocumentsProvider : DocumentsProvider() {
             add(DocumentsContract.Root.COLUMN_TITLE, "MiniAppContainer Data")
             add(
                 DocumentsContract.Root.COLUMN_FLAGS,
-                DocumentsContract.Root.FLAG_LOCAL_ONLY or DocumentsContract.Root.FLAG_SUPPORTS_IS_CHILD
+                DocumentsContract.Root.FLAG_LOCAL_ONLY
+                    or DocumentsContract.Root.FLAG_SUPPORTS_IS_CHILD
+                    or DocumentsContract.Root.FLAG_SUPPORTS_CREATE
             )
             add(DocumentsContract.Root.COLUMN_ICON, R.mipmap.ic_launcher)
         }
