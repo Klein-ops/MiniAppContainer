@@ -5,6 +5,8 @@ import android.os.Build
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.lifecycleScope
 import com.miniapp.container.core.MiniAppInfo
+import com.miniapp.container.core.StorageAccessConfig
+import com.miniapp.container.core.StorageMode
 import com.miniapp.container.util.TextEditor
 import com.miniapp.container.file.FileService
 import com.miniapp.container.permission.PermissionManager
@@ -115,82 +117,81 @@ class ExternalFileService(
 
     suspend fun readFile(absPath: String): String = withContext(Dispatchers.IO) {
         val f = File(absPath)
-        assertGranted(f)
-        if (!f.exists()) throw java.io.FileNotFoundException("文件不存在: $absPath")
-        if (f.isDirectory) throw java.io.IOException("目标是目录: $absPath")
-        JSONObject.quote(IoUtil.toBase64(IoUtil.readBytes(f)))
+        JSONObject.quote(IoUtil.toBase64(backend(f).read(f)))
     }
 
     suspend fun writeFile(absPath: String, base64: String): String = withContext(Dispatchers.IO) {
         val f = File(absPath)
-        assertGranted(f)
-        f.parentFile?.mkdirs()
-        IoUtil.writeBytes(f, IoUtil.fromBase64(base64))
+        backend(f).write(f, IoUtil.fromBase64(base64))
         "true"
     }
 
     suspend fun list(dir: String): String = withContext(Dispatchers.IO) {
         val f = File(dir)
-        assertGranted(f)
-        if (!f.exists()) throw java.io.FileNotFoundException("目录不存在: $dir")
-        if (!f.isDirectory) throw java.io.IOException("目标不是目录: $dir")
         val arr = JSONArray()
-        f.listFiles()?.sortedBy { it.name }?.forEach {
-            arr.put(JSONObject().put("name", it.name).put("isDir", it.isDirectory).put("size", it.length()))
+        backend(f).list(f).forEach {
+            arr.put(JSONObject().put("name", it.name).put("isDir", it.isDir).put("size", it.size))
         }
         arr.toString()
     }
 
     suspend fun exists(path: String): String = withContext(Dispatchers.IO) {
         val f = File(path)
-        assertGranted(f)
-        if (f.exists()) "true" else "false"
+        backend(f).exists(f).toString()
     }
 
     suspend fun stat(path: String): String = withContext(Dispatchers.IO) {
         val f = File(path)
-        assertGranted(f)
+        val st = backend(f).stat(f)
         JSONObject()
-            .put("exists", f.exists())
-            .put("isDir", f.isDirectory)
-            .put("size", if (f.isFile) f.length() else 0)
-            .put("name", f.name)
-            .put("canRead", f.canRead())
-            .put("canWrite", f.canWrite())
-            .put("lastModified", f.lastModified())
+            .put("exists", st.exists)
+            .put("isDir", st.isDir)
+            .put("size", st.size)
+            .put("name", st.name)
+            .put("canRead", st.canRead)
+            .put("canWrite", st.canWrite)
+            .put("lastModified", st.lastModified)
             .toString()
     }
 
     suspend fun mkdir(dir: String): String = withContext(Dispatchers.IO) {
         val f = File(dir)
-        assertGranted(f)
-        (f.exists() || f.mkdirs()).toString()
+        backend(f).mkdir(f).toString()
     }
 
     suspend fun remove(path: String): String = withContext(Dispatchers.IO) {
         val f = File(path)
-        assertGranted(f)
-        val ok = if (f.isDirectory) f.deleteRecursively() else f.delete()
-        if (ok) "true" else "false"
+        backend(f).remove(f).toString()
     }
 
     suspend fun rename(from: String, to: String): String = withContext(Dispatchers.IO) {
         val src = File(from)
         val dst = File(to)
-        assertGranted(src)
-        assertGranted(dst)
-        src.renameTo(dst).toString()
+        backend(src, dst).rename(src, dst).toString()
     }
 
     // ---------- 内部 ----------
 
     private suspend fun ensurePermission() = requirePermission(PermissionScope.FS_EXTERNAL)
 
-    /** 前置：权限 + 系统存储权限 + 路径防私有目录。 */
-    private suspend fun assertGranted(f: File) {
+    /**
+     * 前置检查并选择后端：
+     * - 蜗壳 `fs.external` 权限（必查）
+     * - 路径不得落在应用私有目录
+     * - Shizuku 模式且可用 → [ShizukuStorageBackend]
+     * - 否则（默认 / Shizuku 不可用自动回退）→ 检查系统存储权限后走 [DirectStorageBackend]
+     */
+    private suspend fun backend(vararg files: File): StorageBackend {
         ensurePermission()
+        files.forEach { assertExternalPath(it) }
+        if (StorageAccessConfig(activity).mode == StorageMode.SHIZUKU &&
+            ShizukuShell.state(activity) == ShizukuState.ACTIVE &&
+            ShizukuShell.hasPermission()
+        ) {
+            return ShizukuStorageBackend()
+        }
         ensureSystemStoragePermission()
-        assertExternalPath(f)
+        return DirectStorageBackend()
     }
 
     /** 禁止访问应用私有目录（防篡改权限记录）。 */

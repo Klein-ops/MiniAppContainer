@@ -78,6 +78,11 @@
             android:label="应用设置"
             android:theme="@style/Theme.MiniApp" />
 
+        <activity
+            android:name=".ui.StorageAccessActivity"
+            android:exported="false"
+            android:label="内部储存访问" />
+
         <provider
             android:name=".provider.MiniAppDocumentsProvider"
             android:authorities="${applicationId}.docs"

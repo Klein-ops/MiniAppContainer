@@ -212,6 +212,16 @@ await MiniApp.fs.exportFile('data/report.txt');    // boolean true
 - Android 10 及以下：首次调用时蜗壳主动弹窗申请运行时存储权限。
 - Android 11+：`MANAGE_EXTERNAL_STORAGE` 需在系统设置开启「所有文件访问」，蜗壳会自动跳转设置页，开启后返回重试。
 
+**两种授权方式**（蜗壳「设置 → 权限状态 → 读写内部存储」中切换，全局生效）：
+
+| 方式 | 说明 |
+|---|---|
+| 传统方式（推荐，默认） | 申请系统存储权限（如上）。兼容性最好；Android 11+ 受 scoped storage 限制，**无法访问 `sdcard/Android`** |
+| Shizuku（ADB） | 借 Shizuku 的 ADB 权限读写，无需系统存储授权；**Android 11+ 亦可读写 `sdcard/Android`**。需安装并激活 Shizuku |
+
+> 无论哪种方式，**小程序侧接口与返回值完全一致**（本节所有 `fs.*External`）。
+> Shizuku 不可用（未安装/未激活/未授权）时自动回退传统方式，可能触发系统权限申请。
+
 | 接口 | 返回类型 | 返回值 |
 |---|---|---|
 | `fs.readExternalFile(absPath)` | `string` | base64 编码的文件字节 |
@@ -839,6 +849,7 @@ adb logcat -s MiniAppJS MiniAppBridge
 | `已跳转系统设置，请开启「所有文件访问权限」后重试` | Android 11+ 未开 `MANAGE_EXTERNAL_STORAGE` | 在设置页开启后返回重试 |
 | `无法读取所选文件（provider 未返回数据流）` | SAF 导入时选中的文件无法访问 | 换一个文件或位置重试 |
 | `无法写入所选位置（provider 未返回数据流）` | SAF 导出时目标位置无写权限 | 换一个位置重试 |
+| `shizuku not active` / `shizuku permission denied` | 选了 Shizuku 存储方式但 Shizuku 不可用 | 宿主会自动回退传统方式；或激活 Shizuku / 切回传统方式 |
 | `[MiniApp.wasm] instantiate failed: ...` | WASM 格式错误或 import 缺失 | 检查 import object 是否提供 `env.memory` 等必需项 |
 | `unknown method: xxx` | 方法名拼写错误 | 对照本手册 API 清单 |
 | `permission denied: storage` | 未声明 `storage` 或用户拒绝 | manifest 声明并允许 |

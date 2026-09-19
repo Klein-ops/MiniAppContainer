@@ -14,8 +14,10 @@ import android.widget.TextView
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.app.NotificationManagerCompat
 import androidx.core.content.ContextCompat
-import com.google.android.material.appbar.MaterialToolbar
 import com.miniapp.container.R
+import com.miniapp.container.core.StorageAccessConfig
+import com.miniapp.container.core.StorageMode
+import com.miniapp.container.service.ShizukuShell
 import com.miniapp.container.util.setupBackToolbar
 import com.miniapp.container.netdisk.WebdavConfig
 import com.miniapp.container.util.toast
@@ -79,15 +81,20 @@ class PermissionStatusActivity : AppCompatActivity() {
             available = NotificationManagerCompat.from(this).areNotificationsEnabled(),
             action = ::openNotificationSettings
         ))
-        // 读写内部存储
-        val storageOk = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R)
-            Environment.isExternalStorageManager()
-        else
-            ContextCompat.checkSelfPermission(this, Manifest.permission.WRITE_EXTERNAL_STORAGE) == PackageManager.PERMISSION_GRANTED
+        // 读写内部存储：可用性按当前授权方式（传统 / Shizuku）判定
+        val storageAccess = StorageAccessConfig(this)
+        val storageOk = when (storageAccess.mode) {
+            StorageMode.SHIZUKU -> ShizukuShell.ready(this)
+            StorageMode.SYSTEM -> if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R)
+                Environment.isExternalStorageManager()
+            else
+                ContextCompat.checkSelfPermission(this, Manifest.permission.WRITE_EXTERNAL_STORAGE)
+                    == PackageManager.PERMISSION_GRANTED
+        }
         items.add(Item(
             label = "读写内部存储",
             available = storageOk,
-            action = ::openStorageSettings
+            action = { startActivity(Intent(this, StorageAccessActivity::class.java)) }
         ))
         // 网络存储（WebDAV）
         items.add(Item(
@@ -148,15 +155,6 @@ class PermissionStatusActivity : AppCompatActivity() {
         }.onFailure { openAppDetailsSettings() }
     }
 
-    private fun openStorageSettings() {
-        val intent = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R)
-            Intent(Settings.ACTION_MANAGE_APP_ALL_FILES_ACCESS_PERMISSION)
-                .setData(android.net.Uri.parse("package:$packageName"))
-        else
-            Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS)
-                .setData(android.net.Uri.parse("package:$packageName"))
-        runCatching { startActivity(intent) }.onFailure { toast("无法打开存储设置") }
-    }
 
     private fun openShizuku() {
         val pkg = "moe.shizuku.privileged.api"
