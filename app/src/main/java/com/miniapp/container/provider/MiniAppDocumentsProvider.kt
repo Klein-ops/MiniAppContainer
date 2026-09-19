@@ -129,10 +129,47 @@ class MiniAppDocumentsProvider : DocumentsProvider() {
         val flags = when (mode) {
             "r" -> ParcelFileDescriptor.MODE_READ_ONLY
             "w", "wt" -> ParcelFileDescriptor.MODE_WRITE_ONLY or ParcelFileDescriptor.MODE_TRUNCATE
-            "rw", "rwt" -> ParcelFileDescriptor.MODE_READ_WRITE
+            "rw" -> ParcelFileDescriptor.MODE_READ_WRITE
+            "rwt" -> ParcelFileDescriptor.MODE_READ_WRITE or ParcelFileDescriptor.MODE_TRUNCATE
             else -> ParcelFileDescriptor.MODE_READ_ONLY
         }
         return ParcelFileDescriptor.open(file, flags)
+    }
+
+    /**
+     * 创建文件/目录（复制粘贴、新建文件时系统调用）。
+     * 此前目录宣称了 FLAG_DIR_SUPPORTS_CREATE 却未实现本方法，导致
+     * 其他应用无法向开放目录写入任何内容。文件名清洗防 `..`/分隔符逃逸。
+     */
+    override fun createDocument(
+        parentDocumentId: String,
+        mimeType: String,
+        displayName: String
+    ): String {
+        if (!canServe()) throw FileNotFoundException("存储不可用（用户未解锁）")
+        val parent = fileFor(parentDocumentId)
+        if (!parent.isDirectory) throw FileNotFoundException("父目录不存在: $parentDocumentId")
+        val safe = displayName.replace('/', '_').replace('\\', '_')
+        val file = uniqueFile(parent, safe)
+        val ok = if (mimeType == DocumentsContract.Document.MIME_TYPE_DIR) file.mkdirs()
+        else file.createNewFile()
+        if (!ok) throw java.io.IOException("创建失败: $safe")
+        return docIdFor(file)
+    }
+
+    /** 重名时追加 (2)、(3)… 生成唯一文件名。 */
+    private fun uniqueFile(parent: File, displayName: String): File {
+        var file = File(parent, displayName)
+        if (!file.exists()) return file
+        val dot = displayName.lastIndexOf('.')
+        val base = if (dot > 0) displayName.substring(0, dot) else displayName
+        val ext = if (dot > 0) displayName.substring(dot) else ""
+        var i = 2
+        while (file.exists()) {
+            file = File(parent, "$base ($i)$ext")
+            i++
+        }
+        return file
     }
 
     override fun isChildDocument(parentDocumentId: String, documentId: String): Boolean = try {
@@ -147,13 +184,20 @@ class MiniAppDocumentsProvider : DocumentsProvider() {
         val flags = if (file.isDirectory)
             DocumentsContract.Document.FLAG_DIR_SUPPORTS_CREATE
         else DocumentsContract.Document.FLAG_SUPPORTS_WRITE
+        // 只输出调用方 projection 声明过的列，避免按列名 add 未声明列崩溃
         cursor.newRow().apply {
-            add(DocumentsContract.Document.COLUMN_DOCUMENT_ID, docIdFor(file))
-            add(DocumentsContract.Document.COLUMN_DISPLAY_NAME, file.name)
-            add(DocumentsContract.Document.COLUMN_MIME_TYPE, getMimeType(file))
-            add(DocumentsContract.Document.COLUMN_SIZE, if (file.isFile) file.length() else 0)
-            add(DocumentsContract.Document.COLUMN_LAST_MODIFIED, file.lastModified())
-            add(DocumentsContract.Document.COLUMN_FLAGS, flags)
+            if (cursor.getColumnIndex(DocumentsContract.Document.COLUMN_DOCUMENT_ID) >= 0)
+                add(DocumentsContract.Document.COLUMN_DOCUMENT_ID, docIdFor(file))
+            if (cursor.getColumnIndex(DocumentsContract.Document.COLUMN_DISPLAY_NAME) >= 0)
+                add(DocumentsContract.Document.COLUMN_DISPLAY_NAME, file.name)
+            if (cursor.getColumnIndex(DocumentsContract.Document.COLUMN_MIME_TYPE) >= 0)
+                add(DocumentsContract.Document.COLUMN_MIME_TYPE, getMimeType(file))
+            if (cursor.getColumnIndex(DocumentsContract.Document.COLUMN_SIZE) >= 0)
+                add(DocumentsContract.Document.COLUMN_SIZE, if (file.isFile) file.length() else 0)
+            if (cursor.getColumnIndex(DocumentsContract.Document.COLUMN_LAST_MODIFIED) >= 0)
+                add(DocumentsContract.Document.COLUMN_LAST_MODIFIED, file.lastModified())
+            if (cursor.getColumnIndex(DocumentsContract.Document.COLUMN_FLAGS) >= 0)
+                add(DocumentsContract.Document.COLUMN_FLAGS, flags)
         }
     }
 
