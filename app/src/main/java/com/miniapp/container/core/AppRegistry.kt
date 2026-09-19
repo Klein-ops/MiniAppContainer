@@ -68,6 +68,13 @@ class AppRegistry(private val sandboxRoot: File) {
         File(dir, "meta.json").writeText(info.toJson().toString(), Charsets.UTF_8)
     }
 
+    /** 更新分类归属（双写 meta.json）；无变化时不写。 */
+    fun updateCategory(appKey: String, category: String) {
+        val cur = get(appKey) ?: return
+        if (cur.category == category) return
+        put(cur.copy(category = category))
+    }
+
     /** 卸载：移除缓存；meta.json 随沙箱目录删除（调用方负责删沙箱）。 */
     fun remove(appKey: String) {
         apps.remove(appKey)

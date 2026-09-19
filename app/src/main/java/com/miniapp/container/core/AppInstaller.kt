@@ -165,22 +165,41 @@ class AppInstaller(
             dataSrc.copyRecursively(dataDst, overwrite = true)
         }
 
-        // 2) 注册（upsert，displayName 来自备份）；registry.put 会写沙箱 meta.json
+        // 2) 注册（upsert）；registry.put 会写沙箱 meta.json。
+        //    元数据优先取备份携带的 meta.json（含 category/icon/displayName/权限声明），
+        //    老备份没有则从 manifest 重建（category 空 → 恢复后回默认/现有分类）
         val existing = registry.get(appKey)
-        registry.put(
-            MiniAppInfo(
-                uid = uid,
-                uname = uname,
-                version = manifest.version,
-                entry = manifest.entry,
-                wasm = manifest.wasm,
-                permissions = manifest.permissions,
-                requiredPermissions = safeRequired,
-                icon = manifest.icon,
-                displayName = displayName.ifBlank { existing?.displayName ?: "" },
-                installedAt = System.currentTimeMillis()
-            )
-        )   // registry.put 内部写沙箱 meta.json
+        val metaBackup = File(extractedDir, "meta.json")
+        val restored = if (metaBackup.isFile) {
+            runCatching {
+                MiniAppInfo.fromJson(JSONObject(metaBackup.readText(Charsets.UTF_8)))
+            }.getOrNull()?.let { m ->
+                MiniAppInfo(
+                    uid = uid, uname = uname,
+                    version = manifest.version,
+                    entry = manifest.entry,
+                    wasm = manifest.wasm,
+                    permissions = manifest.permissions,
+                    requiredPermissions = safeRequired,
+                    icon = manifest.icon,
+                    displayName = displayName.ifBlank { m.displayName },
+                    installedAt = System.currentTimeMillis(),
+                    category = m.category
+                )
+            }
+        } else null
+        val info = restored ?: MiniAppInfo(
+            uid = uid, uname = uname,
+            version = manifest.version,
+            entry = manifest.entry,
+            wasm = manifest.wasm,
+            permissions = manifest.permissions,
+            requiredPermissions = safeRequired,
+            icon = manifest.icon,
+            displayName = displayName.ifBlank { existing?.displayName ?: "" },
+            installedAt = System.currentTimeMillis()
+        )
+        registry.put(info)   // 内部写沙箱 meta.json
         true
     }
 

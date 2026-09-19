@@ -13,7 +13,10 @@ import java.util.LinkedHashMap
  *
  * 应用未归类时自动放入"默认"分类。
  */
-class CategoryManager(private val file: File) {
+class CategoryManager(
+    private val file: File,
+    private val registry: AppRegistry
+) {
 
     companion object {
         const val DEFAULT = "默认"
@@ -94,6 +97,7 @@ class CategoryManager(private val file: File) {
         // 移回默认分类时**追加到末尾**（原来 addAll(0, ...) 会插到最前，
         // 与用户预期"落到最下面"不符）
         categories.getOrPut(DEFAULT) { mutableListOf() }.addAll(apps)
+        apps.forEach { registry.updateCategory(it, DEFAULT) }   // 双写 meta.json
         save()
     }
 
@@ -109,8 +113,28 @@ class CategoryManager(private val file: File) {
         if (category !in categories && category != DEFAULT) return
         // 从原分类移除
         for ((_, list) in categories) list.remove(appKey)
-        categories.getOrPut(if (category in categories) category else DEFAULT) { mutableListOf() }.add(appKey)
+        val target = if (category in categories) category else DEFAULT
+        categories.getOrPut(target) { mutableListOf() }.add(appKey)
+        registry.updateCategory(appKey, target)   // 双写 meta.json（随应用走）
         save()
+    }
+
+    /** 恢复用：分类不存在则创建，再移入。 */
+    fun moveToCreate(appKey: String, category: String) {
+        if (category.isBlank()) return
+        if (category !in categories && category != DEFAULT) addCategory(category)
+        moveTo(appKey, category)
+    }
+
+    /**
+     * 迁移/兜底：把宿主聚合视图的归属回填到各应用 meta.json。
+     * 启动时调用一次（老应用 meta.json 无 category 字段；备份依赖它）。
+     * updateCategory 幂等，无变化不写文件。
+     */
+    fun backfillMeta() {
+        for ((cat, list) in categories) {
+            list.forEach { registry.updateCategory(it, cat) }
+        }
     }
 
     /** 拖动排序：在 category 内将 fromPos 移到 toPos。 */

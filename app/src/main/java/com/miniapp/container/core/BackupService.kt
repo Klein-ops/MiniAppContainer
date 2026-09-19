@@ -149,6 +149,16 @@ class BackupService(
             if (restored == 0 && apps.length() > 0) {
                 throw IOException("备份内容无法恢复（应用数据缺失或格式不符）")
             }
+
+            // 4) 分类回填：以备份 meta.json 里的 category 为准——
+            //    分类已存在则移入，不存在则创建（moveToCreate）
+            val cm = MiniAppApp.require(context).categoryManager
+            for (i in 0 until apps.length()) {
+                val o = apps.getJSONObject(i)
+                val appKey = PathGuard.appKey(o.optString("uid"), o.optString("uname"))
+                val cat = registry.get(appKey)?.category
+                if (!cat.isNullOrBlank()) cm.moveToCreate(appKey, cat)
+            }
         } finally {
             tmp.deleteRecursively()
         }

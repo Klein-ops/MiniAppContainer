@@ -17,7 +17,9 @@ data class MiniAppInfo(
     val requiredPermissions: List<String>,
     val icon: String = "",
     val displayName: String = "",
-    val installedAt: Long
+    val installedAt: Long,
+    /** 所属分类（宿主写；随 meta.json 备份，恢复时"存在则移入、不存在则创建"）。 */
+    val category: String = ""
 ) {
     val appKey: String get() = "${uid}_${uname}"
 
@@ -39,6 +41,7 @@ data class MiniAppInfo(
             .put("installedAt", installedAt)
             .put("icon", icon)
             .put("displayName", displayName)
+            .put("category", category)
             .put("appKey", appKey)
     }
 
@@ -53,7 +56,8 @@ data class MiniAppInfo(
             requiredPermissions = o.optStringList("requiredPermissions"),
             icon = o.optStringOr("icon", ""),
             displayName = o.optStringOr("displayName", ""),
-            installedAt = o.optLongOr("installedAt", System.currentTimeMillis())
+            installedAt = o.optLongOr("installedAt", System.currentTimeMillis()),
+            category = o.optStringOr("category", "")
         )
     }
 }
