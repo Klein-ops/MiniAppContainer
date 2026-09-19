@@ -99,16 +99,10 @@ class PermissionStatusActivity : AppCompatActivity() {
             available = ContextCompat.checkSelfPermission(this, Manifest.permission.CAMERA) == PackageManager.PERMISSION_GRANTED,
             action = ::openAppDetailsSettings
         ))
-        // 创建桌面快捷方式
-        val shortcutSupported = try {
-            (getSystemService(android.content.Context.SHORTCUT_SERVICE)
-                as android.content.pm.ShortcutManager).isRequestPinShortcutSupported
-        } catch (_: Throwable) { false }
-        items.add(Item(
-            label = "创建桌面快捷方式",
-            available = shortcutSupported,
-            action = ::openAppDetailsSettings
-        ))
+        // 注：不列「创建桌面快捷方式」——Android 无可靠的事前检测 API
+        // （isRequestPinShortcutSupported 返回 true 也不保证真能 pin；国产 ROM
+        // 更有独立的快捷方式权限开关）。该项可用性由创建时的反馈体现
+        // （AppSettingsActivity 已有事前检测 + 不支持弹窗）。
         // 始终可用的接口
         items.add(Item("网络访问", available = true))
         items.add(Item("打开外部链接", available = true))
