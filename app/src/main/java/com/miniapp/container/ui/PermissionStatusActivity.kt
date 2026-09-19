@@ -117,14 +117,19 @@ class PermissionStatusActivity : AppCompatActivity() {
         return items
     }
 
-    /** Shizuku 状态：0=未安装 1=未激活 2=已激活 */
+    /**
+     * Shizuku 状态：0=未安装 1=未激活或未授权 2=已激活且蜗壳已获授权。
+     * pingBinder 只代表 Shizuku 服务存活；用户移除授权后它仍为 true，
+     * 必须再查 checkSelfPermission 才能反映"蜗壳是否真正可用"。
+     */
     private fun shizukuState(): Int = try {
         val installed = try {
             packageManager.getPackageInfo("moe.shizuku.privileged.api", 0); true
         } catch (_: Throwable) { false }
         when {
             !installed -> 0
-            Shizuku.pingBinder() -> 2
+            Shizuku.pingBinder()
+                && Shizuku.checkSelfPermission() == PackageManager.PERMISSION_GRANTED -> 2
             else -> 1
         }
     } catch (_: Throwable) { 1 }
