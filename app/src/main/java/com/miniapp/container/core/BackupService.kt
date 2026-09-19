@@ -1,5 +1,7 @@
 package com.miniapp.container.core
 
+import com.miniapp.container.MiniAppApp
+
 import android.content.Context
 import com.miniapp.container.netdisk.WebdavClient
 import com.miniapp.container.netdisk.WebdavConfig
@@ -83,6 +85,11 @@ class BackupService(
                 .put("format", 2)
                 .put("includeData", includeData)
                 .put("apps", appsArr)
+            // 1.5) 分类列表（宿主级组织结构）：随备份迁移，恢复后应用回到原分类
+            val catFile = File(base, "categories.json")
+            if (catFile.isFile) {
+                runCatching { manifest.put("categories", JSONObject(catFile.readText(Charsets.UTF_8))) }
+            }
             writeEntry(zos, "backup.json", manifest.toString().toByteArray(Charsets.UTF_8))
 
             // 2) 各应用沙箱：只备份 app/ 与（可选）data/，不备份 meta.json
@@ -111,6 +118,15 @@ class BackupService(
             val manifestFile = File(tmp, "backup.json")
             if (!manifestFile.isFile) throw IOException("备份文件缺少 backup.json（可能不是蜗壳备份）")
             val root = JSONObject(manifestFile.readText(Charsets.UTF_8))
+
+            // 0) 分类列表：先恢复，再恢复应用（syncApps 会清理备份里没有的应用 key）
+            val cats = root.optJSONObject("categories")
+            if (cats != null) {
+                val f = File(context.filesDir, "miniapps/categories.json")
+                f.writeText(cats.toString(), Charsets.UTF_8)
+                MiniAppApp.require(context).categoryManager.load()   // 刷新内存
+            }
+
             val apps = root.optJSONArray("apps") ?: JSONArray()
             var restored = 0
             for (i in 0 until apps.length()) {
