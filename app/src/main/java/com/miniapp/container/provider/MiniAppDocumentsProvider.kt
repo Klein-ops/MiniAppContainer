@@ -91,9 +91,9 @@ class MiniAppDocumentsProvider : DocumentsProvider() {
             add(DocumentsContract.Root.COLUMN_TITLE, "MiniAppContainer Data")
             add(
                 DocumentsContract.Root.COLUMN_FLAGS,
-                DocumentsContract.Root.FLAG_LOCAL_ONLY
-                    or DocumentsContract.Root.FLAG_SUPPORTS_IS_CHILD
-                    or DocumentsContract.Root.FLAG_SUPPORTS_CREATE
+                DocumentsContract.Root.FLAG_LOCAL_ONLY or
+                    DocumentsContract.Root.FLAG_SUPPORTS_IS_CHILD or
+                    DocumentsContract.Root.FLAG_SUPPORTS_CREATE
             )
             add(DocumentsContract.Root.COLUMN_ICON, R.mipmap.ic_launcher)
         }
@@ -203,12 +203,11 @@ class MiniAppDocumentsProvider : DocumentsProvider() {
     }
 
     private fun includeFile(cursor: MatrixCursor, file: File) {
+        val doc = DocumentsContract.Document
         val flags = if (file.isDirectory) {
-            DocumentsContract.Document.FLAG_DIR_SUPPORTS_CREATE
+            doc.FLAG_DIR_SUPPORTS_CREATE
         } else {
-            DocumentsContract.Document.FLAG_SUPPORTS_WRITE
-                or DocumentsContract.Document.FLAG_SUPPORTS_DELETE
-                or DocumentsContract.Document.FLAG_SUPPORTS_RENAME
+            doc.FLAG_SUPPORTS_WRITE or doc.FLAG_SUPPORTS_DELETE or doc.FLAG_SUPPORTS_RENAME
         }
         // 只输出调用方 projection 声明过的列，避免按列名 add 未声明列崩溃
         cursor.newRow().apply {
