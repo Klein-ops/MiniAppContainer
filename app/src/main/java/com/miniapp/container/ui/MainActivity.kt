@@ -27,6 +27,7 @@ import androidx.recyclerview.widget.ItemTouchHelper
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.miniapp.container.MiniAppApp
+import com.miniapp.container.core.PreviewInfo
 import com.miniapp.container.R
 import com.miniapp.container.util.InputDialog
 import com.miniapp.container.util.showRounded
@@ -387,15 +388,11 @@ class MainActivity : AppCompatActivity() {
                 }
                 conn.disconnect()
             }
-            val result = hostApp.installer.installFromZip(zipFile)
-            if (result.success) moveToCurrentCategory(result.info?.appKey)
-            Toast.makeText(this, result.message, Toast.LENGTH_SHORT).show()
+            requestConfirmInstall(zipFile)   // 二次确认后安装
         } catch (e: Exception) {
             Toast.makeText(this, "下载失败: ${e.message}", Toast.LENGTH_SHORT).show()
-        } finally {
             zipFile.delete()
         }
-        refresh()
     }
 
     private fun showInstallOptions() {
@@ -439,18 +436,82 @@ class MainActivity : AppCompatActivity() {
     private suspend fun installFromUri(uri: Uri) {
         installCategory = currentFilter
         val cache = File(cacheDir, "pick_${System.currentTimeMillis()}.zip")
-        try {
-            val ok = try {
-                contentResolver.openInputStream(uri)?.use { IoUtil.copy(it, cache); true } ?: false
-            } catch (t: Throwable) { false }
-            if (!ok) { toast("无法读取文件"); return }
-            val r = hostApp.installer.installFromZip(cache)
-            if (r.success) moveToCurrentCategory(r.info?.appKey)
-            toast(if (r.success) "已安装: ${r.info?.uname}" else "安装失败: ${r.message}")
-        } finally {
-            cache.delete()
-            refresh()
+        val ok = try {
+            contentResolver.openInputStream(uri)?.use { IoUtil.copy(it, cache); true } ?: false
+        } catch (t: Throwable) { false }
+        if (!ok) { toast("无法读取文件"); return }
+        requestConfirmInstall(cache)   // 二次确认后安装
+    }
+
+    /**
+     * 安装前二次确认：读取 zip 内 manifest.json，展示名称 / appKey / 版本，
+     * 并按已装版本对比给出「安装 / 更新 / 降级 / 替换」按钮。确认后才真正安装。
+     */
+    private fun requestConfirmInstall(zipFile: File) {
+        lifecycleScope.launch {
+            val preview = withContext(Dispatchers.IO) { hostApp.installer.previewZip(zipFile) }
+            if (preview == null) {
+                toast("无法读取应用清单 manifest.json")
+                zipFile.delete()
+                refresh()
+                return@launch
+            }
+            showInstallConfirmDialog(preview, zipFile)
         }
+    }
+
+    private fun showInstallConfirmDialog(preview: PreviewInfo, zipFile: File) {
+        val existing = hostApp.registry.get(com.miniapp.container.core.PathGuard.appKey(preview.uid, preview.uname))
+        val action = buildInstallAction(existing?.version, preview.version)
+        val msg = buildString {
+            append("名称：").append(preview.uname).append('
+')
+            append("appKey：").append(preview.uid).append('_').append(preview.uname).append('
+')
+            append("版本：").append(preview.version)
+            if (existing != null) append("
+已安装版本：").append(existing.version)
+            append("
+
+更新保留数据，仅替换应用文件。")
+        }
+        MaterialAlertDialogBuilder(this)
+            .setTitle("确认${action.verb}「${preview.uname}」？")
+            .setMessage(msg)
+            .setPositiveButton(action.full) { _, _ ->
+                lifecycleScope.launch {
+                    val r = hostApp.installer.installFromZip(zipFile)
+                    if (r.success) moveToCurrentCategory(r.info?.appKey)
+                    toast(if (r.success) "已安装: ${r.info?.uname}" else "安装失败: ${r.message}")
+                    zipFile.delete()
+                    refresh()
+                }
+            }
+            .setNegativeButton("取消") { _, _ -> zipFile.delete() }
+            .showRounded()
+    }
+
+    /** 根据已装版本与新包版本判断安装动作语义。 */
+    private fun buildInstallAction(existingVer: String?, newVer: String): Pair<String, String> {
+        if (existingVer == null) return "安装" to "安装"
+        return when {
+            versionCompare(existingVer, newVer) < 0 -> "更新" to "更新到 $newVer"
+            versionCompare(existingVer, newVer) > 0 -> "降级" to "降级到 $newVer"
+            else -> "替换" to "替换（版本相同）"
+        }
+    }
+
+    /** 语义化版本比较：1.2 < 1.10；非数字段忽略。 */
+    private fun versionCompare(a: String, b: String): Int {
+        val pa = a.split('.').mapNotNull { it.toIntOrNull() }
+        val pb = b.split('.').mapNotNull { it.toIntOrNull() }
+        val n = maxOf(pa.size, pb.size)
+        for (i in 0 until n) {
+            val x = pa.getOrElse(i) { 0 }
+            val y = pb.getOrElse(i) { 0 }
+            if (x != y) return if (x > y) 1 else -1
+        }
+        return 0
     }
 
     private suspend fun installSample() {

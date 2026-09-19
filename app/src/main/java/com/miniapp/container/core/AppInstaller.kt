@@ -1,5 +1,7 @@
 package com.miniapp.container.core
 
+/** zip 包内小程序清单摘要（安装前二次确认用）。 */
+data class PreviewInfo(val uid: String, val uname: String, val version: String)
 import android.content.Context
 import com.miniapp.container.permission.PermissionManager
 import com.miniapp.container.permission.PermissionRegistry
@@ -7,7 +9,8 @@ import com.miniapp.container.util.IoUtil
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import java.io.File
-
+import java.util.zip.ZipInputStream
+import org.json.JSONObject
 /** 应用包安装结果。 */
 data class InstallResult(
     val success: Boolean,
@@ -22,6 +25,39 @@ class AppInstaller(
     private val registry: AppRegistry,
     private val permissionManager: PermissionManager
 ) {
+
+    /**
+     * 只读 zip 中的 manifest.json（根目录优先，否则递归查找第一个），
+     * 返回小程序清单摘要。只用于安装前的二次确认，不落盘、不安装。
+     */
+    suspend fun previewZip(zipFile: File): PreviewInfo? = withContext(Dispatchers.IO) {
+        try {
+            ZipInputStream(zipFile.inputStream().buffered()).use { zis ->
+                var entry = zis.nextEntry
+                var rootManifest: JSONObject? = null
+                var fallback: JSONObject? = null
+                while (entry != null) {
+                    if (!entry.isDirectory && entry.name.endsWith("manifest.json")) {
+                        val text = zis.readBytes().toString(Charsets.UTF_8)
+                        val json = runCatching { JSONObject(text) }.getOrNull()
+                        if (json != null) {
+                            // 与安装逻辑一致：zip 根目录的 manifest 优先
+                            if (entry.name == "manifest.json") { rootManifest = json; break }
+                            if (fallback == null) fallback = json
+                        }
+                    }
+                    entry = zis.nextEntry
+                }
+                val m = rootManifest ?: fallback ?: return@withContext null
+                val uid = m.optString("uid").trim()
+                val uname = m.optString("uname").trim()
+                if (uid.isEmpty() || uname.isEmpty()) return@withContext null
+                PreviewInfo(uid = uid, uname = uname, version = m.optString("version", "0.0.0"))
+            }
+        } catch (_: Throwable) {
+            null
+        }
+    }
 
     suspend fun installFromZip(zipFile: File): InstallResult = withContext(Dispatchers.IO) {
         val tmp = File(context.cacheDir, "install_${System.currentTimeMillis()}")
