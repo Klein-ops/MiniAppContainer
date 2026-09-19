@@ -71,7 +71,6 @@ class MainActivity : AppCompatActivity() {
         adapter.onSettingsClick = { openAppSettings(it.appKey) }
         findViewById<View>(R.id.install_card).setOnClickListener { showInstallOptions() }
         setupBottomNav()
-        setupSearch()
         setupSettingsPage()
         recycler.layoutManager = LinearLayoutManager(this)
         recycler.adapter = adapter
@@ -259,18 +258,18 @@ class MainActivity : AppCompatActivity() {
             .showRounded()
     }
 
-    /** 顶栏右上角放大镜 → 搜索小程序对话框。 */
-    private fun setupSearch() {
-        findViewById<Toolbar>(R.id.toolbar).apply {
-            inflateMenu(R.menu.main_menu)
-            setOnMenuItemClickListener {
-                if (it.itemId == R.id.action_search) {
-                    showSearchDialog()
-                    true
-                } else false
-            }
-        }
+    override fun onCreateOptionsMenu(menu: Menu): Boolean {
+        menuInflater.inflate(R.menu.main_menu, menu)
+        return true
     }
+
+    override fun onOptionsItemSelected(item: MenuItem): Boolean =
+        if (item.itemId == R.id.action_search) {
+            showSearchDialog()
+            true
+        } else {
+            super.onOptionsItemSelected(item)
+        }
 
     /** 搜索对话框：按名称/标识实时过滤，点击直接启动。 */
     private fun showSearchDialog() {

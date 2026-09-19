@@ -520,7 +520,7 @@ try {
 
 | 字段 | 类型 | 默认 | 说明 |
 |---|---|---|---|
-| `timeout` | `number` | `30000` | 超时毫秒数；≤0 时按默认值处理。有效范围 1000~600000（超出会被夹紧） |
+| `timeout` | `number` | `30000` | 超时毫秒数；**`≤0` 表示永不超时**（一直等命令结束）；`>0` 时有效范围 1000~600000（超出会被夹紧） |
 
 **成功**：`{ ok: true, exitCode: number, stdout: string, stderr: string, timedOut: false }`
 

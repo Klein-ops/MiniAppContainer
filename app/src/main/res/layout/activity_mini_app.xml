@@ -24,9 +24,11 @@
             android:orientation="vertical">
 
             <ImageView
+                android:id="@+id/splash_logo"
                 android:layout_width="96dp"
                 android:layout_height="96dp"
-                android:contentDescription="蜗壳"
+                android:contentDescription="应用图标"
+                android:scaleType="fitCenter"
                 android:src="@mipmap/ic_launcher" />
 
             <ProgressBar

@@ -168,7 +168,11 @@
       // 震动（毫秒，1~5000）
       vibrate: function (duration) { return B.call('sys.vibrate', { duration: Number(duration) || 300 }); },
       // 闪光灯/手电筒开关 { on: true|false }
-      flashlight: function (on) { return B.call('sys.flashlight', { on: !!on }); },
+      flashlight: function (on) {
+        // 兼容两种写法：sys.flashlight(true) 或 sys.flashlight({ on: false })
+        var v = (on && typeof on === 'object') ? !!on.on : !!on;
+        return B.call('sys.flashlight', { on: v });
+      },
       // 屏幕方向 portrait | landscape | auto
       setOrientation: function (mode) { return B.call('sys.setOrientation', { mode: String(mode || 'auto') }); },
       // 状态栏显隐

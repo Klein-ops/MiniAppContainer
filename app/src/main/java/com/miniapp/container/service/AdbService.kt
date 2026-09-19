@@ -60,8 +60,11 @@ class AdbService(
     suspend fun exec(p: JSONObject): String {
         val command = p.optStringOr("command")
         if (command.isBlank()) throw IllegalArgumentException("command 不能为空")
-        val timeout = p.optLongOr("timeout", DEFAULT_TIMEOUT_MS)
-            .let { if (it <= 0L) DEFAULT_TIMEOUT_MS else it.coerceIn(MIN_TIMEOUT_MS, MAX_TIMEOUT_MS) }
+        // timeout ≤ 0（或省略时传 0）= 永不超时；否则夹紧 1s~10min
+        val rawTimeout = p.optLongOr("timeout", DEFAULT_TIMEOUT_MS)
+            .let { if (it == 0L) DEFAULT_TIMEOUT_MS else it }
+        val timeoutMs: Long? = if (rawTimeout <= 0L) null
+        else rawTimeout.coerceIn(MIN_TIMEOUT_MS, MAX_TIMEOUT_MS)
 
         // 1) 蜗壳 adb 权限（含危险警告弹窗）
         val granted = permissionManager.ensurePermission(
@@ -101,8 +104,8 @@ class AdbService(
         }.getOrElse { fail("adb error", it.message ?: it.javaClass.simpleName) }
     }
 
-    /** 执行命令：并发读取两个流，超时强杀。 */
-    private fun runCommand(command: String, timeoutMs: Long): String {
+    /** 执行命令：并发读取两个流，超时强杀。timeoutMs 为 null 表示永不超时。 */
+    private fun runCommand(command: String, timeoutMs: Long?): String {
         val binder = Shizuku.getBinder()
             ?: return fail("shizuku not active", "Shizuku 服务未就绪。")
         val service = IShizukuService.Stub.asInterface(binder)
@@ -138,7 +141,7 @@ class AdbService(
                 .put("ok", false)
                 .put("timedOut", true)
                 .put("error", "timeout")
-                .put("detail", "命令执行超过 ${timeoutMs}ms，已强制终止。")
+                .put("detail", "命令执行超过 ${timeoutMs ?: "∞"}ms，已强制终止。")
                 .put("stdout", outRef.get())
                 .put("stderr", errRef.get())
                 .toString()
@@ -156,8 +159,13 @@ class AdbService(
             .toString()
     }
 
-    /** 轮询等待进程结束，超时返回 false。 */
-    private fun waitFor(proc: IRemoteProcess, timeoutMs: Long): Boolean {
+    /** 轮询等待进程结束；timeoutMs 为 null 时无限等待。超时返回 false。 */
+    private fun waitFor(proc: IRemoteProcess, timeoutMs: Long?): Boolean {
+        if (timeoutMs == null) {
+            // 永不超时：一直等到进程自行结束
+            while (runCatching { proc.alive() }.getOrDefault(false)) Thread.sleep(40)
+            return true
+        }
         val deadline = System.currentTimeMillis() + timeoutMs
         while (System.currentTimeMillis() < deadline) {
             val alive = runCatching { proc.alive() }.getOrDefault(false)

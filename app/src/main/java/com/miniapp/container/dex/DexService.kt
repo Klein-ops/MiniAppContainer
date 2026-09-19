@@ -53,7 +53,21 @@ class DexService : Service() {
                     ParcelFileDescriptor::class.java
                 )
                 method.isAccessible = true
-                val out = method.invoke(null, params, inputFd, outputFd) as? Bundle
+                // 传给插件的 Bundle 只含调用方参数：剥离宿主内部保留键（__ 前缀）。
+                // 语义见文档：__className / __methodName 不污染调用方参数。
+                val userParams = Bundle()
+                params.keySet().filterNot { it.startsWith("__") }.forEach { k ->
+                    val v = params.get(k)
+                    when (v) {
+                        is Boolean -> userParams.putBoolean(k, v)
+                        is Int -> userParams.putInt(k, v)
+                        is Long -> userParams.putLong(k, v)
+                        is Double -> userParams.putDouble(k, v)
+                        is String -> userParams.putString(k, v)
+                        else -> userParams.putSerializable(k, v as? java.io.Serializable)
+                    }
+                }
+                val out = method.invoke(null, userParams, inputFd, outputFd) as? Bundle
                 if (out != null) result.putAll(out)
                 result.putBoolean("ok", true)
             } catch (t: Throwable) {

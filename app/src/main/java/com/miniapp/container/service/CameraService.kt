@@ -70,7 +70,11 @@ class CameraService(
             val uri = uriFor(target)
             activity.launchTakePhoto(uri) { ok ->
                 if (!cont.isActive) return@launchTakePhoto
-                if (!ok) {
+                // 双判定：result 成功 **或** 目标文件已写入都算成功。
+                // 部分 ROM 相机写入了 EXTRA_OUTPUT 却返回 RESULT_CANCELED，
+                // 仅凭 resultCode 会把"真拍了"误报成取消。
+                val saved = target.exists() && target.length() > 0L
+                if (!ok && !saved) {
                     cont.resume(fail("cancelled"))
                     return@launchTakePhoto
                 }

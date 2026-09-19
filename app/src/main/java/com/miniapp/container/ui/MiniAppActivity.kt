@@ -159,6 +159,7 @@ class MiniAppActivity : AppCompatActivity() {
     private fun setupUi() {
         setContentView(R.layout.activity_mini_app)
         splash = findViewById(R.id.splash)
+        loadSplashIcon(findViewById(R.id.splash_logo))
         webView = findViewById(R.id.webView)
         floatingExit = findViewById(R.id.floating_exit)
         floatingExit.onExit = { finish() }
@@ -206,6 +207,32 @@ class MiniAppActivity : AppCompatActivity() {
             return
         }
         webView.loadUrl(Uri.fromFile(entryFile).toString())
+    }
+
+    /**
+     * 开屏 logo 优先用小程序自己的图标（支持 SVG/PNG），
+     * 无图标或加载失败保持蜗壳默认 logo。
+     */
+    private fun loadSplashIcon(v: ImageView) {
+        if (appInfo.icon.isBlank()) return
+        runCatching {
+            val sandbox = File(File(filesDir, "miniapps/${appInfo.uid}_${appInfo.uname}"), "app")
+            val iconFile = File(sandbox, appInfo.icon)
+            if (!iconFile.isFile) return
+            val size = 192
+            val bmp = if (iconFile.name.endsWith(".svg", ignoreCase = true)) {
+                val svg = SVG.getFromInputStream(iconFile.inputStream())
+                svg.setDocumentWidth(size.toFloat())
+                svg.setDocumentHeight(size.toFloat())
+                val picture = svg.renderToPicture()
+                Bitmap.createBitmap(size, size, Bitmap.Config.ARGB_8888).also { b ->
+                    picture.draw(Canvas(b))
+                }
+            } else {
+                BitmapFactory.decodeFile(iconFile.absolutePath)
+            }
+            if (bmp != null) v.setImageBitmap(bmp)
+        }
     }
 
     /** 页面加载完成：全屏开屏淡出，露出小程序界面。 */
