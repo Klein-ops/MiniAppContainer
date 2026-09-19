@@ -35,6 +35,7 @@ class WebdavConfigActivity : AppCompatActivity() {
         setSupportActionBar(findViewById<MaterialToolbar>(R.id.toolbar))
         supportActionBar?.setDisplayHomeAsUpEnabled(true)
         findViewById<MaterialToolbar>(R.id.toolbar).setNavigationOnClickListener { finish() }
+        findViewById<MaterialToolbar>(R.id.toolbar).navigationIcon?.setTint(android.graphics.Color.WHITE)
 
         config = WebdavConfig(this)
         etUrl = findViewById<EditText>(R.id.et_url).also { it.setText(config.url) }

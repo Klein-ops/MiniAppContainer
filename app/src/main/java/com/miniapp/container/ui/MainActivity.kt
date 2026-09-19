@@ -264,9 +264,17 @@ class MainActivity : AppCompatActivity() {
             .showRounded()
     }
 
+    /** 当前是否在「设置」tab（设置页隐藏搜索按钮）。 */
+    private var onSettingsTab = false
+
     override fun onCreateOptionsMenu(menu: Menu): Boolean {
         menuInflater.inflate(R.menu.main_menu, menu)
         return true
+    }
+
+    override fun onPrepareOptionsMenu(menu: Menu): Boolean {
+        menu.findItem(R.id.action_search)?.isVisible = !onSettingsTab
+        return super.onPrepareOptionsMenu(menu)
     }
 
     override fun onOptionsItemSelected(item: MenuItem): Boolean =
@@ -495,7 +503,7 @@ class MainActivity : AppCompatActivity() {
         return when {
             versionCompare(existingVer, newVer) < 0 -> "更新" to "更新到 $newVer"
             versionCompare(existingVer, newVer) > 0 -> "降级" to "降级到 $newVer"
-            else -> "替换" to "替换（版本相同）"
+            else -> "替换" to "替换"
         }
     }
 
@@ -551,6 +559,8 @@ class MainActivity : AppCompatActivity() {
             findViewById<com.google.android.material.bottomnavigation.BottomNavigationView>(R.id.bottom_nav)
         bottomNav.setOnItemSelectedListener { item ->
             val settings = item.itemId == R.id.nav_settings
+            onSettingsTab = settings
+            invalidateOptionsMenu()
             val show = if (settings) pageSettings else pageApps
             val hide = if (settings) pageApps else pageSettings
             toolbar.title = if (settings) "设置" else getString(R.string.title_app_list)

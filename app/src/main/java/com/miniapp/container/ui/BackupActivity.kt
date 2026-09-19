@@ -57,6 +57,7 @@ class BackupActivity : AppCompatActivity() {
         setSupportActionBar(findViewById<MaterialToolbar>(R.id.toolbar))
         supportActionBar?.setDisplayHomeAsUpEnabled(true)
         findViewById<MaterialToolbar>(R.id.toolbar).setNavigationOnClickListener { finish() }
+        findViewById<MaterialToolbar>(R.id.toolbar).navigationIcon?.setTint(android.graphics.Color.WHITE)
 
         findViewById<MaterialButton>(R.id.btn_export_local).setOnClickListener {
             chooseBackupOptions { keys, data ->

@@ -30,6 +30,7 @@ class PermissionManageActivity : AppCompatActivity() {
         setSupportActionBar(findViewById<Toolbar>(R.id.toolbar))
         supportActionBar?.title = app.uname
         supportActionBar?.setDisplayHomeAsUpEnabled(true)
+        findViewById<Toolbar>(R.id.toolbar).navigationIcon?.setTint(android.graphics.Color.WHITE)
 
         val recycler = findViewById<RecyclerView>(R.id.recycler)
         adapter = PermissionListAdapter()
