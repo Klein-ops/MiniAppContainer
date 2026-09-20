@@ -16,8 +16,9 @@ import java.io.File
  */
 class StorageUserService : IStorageUserService.Stub() {
 
-    /** Shizuku v13 会优先使用带 Context 的构造器；本服务不需要 Context。 */
-    constructor(context: android.content.Context) : this()
+    // 不写任何显式构造器：Kotlin 隐式无参主构造器即 Shizuku 反射所需的
+    // 默认构造器（getConstructor()）。带 Context 的构造器是可选的（v13 优先
+    // 尝试、找不到则回退默认），本服务不需要 Context。
 
     override fun destroy() {
         System.exit(0)
