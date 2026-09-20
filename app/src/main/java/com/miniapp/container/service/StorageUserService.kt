@@ -16,10 +16,8 @@ import java.io.File
  */
 class StorageUserService : IStorageUserService.Stub() {
 
-    constructor() : super()
-
     /** Shizuku v13 会优先使用带 Context 的构造器；本服务不需要 Context。 */
-    constructor(context: android.content.Context) : super()
+    constructor(context: android.content.Context) : this()
 
     override fun destroy() {
         System.exit(0)
