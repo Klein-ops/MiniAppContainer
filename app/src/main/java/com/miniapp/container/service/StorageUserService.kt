@@ -3,8 +3,6 @@ package com.miniapp.container.service
 import android.os.Bundle
 import com.miniapp.container.IStorageUserService
 import java.io.File
-import java.io.FileNotFoundException
-import java.io.IOException
 
 /**
  * 存储 UserService：以 shell（ADB）身份运行在**独立常驻进程**，
@@ -29,8 +27,8 @@ class StorageUserService : IStorageUserService.Stub() {
 
     override fun read(path: String): ByteArray {
         val f = File(path)
-        if (!f.exists()) throw FileNotFoundException("文件不存在: $path")
-        if (f.isDirectory) throw IOException("目标是目录: $path")
+        if (!f.exists()) throw SecurityException("文件不存在: $path")
+        if (f.isDirectory) throw SecurityException("目标是目录: $path")
         return f.readBytes()
     }
 
@@ -42,8 +40,8 @@ class StorageUserService : IStorageUserService.Stub() {
 
     override fun list(dir: String): Array<Bundle> {
         val f = File(dir)
-        if (!f.exists()) throw FileNotFoundException("目录不存在: $dir")
-        if (!f.isDirectory) throw IOException("目标不是目录: $dir")
+        if (!f.exists()) throw SecurityException("目录不存在: $dir")
+        if (!f.isDirectory) throw SecurityException("目标不是目录: $dir")
         val files = f.listFiles()?.sortedBy { it.name } ?: emptyList()
         return files.map {
             Bundle().apply {

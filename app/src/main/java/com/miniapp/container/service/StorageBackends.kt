@@ -114,14 +114,23 @@ class ShizukuStorageBackend(private val context: Context) : StorageBackend {
     private val service: IStorageUserService
         get() = StorageUserServiceConnector.acquire(context)
 
-    override fun read(f: File): ByteArray = service.read(f.absolutePath)
+    /** binder 传输只保证 RuntimeException；把 message 还原为 IOException 语义。 */
+    private inline fun <T> io(block: () -> T): T = try {
+        block()
+    } catch (t: kotlinx.coroutines.CancellationException) {
+        throw t   // 协程取消必须透传，不能包装
+    } catch (t: Throwable) {
+        throw IOException(t.message ?: t.javaClass.simpleName)
+    }
+
+    override fun read(f: File): ByteArray = io { service.read(f.absolutePath) }
 
     override fun write(f: File, bytes: ByteArray) {
-        service.write(f.absolutePath, bytes)
+        io { service.write(f.absolutePath, bytes) }
     }
 
     override fun list(dir: File): List<StorageEntry> =
-        service.list(dir.absolutePath).map {
+        io { service.list(dir.absolutePath) }.map {
             StorageEntry(
                 name = it.getString("name") ?: "",
                 isDir = it.getBoolean("isDir"),
@@ -129,10 +138,10 @@ class ShizukuStorageBackend(private val context: Context) : StorageBackend {
             )
         }
 
-    override fun exists(f: File): Boolean = service.exists(f.absolutePath)
+    override fun exists(f: File): Boolean = io { service.exists(f.absolutePath) }
 
     override fun stat(f: File): StorageStat {
-        val b = service.stat(f.absolutePath)
+        val b = io { service.stat(f.absolutePath) }
         return StorageStat(
             exists = b.getBoolean("exists"),
             isDir = b.getBoolean("isDir"),
@@ -144,10 +153,10 @@ class ShizukuStorageBackend(private val context: Context) : StorageBackend {
         )
     }
 
-    override fun mkdir(dir: File): Boolean = service.mkdir(dir.absolutePath)
+    override fun mkdir(dir: File): Boolean = io { service.mkdir(dir.absolutePath) }
 
-    override fun remove(f: File): Boolean = service.remove(f.absolutePath)
+    override fun remove(f: File): Boolean = io { service.remove(f.absolutePath) }
 
     override fun rename(from: File, to: File): Boolean =
-        service.rename(from.absolutePath, to.absolutePath)
+        io { service.rename(from.absolutePath, to.absolutePath) }
 }

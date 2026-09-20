@@ -11,12 +11,12 @@ interface IStorageUserService {
     /** Shizuku 保留的销毁方法（事务码 16777114 / aidl 中 16777114 同值）。 */
     void destroy() = 16777114;
 
-    byte[] read(String path) throws java.io.IOException;
+    byte[] read(String path);
 
-    void write(String path, byte[] data) throws java.io.IOException;
+    void write(String path, byte[] data);
 
     /** 返回 Bundle[]：每个元素含 name / isDir / size。 */
-    android.os.Bundle[] list(String dir) throws java.io.IOException;
+    android.os.Bundle[] list(String dir);
 
     boolean exists(String path);
 
