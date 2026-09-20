@@ -21,7 +21,7 @@ import java.util.concurrent.TimeUnit
 object StorageUserServiceConnector {
 
     private const val BIND_TIMEOUT_MS = 5_000L
-    private const val VERSION = 1
+    private const val VERSION = 2   // 升版强制旧服务进程销毁重建（接口新增 exec）
 
     private var service: IStorageUserService? = null
 

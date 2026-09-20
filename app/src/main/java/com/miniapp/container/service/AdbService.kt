@@ -17,8 +17,8 @@ import org.json.JSONObject
  * 1. 蜗壳 `adb` scope（PermissionManager 审批，弹窗含危险警告）
  * 2. Shizuku 自身权限（用户在 Shizuku 应用弹窗批准）
  *
- * 状态检测与进程执行由 [ShizukuShell] 内核提供，本类只负责
- * 「蜗壳权限 + JSON 结果格式」。
+ * 状态检测由 [ShizukuShell] 提供，进程执行走 [StorageUserServiceConnector]
+ * 绑定的 UserService（常驻 shell 身份进程）；本类只负责「蜗壳权限 + JSON 结果格式」。
  *
  * 返回 JSON：
  * - 蜗壳权限被拒 → 抛 SecurityException("permission denied: adb")（reject）
@@ -74,10 +74,25 @@ class AdbService(
             return failJson("shizuku permission denied", "用户未在 Shizuku 中授予权限。")
         }
 
-        // 4) 执行（字节流返回，超时强杀）
-        val result = runCatching {
-            withContext(Dispatchers.IO) { ShizukuShell.exec(command, timeoutMs = timeoutMs) }
+        // 4) 执行（UserService 常驻进程，字节流返回，超时强杀）
+        val service = try {
+            StorageUserServiceConnector.acquire(activity)
+        } catch (t: Throwable) {
+            return failJson("shizuku error", t.message ?: "无法连接 UserService。")
+        }
+        val b = runCatching {
+            withContext(Dispatchers.IO) { service.exec(command, null, timeoutMs ?: 0L) }
         }.getOrElse { return failJson("adb error", it.message ?: it.javaClass.simpleName) }
+
+        val timedOut = b.getBoolean("timedOut")
+        val result = ShellResult(
+            ok = b.getBoolean("ok"),
+            exitCode = b.getInt("exitCode"),
+            stdout = b.getByteArray("stdout") ?: ByteArray(0),
+            stderr = String(b.getByteArray("stderr") ?: ByteArray(0), Charsets.UTF_8),
+            error = if (timedOut) "timeout" else null,
+            detail = if (timedOut) "命令执行超过 ${timeoutMs ?: "∞"}ms，已强制终止。" else ""
+        )
 
         if (!result.ok) {
             if (result.error == "timeout") {

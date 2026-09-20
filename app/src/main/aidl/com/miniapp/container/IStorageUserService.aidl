@@ -28,4 +28,12 @@ interface IStorageUserService {
     boolean remove(String path);
 
     boolean rename(String from, String to);
+
+    /**
+     * 以 shell（uid 2000）身份执行 sh 命令（语义同 adb shell）。
+     * timeoutMs <= 0 表示永不超时；超时强杀进程并置 timedOut=true。
+     * 返回 Bundle：ok / timedOut / exitCode / stdout(byte[]) / stderr(byte[])。
+     * 注意：stdout+stderr 合计受 binder 事务上限（约 1MB）限制。
+     */
+    android.os.Bundle exec(String command, in byte[] stdin, long timeoutMs);
 }
