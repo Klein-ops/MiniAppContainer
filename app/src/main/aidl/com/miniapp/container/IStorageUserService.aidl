@@ -13,7 +13,7 @@ interface IStorageUserService {
 
     byte[] read(String path);
 
-    void write(String path, byte[] data);
+    void write(String path, in byte[] data);
 
     /** 返回 Bundle[]：每个元素含 name / isDir / size。 */
     android.os.Bundle[] list(String dir);
