@@ -188,7 +188,7 @@ class ExternalFileService(
             ShizukuShell.state(activity) == ShizukuState.ACTIVE &&
             ShizukuShell.hasPermission()
         ) {
-            return ShizukuStorageBackend()
+            return ShizukuStorageBackend(activity)
         }
         ensureSystemStoragePermission()
         return DirectStorageBackend()
