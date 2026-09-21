@@ -1,10 +1,10 @@
 # 蜗壳（MiniAppContainer）
 
-一个运行在 Android 上的**本地小程序容器**：宿主 App 用系统 WebView 渲染 HTML/CSS/JS，
-小程序以 zip 包安装，每个小程序拥有独立沙箱，前端通过 JS Bridge 调用宿主本地能力，
-高性能计算由 WebView 内置 WebAssembly JIT 完成。仅 Android，使用系统 WebView，不自带浏览器内核。
+一个运行在 Android 上的**本地小程序容器**：宿主 App 用系统 WebView 渲染 HTML/CSS/JS，小程序以 zip 包安装，每个小程序拥有独立沙箱，前端通过 JS Bridge 调用宿主本地能力，高性能计算由 WebView 内置 WebAssembly JIT 完成。仅 Android，使用系统 WebView，不自带浏览器内核。
 
 > 本质：专用浏览器 + 小程序容器 + 本地 Web 运行时。
+
+适合做工具类、计算密集型、需要本地文件或系统能力的小程序：脚本工具、本地编辑器、离线计算、设备控制面板等。和浏览器里的网页相比，能拿到本地文件、剪贴板、通知、震动、手电筒、ADB Shell、Dex 执行等宿主能力，且每个小程序彼此隔离、权限可控；和云端小程序相比，完全本地运行、无云依赖、无账号。
 
 - **写小程序**：接口手册见 [DEVELOPER.md](./DEVELOPER.md)
 
@@ -35,9 +35,10 @@ Android Studio：`Open` 项目根目录 → Sync → Run。
    - **安装应用包（zip）**：系统文件选择器选 zip 安装。
    - **安装内置示例**：安装 `assets/sample/sample_app.zip`（demo/hello），含手写 `sample.wasm`（add / fib）。
    - **从 URL 安装**：输入 zip 直链，下载后安装并清理临时包。
-3. 点击列表项启动小程序，进入全屏 WebView 容器（左上角悬浮球，闲置自动贴边收起）。
+3. 点击列表项启动小程序，进入全屏 WebView 容器（左上角悬浮球，闲置自动贴边收起）。最近任务里显示小程序自己的名字与图标（取自 manifest 的 `icon`），而非宿主名。长按文字默认不弹系统选择/复制菜单（接近原生），需要长按复制的页面调 `sys.setTextSelection(true)` 放行。
 4. 应用列表分类栏支持切换分类、长按分类删除、长按应用拖动排序；应用设置页支持：重命名 / 权限管理 / 移动分类 / 创建桌面快捷方式 / 清空数据 / 卸载。
 5. 底部导航「**设置**」页：
+   - **主题**：跟随系统（默认）/ 白天 / 黑夜，选中即重建生效。
    - **调试模式**（开关）：开启后记录所有小程序接口调用（方法/参数/返回值/耗时）。
    - **查看调用日志**：实时查看调试记录；支持手动「清空」。关闭调试模式不会清空日志（日志仅存内存，蜗壳被划掉后自动消失）。
    - **备份与恢复**：导出/导入数据（zip），可选应用与是否含数据；支持备份到 WebDAV（路径 `/MiniAppContainer/backup/`）及从 WebDAV 恢复。
@@ -127,7 +128,7 @@ MiniApp.fs.read / readBytes / write / writeBytes / list / exists / stat / mkdir 
 MiniApp.fs.grep(path, pattern, opts) / sed(path, script)   // 局部编辑，免全量写入
 // SAF 导入导出（无需权限）
 MiniApp.fs.importFile(destPath) / exportFile(path)
-// 内部储存（需 fs.external 权限）
+// 内部储存（需 fs.external 权限；默认走 SAF，配置 Shizuku 后改走常驻 shell 身份进程，可访问 /sdcard/Android 且毫秒级）
 MiniApp.fs.readExternalFile / writeExternalFile / listExternal / existsExternal
 MiniApp.fs.statExternal / mkdirExternal / removeExternal / renameExternal
 MiniApp.fs.grepExternal / sedExternal   // 同上，作用于内部储存
@@ -144,11 +145,16 @@ MiniApp.clipboard.read() / write(text)
 MiniApp.notification.show(title, body) / cancel()
 // 网络存储（需 storage 权限）：小程序在 WebDAV 上的独立目录
 MiniApp.storage.upload(path, base64) / download(path) / list(path) / delete(path)
-// 设备能力（各需对应权限）
+// 设备能力（震动 / 手电筒需对应权限）
 MiniApp.sys.vibrate(ms)   // 震动
 MiniApp.sys.flashlight({ on: true|false })   // 手电筒
-// ADB / Shell（需 adb 权限，⚠ 危险，经 Shizuku 执行）
-MiniApp.adb.exec(command, { timeout })   // → { ok, exitCode, stdout, stderr } 或 { ok:false, error, detail }
+// 容器自身控制（无需权限，只影响本小程序窗口）
+MiniApp.sys.setOrientation('portrait'|'landscape'|'auto')   // 屏幕方向
+MiniApp.sys.setStatusBar(true|false)   // 状态栏显隐
+MiniApp.sys.setStatusBarColor('#RRGGBB'|'transparent')   // 状态栏颜色
+MiniApp.sys.setTextSelection(true|false)   // 长按文本选择菜单（默认 false 不弹）
+// ADB / Shell（需 adb 权限，标记为危险，经 Shizuku 执行）
+MiniApp.adb.exec(command, { timeout })   // timeout 默认 30000，负数=永不超时，正数任意（无上限）；→ { ok, exitCode, stdout, stderr, timedOut } 或 { ok:false, error, detail }
 // Dex 执行（无需权限，android:isolatedProcess 隔离进程内运行）
 MiniApp.dex.run({ dex, className, methodName, params, input, output })
 // 打开外部链接（需 sys.openUrl 权限）
@@ -169,7 +175,8 @@ MiniApp.permission.request(scope)
 - **内部储存安全**：`fs.external` 操作禁止访问应用私有目录（`/data/data/...`），防篡改权限记录。
 - **权限分级**：权限系统为注册表驱动，分三级——**安全**（无需审批，如沙箱内文件）、**普通**（需审批）、**危险**（需审批 + 醒目标警，且**不可声明为必要权限**）。新增权限只需在 `PermissionRegistry` 注册一条定义。
 - **权限审批**：普通/危险权限调用前经 `PermissionManager` 审批，授权持久化到 `miniapps/permissions.json`。弹窗提供 4 种选择：允许 / 仅允许一次 / 拒绝 / 不再询问。
-- **ADB / Shell**：`adb.exec` 需 `adb` 权限（⚠ 危险，审批时醒目警告），经 Shizuku 执行；Shizuku 未激活时返回明确错误而非崩溃
+- **ADB / Shell**：`adb.exec` 需 `adb` 权限（标记为危险，审批时醒目警告），经 Shizuku 执行；`timeout` 默认 30000，负数表示永不超时，正数无上限；Shizuku 未激活时返回明确错误而非崩溃
+- **Shizuku 存储模式**：内部储存默认走 SAF（Android 11+ 受限）；配置 Shizuku 后改走常驻 shell 身份进程（官方 `bindUserService` 公开 API），可访问 `/sdcard/Android/data/` 等，且与 `adb.exec` 复用同一进程，进程级单例、毫秒级响应
 - **Dex 隔离**：`dex.run` 无需权限，在 `android:isolatedProcess="true"` 独立进程中执行（独立 UID + SELinux `isolated_app` 域），无网络/无路径访问/无系统服务/不能加载 native 库；只能读写主进程通过 FD 传入的文件，无法主动打开路径。
 
 ---
