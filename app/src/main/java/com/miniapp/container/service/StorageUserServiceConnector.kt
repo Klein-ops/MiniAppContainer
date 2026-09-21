@@ -2,6 +2,7 @@ package com.miniapp.container.service
 
 import android.content.ComponentName
 import android.content.Context
+import android.os.Looper
 import android.content.ServiceConnection
 import android.os.IBinder
 import com.miniapp.container.IStorageUserService
@@ -27,6 +28,10 @@ object StorageUserServiceConnector {
 
     @Synchronized
     fun acquire(context: Context): IStorageUserService {
+        check(Looper.myLooper() != Looper.getMainLooper()) {
+            "StorageUserServiceConnector.acquire 必须在 IO 线程调用：" +
+                "绑定回调经主线程派发，主线程阻塞等待会死锁（binder 回调永远轮不到执行）"
+        }
         val alive = service?.let {
             runCatching { it.asBinder().isBinderAlive }.getOrDefault(false)
         } ?: false

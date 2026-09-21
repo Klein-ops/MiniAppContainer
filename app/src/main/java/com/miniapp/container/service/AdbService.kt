@@ -75,11 +75,10 @@ class AdbService(
         }
 
         // 4) 执行（UserService 常驻进程，字节流返回，超时强杀）
-        val service = try {
-            StorageUserServiceConnector.acquire(activity)
-        } catch (t: Throwable) {
-            return failJson("shizuku error", t.message ?: "无法连接 UserService。")
-        }
+        //     acquire 必须放 IO 线程：绑定回调经主线程派发，主线程阻塞会死锁
+        val service = runCatching {
+            withContext(Dispatchers.IO) { StorageUserServiceConnector.acquire(activity) }
+        }.getOrElse { return failJson("shizuku error", it.message ?: "无法连接 UserService。") }
         val b = runCatching {
             withContext(Dispatchers.IO) { service.exec(command, null, timeoutMs ?: 0L) }
         }.getOrElse { return failJson("adb error", it.message ?: it.javaClass.simpleName) }
