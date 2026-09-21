@@ -46,6 +46,8 @@ class MiniAppActivity : AppCompatActivity() {
     private lateinit var appInfo: MiniAppInfo
     private lateinit var bridge: MiniAppBridge
     private lateinit var webView: WebView
+    /** 长按是否允许系统文本选择；默认 false（接近原生，不弹选择条）。 */
+    private var textSelectionEnabled = false
     /** 全屏开屏层（页面加载完成前显示，完成后淡出）。 */
     private lateinit var splash: android.widget.FrameLayout
     private lateinit var floatingExit: FloatingExitView
@@ -109,11 +111,20 @@ class MiniAppActivity : AppCompatActivity() {
         if (info == null) { finish(); return }
         appInfo = info
 
-        // 任务视图（最近任务）里显示小程序自己的名字，而不是宿主的名字
-        @Suppress("DEPRECATION")
-        setTaskDescription(
-            android.app.ActivityManager.TaskDescription(info.displayName.ifBlank { info.uname })
-        )
+        // 任务视图（最近任务）：显示小程序自己的名字 + 图标 + 主色
+        // 无图标或解码失败则只设名字（保持宿主默认图标）
+        val taskName = info.displayName.ifBlank { info.uname }
+        val taskIcon = loadAppIconBitmap()
+        if (taskIcon != null) {
+            @Suppress("DEPRECATION")
+            setTaskDescription(android.app.ActivityManager.TaskDescription(
+                taskName, taskIcon,
+                androidx.core.content.ContextCompat.getColor(this, com.miniapp.container.R.color.brand_primary)
+            ))
+        } else {
+            @Suppress("DEPRECATION")
+            setTaskDescription(android.app.ActivityManager.TaskDescription(taskName))
+        }
         title = info.displayName.ifBlank { info.uname }
 
         // 必要权限门禁：应用列表 / 桌面快捷方式 / 外部 Intent 等所有入口一律生效
@@ -213,25 +224,35 @@ class MiniAppActivity : AppCompatActivity() {
      * 无图标或加载失败保持蜗壳默认 logo。
      */
     private fun loadSplashIcon(v: ImageView) {
-        if (appInfo.icon.isBlank()) return
-        runCatching {
+        loadAppIconBitmap()?.let { v.setImageBitmap(it) }
+    }
+
+    /**
+     * 加载小程序自己的图标（开屏 logo 与任务视图共用），支持 SVG / PNG。
+     * 失败或无 [MiniAppInfo.icon] 返回 null（调用方保持默认）。
+     */
+    private fun loadAppIconBitmap(): android.graphics.Bitmap? {
+        if (appInfo.icon.isBlank()) return null
+        return runCatching {
             val sandbox = File(File(filesDir, "miniapps/${appInfo.uid}_${appInfo.uname}"), "app")
             val iconFile = File(sandbox, appInfo.icon)
-            if (!iconFile.isFile) return
+            if (!iconFile.isFile) return null
             val size = 192
-            val bmp = if (iconFile.name.endsWith(".svg", ignoreCase = true)) {
+            if (iconFile.name.endsWith(".svg", ignoreCase = true)) {
                 val svg = SVG.getFromInputStream(iconFile.inputStream())
                 svg.setDocumentWidth(size.toFloat())
                 svg.setDocumentHeight(size.toFloat())
-                val picture = svg.renderToPicture()
                 Bitmap.createBitmap(size, size, Bitmap.Config.ARGB_8888).also { b ->
-                    picture.draw(Canvas(b))
+                    svg.renderToPicture().draw(Canvas(b))
                 }
             } else {
-                BitmapFactory.decodeFile(iconFile.absolutePath)
+                BitmapFactory.decodeFile(iconFile.absolutePath)?.let { src ->
+                    if (src.width == size && src.height == size) src
+                    else Bitmap.createScaledBitmap(src, size, size, true)
+                        .also { if (it !== src) src.recycle() }
+                }
             }
-            if (bmp != null) v.setImageBitmap(bmp)
-        }
+        }.getOrNull()
     }
 
     /** 页面加载完成：全屏开屏淡出，露出小程序界面。 */
@@ -257,7 +278,13 @@ class MiniAppActivity : AppCompatActivity() {
         s.builtInZoomControls = false
         s.userAgentString = "${s.userAgentString} MiniAppContainer/0.1"
         w.isVerticalScrollBarEnabled = true
+        // 默认禁用系统文本选择菜单：长按不弹选择/复制条（接近原生体验）。
+        // 小程序经 sys.setTextSelection(true) 后才放行系统行为。
+        w.setOnLongClickListener { if (textSelectionEnabled) false else true }
     }
+
+    /** [ContainerUiService] 调用：开关长按文本选择。 */
+    fun setTextSelection(enabled: Boolean) { textSelectionEnabled = enabled }
 
     private var lastBackPressedAt = 0L
 

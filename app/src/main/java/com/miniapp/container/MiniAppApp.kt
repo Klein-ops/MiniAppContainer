@@ -56,6 +56,8 @@ class MiniAppApp : Application() {
 
     override fun onCreate() {
         super.onCreate()
+        // 主题必须在任何 Activity 渲染前生效（隔离进程不渲染 UI 也无害）
+        com.miniapp.container.sys.ThemeManager.apply(this)
         ensureInitialized()
     }
 

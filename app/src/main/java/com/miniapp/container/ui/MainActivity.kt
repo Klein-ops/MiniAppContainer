@@ -383,6 +383,25 @@ class MainActivity : AppCompatActivity() {
             .setOnClickListener { startActivity(Intent(this, com.miniapp.container.ui.PermissionStatusActivity::class.java)) }
         findViewById<android.view.View>(R.id.card_clean)
             .setOnClickListener { cleanWebViewCache() }
+        // 主题：跟随系统 / 白天 / 黑夜（选中即生效，重建 Activity）
+        val tvThemeDesc = findViewById<android.widget.TextView>(R.id.tv_theme_desc)
+        fun updateThemeDesc() {
+            tvThemeDesc.text = com.miniapp.container.sys.ThemeManager.labels()[com.miniapp.container.sys.ThemeManager.current(this)]
+        }
+        updateThemeDesc()
+        findViewById<android.view.View>(R.id.card_theme).setOnClickListener {
+            val labels = com.miniapp.container.sys.ThemeManager.labels()
+            val current = com.miniapp.container.sys.ThemeManager.current(this)
+            com.google.android.material.dialog.MaterialAlertDialogBuilder(this)
+                .setTitle("主题")
+                .setSingleChoiceItems(labels, current) { dialog, which ->
+                    com.miniapp.container.sys.ThemeManager.set(this, which)
+                    updateThemeDesc()
+                    dialog.dismiss()
+                }
+                .setNegativeButton("取消", null)
+                .showRounded()
+        }
         // 关于蜗壳：点击卡片直接打开 GitHub 仓库
         findViewById<android.view.View>(R.id.card_about).setOnClickListener {
             startActivity(

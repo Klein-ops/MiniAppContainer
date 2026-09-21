@@ -178,7 +178,8 @@
       // 状态栏显隐
       setStatusBar: function (visible) { return B.call('sys.setStatusBar', { visible: !!visible }); },
       // 状态栏颜色 #RRGGBB / transparent
-      setStatusBarColor: function (color) { return B.call('sys.setStatusBarColor', { color: String(color || '#000000') }); }
+      setStatusBarColor: function (color) { return B.call('sys.setStatusBarColor', { color: String(color || '#000000') }); },
+      setTextSelection: function (enabled) { return B.call('sys.setTextSelection', { enabled: !!enabled }); }
     },
     adb: {
       // 通过 Shizuku 执行 SH 指令（需 adb 权限，危险，需用户审批）

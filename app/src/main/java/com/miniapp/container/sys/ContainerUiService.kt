@@ -51,6 +51,15 @@ class ContainerUiService(private val activity: MiniAppActivity) {
         return "true"
     }
 
+    /**
+     * `sys.setTextSelection(enabled)`：开启后允许长按文字弹出系统选择/复制菜单，
+     * 默认关闭（接近原生应用体验，避免误触弹出选择条）。
+     */
+    fun setTextSelection(p: JSONObject): String {
+        activity.setTextSelection(p.optBoolOr("enabled"))
+        return "true"
+    }
+
     /** `sys.setStatusBarColor(color)`：#RRGGBB / #AARRGGBB / `"transparent"`。 */
     fun setStatusBarColor(p: JSONObject): String {
         val raw = p.optStringOr("color", "#000000")

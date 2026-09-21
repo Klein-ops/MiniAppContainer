@@ -374,6 +374,7 @@ await MiniApp.sys.openUrl('https://example.com');  // boolean true
 | `sys.setOrientation(mode)` | `boolean` | 成功 `true`（`portrait` / `landscape` / `auto`）；参数非法 `{ ok:false, error:"invalid mode" }` |
 | `sys.setStatusBar(visible)` | `boolean` | 成功 `true`（隐藏/显示状态栏） |
 | `sys.setStatusBarColor(color)` | `boolean` | 成功 `true`（`#RRGGBB` / `#AARRGGBB` / `transparent`）；非法颜色 `{ ok:false, error:"invalid color" }` |
+| `sys.setTextSelection(enabled)` | `boolean` | 成功 `true`；`true` 后允许长按文字弹出系统选择/复制菜单，默认 `false`（不弹，接近原生体验） |
 
 **权限**：`vibrate` / `flashlight` 需声明并审批（均普通权限）；
 `setOrientation` / `setStatusBar` / `setStatusBarColor` 只影响小程序**自己的容器窗口**，
@@ -392,6 +393,7 @@ const l2 = await MiniApp.sys.flashlight(false);            // 关手电筒 → {
 await MiniApp.sys.setOrientation('landscape');      // 全屏视频场景强制横屏
 await MiniApp.sys.setStatusBar(false);              // 隐藏状态栏
 await MiniApp.sys.setStatusBarColor('#000000');     // 页面黑色时状态栏同步变黑
+await MiniApp.sys.setTextSelection(true);          // 允许长按文本选择/复制（编辑器场景）
 ```
 
 ### 4.9 预请求权限
