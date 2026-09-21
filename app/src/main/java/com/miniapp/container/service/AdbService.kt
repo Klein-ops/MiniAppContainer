@@ -25,7 +25,7 @@ import org.json.JSONObject
  * - 未安装 / 未激活 / Shizuku 权限被拒 / 超时 / 执行异常 → `{ok:false, error, detail}`
  * - 成功 → `{ok:true, exitCode, stdout, stderr, timedOut:false}`
  *
- * `timeout`（毫秒）由调用方指定，未指定默认 30000；超时后强杀进程。
+ * `timeout`（毫秒）由调用方指定，未指定默认 30000，不设上限（负数=永不超时）；超时后强杀进程。
  */
 class AdbService(
     activity: MiniAppActivity,
@@ -35,18 +35,15 @@ class AdbService(
 
     companion object {
         private const val DEFAULT_TIMEOUT_MS = 30_000L
-        private const val MIN_TIMEOUT_MS = 1_000L
-        private const val MAX_TIMEOUT_MS = 600_000L   // 最长 10 分钟
     }
 
     suspend fun exec(p: JSONObject): String {
         val command = p.optStringOr("command")
         if (command.isBlank()) throw IllegalArgumentException("command 不能为空")
-        // timeout ≤ 0（或省略时传 0）= 永不超时；否则夹紧 1s~10min
+        // timeout：省略或 0 → 默认 30s；负数 → 永不超时；正数 → 直接采用（无上限）
         val rawTimeout = p.optLongOr("timeout", DEFAULT_TIMEOUT_MS)
             .let { if (it == 0L) DEFAULT_TIMEOUT_MS else it }
-        val timeoutMs: Long? = if (rawTimeout <= 0L) null
-        else rawTimeout.coerceIn(MIN_TIMEOUT_MS, MAX_TIMEOUT_MS)
+        val timeoutMs: Long? = if (rawTimeout <= 0L) null else rawTimeout
 
         // 1) 蜗壳 adb 权限（含危险警告弹窗）
         requirePermission(PermissionScope.ADB)
