@@ -2,6 +2,8 @@ package com.miniapp.container.core
 
 import android.content.Context
 import android.content.SharedPreferences
+import org.json.JSONArray
+import org.json.JSONObject
 
 /** 内部储存访问方式。 */
 enum class StorageMode {
@@ -17,21 +19,61 @@ enum class StorageMode {
     }
 }
 
-/**
- * 内部储存路径过滤模式（叠加在「应用私有目录硬禁」之上的用户可配置项）。
- *
- * - [NONE]：不额外过滤（仅硬底线生效）
- * - [BLACKLIST]：黑名单，命中的路径禁止访问
- * - [WHITELIST]：白名单，仅命中的路径允许访问
- */
-enum class PathFilterMode {
-    NONE,
+/** 规则类型：黑名单（命中即禁）/ 白名单（未命中即禁）。 */
+enum class RuleType {
     BLACKLIST,
-    WHITELIST;
+    WHITELIST
+}
+
+/** 路径匹配方式。 */
+enum class MatchMode {
+    /** 前缀：路径本身 + 其下所有子目录（如 `/sdcard` 命中 `/sdcard/DCIM`）。 */
+    PREFIX,
+
+    /** 精确：仅路径本身，不含子目录。 */
+    EXACT
+}
+
+/**
+ * 一条内部储存访问规则。
+ *
+ * @param id        唯一标识（增删改定位用）
+ * @param type      黑名单 / 白名单
+ * @param path      匹配路径前缀或精确路径
+ * @param enabled   是否启用（停用的规则不参与匹配）
+ * @param matchMode 前缀匹配 / 精确匹配
+ * @param appKeys   作用域：空 = 所有小程序；非空 = 仅这些 appKey
+ */
+data class PathRule(
+    val id: String,
+    val type: RuleType,
+    val path: String,
+    val enabled: Boolean = true,
+    val matchMode: MatchMode = MatchMode.PREFIX,
+    val appKeys: Set<String> = emptySet()
+) {
+    fun toJson(): JSONObject = JSONObject()
+        .put("id", id)
+        .put("type", type.name)
+        .put("path", path)
+        .put("enabled", enabled)
+        .put("matchMode", matchMode.name)
+        .put("appKeys", JSONArray().also { a -> appKeys.forEach { a.put(it) } })
 
     companion object {
-        fun from(raw: String?): PathFilterMode =
-            values().firstOrNull { it.name == raw } ?: NONE
+        fun fromJson(o: JSONObject): PathRule? = try {
+            PathRule(
+                id = o.getString("id"),
+                type = RuleType.valueOf(o.getString("type")),
+                path = o.getString("path"),
+                enabled = o.optBoolean("enabled", true),
+                matchMode = runCatching { MatchMode.valueOf(o.getString("matchMode")) }
+                    .getOrDefault(MatchMode.PREFIX),
+                appKeys = o.optJSONArray("appKeys")?.let { a ->
+                    (0 until a.length()).mapNotNull { i -> a.optString(i) }.toSet()
+                } ?: emptySet()
+            )
+        } catch (_: Throwable) { null }
     }
 }
 
@@ -40,6 +82,7 @@ enum class PathFilterMode {
  *
  * 默认 [StorageMode.SYSTEM]：保持"直接申请系统存储权限"的老路。
  * 小程序的 `fs.*External` 接口行为不变，仅底层实现随本设置切换。
+ * 访问规则（黑/白名单）见 [rules] / [saveRules]。
  */
 class StorageAccessConfig(context: Context) {
 
@@ -58,21 +101,6 @@ class StorageAccessConfig(context: Context) {
             prefs?.edit()?.putString(KEY_MODE, value.name)?.apply()
         }
 
-    /** 路径过滤模式（默认 NONE：仅硬底线私有目录禁）。 */
-    var pathFilterMode: PathFilterMode
-        get() = PathFilterMode.from(prefs?.getString(KEY_FILTER_MODE, null))
-        set(value) {
-            prefs?.edit()?.putString(KEY_FILTER_MODE, value.name)?.apply()
-        }
-
-    /** 黑/白名单路径前缀列表（canonical 比较在调用方做）。 */
-    var pathList: List<String>
-        get() = prefs?.getStringSet(KEY_PATH_LIST, emptySet())
-            ?.toList()?.sorted() ?: emptyList()
-        set(value) {
-            prefs?.edit()?.putStringSet(KEY_PATH_LIST, value.toSet())?.apply()
-        }
-
     /** 首次切 Shizuku 模式的风险告知是否已读过（避免重复弹窗）。 */
     var shizukuWarned: Boolean
         get() = prefs?.getBoolean(KEY_SHIZUKU_WARNED, false) ?: false
@@ -80,11 +108,25 @@ class StorageAccessConfig(context: Context) {
             prefs?.edit()?.putBoolean(KEY_SHIZUKU_WARNED, value)?.apply()
         }
 
+    /** 全部访问规则（每次读时解析，量小无性能顾虑）。 */
+    fun rules(): List<PathRule> = try {
+        val arr = JSONArray(prefs?.getString(KEY_RULES, "[]") ?: "[]")
+        (0 until arr.length()).mapNotNull { i -> PathRule.fromJson(arr.optJSONObject(i)) }
+    } catch (_: Throwable) {
+        emptyList()
+    }
+
+    /** 保存全部规则（覆盖）。 */
+    fun saveRules(list: List<PathRule>) {
+        val arr = JSONArray()
+        list.forEach { arr.put(it.toJson()) }
+        prefs?.edit()?.putString(KEY_RULES, arr.toString())?.apply()
+    }
+
     companion object {
         private const val PREFS = "storage_access"
         private const val KEY_MODE = "mode"
-        private const val KEY_FILTER_MODE = "filter_mode"
-        private const val KEY_PATH_LIST = "path_list"
         private const val KEY_SHIZUKU_WARNED = "shizuku_warned"
+        private const val KEY_RULES = "rules"
     }
 }

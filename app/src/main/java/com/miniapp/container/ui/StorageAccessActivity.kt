@@ -17,7 +17,6 @@ import androidx.lifecycle.lifecycleScope
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.miniapp.container.R
 import com.miniapp.container.core.StorageAccessConfig
-import com.miniapp.container.core.PathFilterMode
 import com.miniapp.container.core.StorageMode
 import com.miniapp.container.service.ShizukuShell
 import com.miniapp.container.service.ShizukuState
@@ -178,10 +177,9 @@ class StorageAccessActivity : AppCompatActivity() {
             .showRounded()
     }
 
-    private fun filterDesc(): String = when (config.pathFilterMode) {
-        PathFilterMode.NONE -> "不过滤"
-        PathFilterMode.BLACKLIST -> "黑名单（${config.pathList.size}条）"
-        PathFilterMode.WHITELIST -> "白名单（${config.pathList.size}条）"
+    private fun filterDesc(): String {
+        val enabled = config.rules().count { it.enabled }
+        return if (enabled == 0) "未配置规则" else "已启用 $enabled 条规则"
     }
 
     private fun navCard(title: String, desc: String, status: String): LinearLayout {

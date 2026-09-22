@@ -5,9 +5,11 @@ import android.os.Build
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.lifecycleScope
 import com.miniapp.container.core.MiniAppInfo
+import com.miniapp.container.core.MatchMode
+import com.miniapp.container.core.PathRule
+import com.miniapp.container.core.RuleType
 import com.miniapp.container.core.StorageAccessConfig
 import com.miniapp.container.core.StorageMode
-import com.miniapp.container.core.PathFilterMode
 import com.miniapp.container.util.TextEditor
 import com.miniapp.container.file.FileService
 import com.miniapp.container.permission.PermissionManager
@@ -207,23 +209,26 @@ class ExternalFileService(
         if (p.startsWith(activity.filesDir.canonicalPath) || p.startsWith("/data/data/")) {
             throw SecurityException("禁止访问应用私有目录: $p")
         }
-        // 用户配置的黑白名单（叠加在硬底线之上）
-        val cfg = StorageAccessConfig(activity)
-        val mode = cfg.pathFilterMode
-        if (mode == PathFilterMode.NONE) return
-        val list = cfg.pathList
-        if (list.isEmpty()) return
-        val matched = list.any { prefix ->
-            val cp = try { File(prefix).canonicalPath } catch (e: Exception) { prefix }
-            p == cp || p.startsWith(cp + File.separator)
+        // 规则过滤：只取启用且作用域当前小程序 的规则
+        val active = StorageAccessConfig(activity).rules().filter {
+            it.enabled && (it.appKeys.isEmpty() || appInfo.appKey in it.appKeys)
         }
-        when (mode) {
-            PathFilterMode.BLACKLIST ->
-                if (matched) throw SecurityException("路径在黑名单中: $p")
-            PathFilterMode.WHITELIST ->
-                if (!matched) throw SecurityException("路径不在白名单中: $p")
-            PathFilterMode.NONE -> {}
+        val whitelists = active.filter { it.type == RuleType.WHITELIST }
+        val blacklists = active.filter { it.type == RuleType.BLACKLIST }
+        // 有白名单规则时：路径必须命中至少一条才放行
+        if (whitelists.isNotEmpty() && !whitelists.any { ruleMatches(it, p) }) {
+            throw SecurityException("路径不在白名单中: $p")
         }
+        // 黑名单规则：命中即禁（在白名单之后的二次过滤）
+        if (blacklists.any { ruleMatches(it, p) }) {
+            throw SecurityException("路径在黑名单中: $p")
+        }
+    }
+
+    private fun ruleMatches(rule: PathRule, canonicalPath: String): Boolean {
+        val rp = try { File(rule.path).canonicalPath } catch (e: Exception) { rule.path }
+        return if (rule.matchMode == MatchMode.EXACT) canonicalPath == rp
+        else canonicalPath == rp || canonicalPath.startsWith(rp + File.separator)
     }
 
     /**
