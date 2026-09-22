@@ -14,12 +14,15 @@ import android.widget.TextView
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.lifecycleScope
+import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.miniapp.container.R
 import com.miniapp.container.core.StorageAccessConfig
+import com.miniapp.container.core.PathFilterMode
 import com.miniapp.container.core.StorageMode
 import com.miniapp.container.service.ShizukuShell
 import com.miniapp.container.service.ShizukuState
 import com.miniapp.container.util.setupBackToolbar
+import com.miniapp.container.util.showRounded
 import com.miniapp.container.util.toast
 import kotlinx.coroutines.launch
 
@@ -77,6 +80,13 @@ class StorageAccessActivity : AppCompatActivity() {
             )
         )
         container.addView(hint("两种方式下小程序接口行为一致；「传统方式」为默认，Shizuku 不可用时自动回退。"))
+
+        container.addView(sectionTitle("访问控制"))
+        container.addView(navCard(
+            title = "访问黑白名单",
+            desc = "限制小程序 fs.*External 可访问的路径。Shizuku 模式下尤其建议配置。",
+            status = filterDesc()
+        ))
     }
 
     // ---------- 选项行 ----------
@@ -133,6 +143,15 @@ class StorageAccessActivity : AppCompatActivity() {
     }
 
     private fun choose(mode: StorageMode, available: Boolean) {
+        // 首次切到 Shizuku：弹一次风险告知（跨应用数据可达），标记已读避免重复
+        if (mode == StorageMode.SHIZUKU && config.mode != StorageMode.SHIZUKU && !config.shizukuWarned) {
+            showShizukuWarning { doChoose(mode, available) }
+            return
+        }
+        doChoose(mode, available)
+    }
+
+    private fun doChoose(mode: StorageMode, available: Boolean) {
         config.mode = mode
         if (!available) {
             // 引导授权（不阻断选择：授权后自动生效）
@@ -144,6 +163,62 @@ class StorageAccessActivity : AppCompatActivity() {
             toast(if (mode == StorageMode.SYSTEM) "已切换到传统方式" else "已切换到 Shizuku")
         }
         render()
+    }
+
+    private fun showShizukuWarning(after: () -> Unit) {
+        config.shizukuWarned = true
+        MaterialAlertDialogBuilder(this)
+            .setTitle("Shizuku 模式风险告知")
+            .setMessage(
+                "Shizuku 以 ADB（shell）身份运行，小程序经 fs.*External 可读取 /sdcard 下任意路径，" +
+                "包括其他应用的 Android/data 数据。建议在「访问黑白名单」中限制可访问路径。"
+            )
+            .setPositiveButton("知道了，继续切换") { d, _ -> d.dismiss(); after() }
+            .setNegativeButton("不切换") { d, _ -> d.dismiss() }
+            .showRounded()
+    }
+
+    private fun filterDesc(): String = when (config.pathFilterMode) {
+        PathFilterMode.NONE -> "不过滤"
+        PathFilterMode.BLACKLIST -> "黑名单（${config.pathList.size}条）"
+        PathFilterMode.WHITELIST -> "白名单（${config.pathList.size}条）"
+    }
+
+    private fun navCard(title: String, desc: String, status: String): LinearLayout {
+        val row = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            setBackgroundColor(ContextCompat.getColor(this@StorageAccessActivity, R.color.bg_card))
+            setPadding(dp(16), dp(14), dp(16), dp(14))
+            layoutParams = LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT
+            ).apply { bottomMargin = dp(12) }
+            isClickable = true
+            setOnClickListener { startActivity(Intent(this@StorageAccessActivity, PathFilterActivity::class.java)) }
+        }
+        val head = TextView(this).apply {
+            text = title
+            textSize = 16f
+            setTextColor(ContextCompat.getColor(this@StorageAccessActivity, R.color.text_primary))
+        }
+        val st = TextView(this).apply {
+            text = status
+            textSize = 13f
+            setTextColor(ContextCompat.getColor(this@StorageAccessActivity, R.color.text_secondary))
+            gravity = Gravity.END
+        }
+        val headRow = LinearLayout(this).apply {
+            orientation = LinearLayout.HORIZONTAL
+            addView(head, LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f))
+            addView(st)
+        }
+        row.addView(headRow)
+        row.addView(TextView(this).apply {
+            text = desc
+            textSize = 13f
+            setTextColor(ContextCompat.getColor(this@StorageAccessActivity, R.color.text_secondary))
+            setPadding(0, dp(6), 0, 0)
+        })
+        return row
     }
 
     // ---------- 状态 ----------

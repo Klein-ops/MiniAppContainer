@@ -79,6 +79,10 @@
             android:theme="@style/Theme.MiniApp" />
 
         <activity
+            android:name=".ui.PathFilterActivity"
+            android:exported="false" />
+
+        <activity
             android:name=".ui.StorageAccessActivity"
             android:exported="false"
             android:label="内部储存访问" />
