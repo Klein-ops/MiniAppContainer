@@ -227,8 +227,17 @@ class ExternalFileService(
 
     private fun ruleMatches(rule: PathRule, canonicalPath: String): Boolean {
         val rp = try { File(rule.path).canonicalPath } catch (e: Exception) { rule.path }
-        return if (rule.matchMode == MatchMode.EXACT) canonicalPath == rp
-        else canonicalPath == rp || canonicalPath.startsWith(rp + File.separator)
+        if (rule.matchMode == MatchMode.PREFIX) {
+            return canonicalPath == rp || canonicalPath.startsWith(rp + File.separator)
+        }
+        // EXACT：规则路径为目录时放行其全部内容（访问目录内文件/子目录）；
+        // 为文件（或不存在）时仅放行该路径本身。
+        val rpIsDir = try { File(rule.path).isDirectory } catch (_: Exception) { false }
+        return if (rpIsDir) {
+            canonicalPath == rp || canonicalPath.startsWith(rp + File.separator)
+        } else {
+            canonicalPath == rp
+        }
     }
 
     /**
