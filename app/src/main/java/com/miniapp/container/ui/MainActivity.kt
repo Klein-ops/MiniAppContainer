@@ -402,12 +402,8 @@ class MainActivity : AppCompatActivity() {
                 .setNegativeButton("取消", null)
                 .showRounded()
         }
-        // 关于蜗壳：点击卡片直接打开 GitHub 仓库
-        findViewById<android.view.View>(R.id.card_about).setOnClickListener {
-            startActivity(
-                Intent(Intent.ACTION_VIEW, Uri.parse("https://github.com/Klein-ops/MiniAppContainer"))
-            )
-        }
+        // 关于蜗壳：弹版本信息，含"查看 GitHub"入口
+        findViewById<android.view.View>(R.id.card_about).setOnClickListener { showAbout() }
     }
 
     /** 清理 WebView 缓存与存储。 */
@@ -417,6 +413,36 @@ class MainActivity : AppCompatActivity() {
             IoUtil.clearCache(this)
         } catch (t: Throwable) { /* ignore */ }
         toast("已清理 WebView 缓存与存储")
+    }
+
+    private fun showAbout() {
+        val appVer = try {
+            packageManager.getPackageInfo(packageName, 0)?.versionName ?: "?"
+        } catch (_: Throwable) { "?" }
+        val apiVer = com.miniapp.container.bridge.MiniAppBridge.API_VERSION
+        val webviewVer = try {
+            android.webkit.WebView.getCurrentWebViewPackage()?.versionName ?: "?"
+        } catch (_: Throwable) { "?" }
+        val shizuku = try {
+            val installed = runCatching {
+                packageManager.getPackageInfo("moe.shizuku.privileged.api", 0); true
+            }.getOrDefault(false)
+            when {
+                !installed -> "未安装"
+                rikka.shizuku.Shizuku.pingBinder() &&
+                    rikka.shizuku.Shizuku.checkSelfPermission() ==
+                    android.content.pm.PackageManager.PERMISSION_GRANTED -> "已激活"
+                else -> "未激活"
+            }
+        } catch (_: Throwable) { "未知" }
+        MaterialAlertDialogBuilder(this)
+            .setTitle("关于蜗壳")
+            .setMessage("App 版本：$appVer\n接口版本：$apiVer\nWebView：$webviewVer\nShizuku：$shizuku")
+            .setPositiveButton("查看 GitHub") { _, _ ->
+                startActivity(Intent(Intent.ACTION_VIEW, Uri.parse("https://github.com/Klein-ops/MiniAppContainer")))
+            }
+            .setNegativeButton("关闭", null)
+            .showRounded()
     }
 
 }

@@ -16,8 +16,10 @@ import com.miniapp.container.util.toast
 import java.io.File
 import java.net.HttpURLConnection
 import java.net.URL
+import kotlin.coroutines.resume
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlinx.coroutines.withContext
 
 /**
@@ -68,8 +70,18 @@ class InstallFlow(
         requestConfirm(cache)
     }
 
-    /** 从 URL 下载 zip 后安装。 */
+    /** 从 URL 下载 zip 后安装（先弹来源不可信提示）。 */
     suspend fun installFromUrl(url: String) {
+        // 来源不可信风险提示
+        val confirmed = suspendCancellableCoroutine<Boolean> { cont ->
+            MaterialAlertDialogBuilder(activity)
+                .setTitle("从 URL 安装")
+                .setMessage("安装来源：$url\n\n来自网络的安装包可能不可信，请仅安装你信任的来源。是否继续？")
+                .setPositiveButton("继续") { _, _ -> if (cont.isActive) cont.resume(true) }
+                .setNegativeButton("取消") { _, _ -> if (cont.isActive) cont.resume(false) }
+                .showRounded()
+        }
+        if (!confirmed) return
         val zipFile = File(activity.cacheDir, "remote_${System.currentTimeMillis()}.zip")
         try {
             activity.toast("下载中…")
