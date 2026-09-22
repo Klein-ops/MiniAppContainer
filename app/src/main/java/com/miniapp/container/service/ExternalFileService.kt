@@ -7,6 +7,7 @@ import androidx.lifecycle.lifecycleScope
 import com.miniapp.container.core.MiniAppInfo
 import com.miniapp.container.core.StorageAccessConfig
 import com.miniapp.container.core.StorageMode
+import com.miniapp.container.core.PathFilterMode
 import com.miniapp.container.util.TextEditor
 import com.miniapp.container.file.FileService
 import com.miniapp.container.permission.PermissionManager
@@ -194,11 +195,34 @@ class ExternalFileService(
         return DirectStorageBackend()
     }
 
-    /** 禁止访问应用私有目录（防篡改权限记录）。 */
+    /**
+     * 路径校验：应用私有目录为不可配置硬底线（永远禁），黑白名单叠加其上。
+     * - 黑名单：命中则禁
+     * - 白名单：未命中则禁
+     * - NONE：仅硬底线生效
+     */
     private fun assertExternalPath(f: File) {
         val p = try { f.canonicalPath } catch (e: Exception) { f.absolutePath }
+        // 硬底线：应用私有目录永远禁（不可配置，防篡改权限记录与沙箱数据）
         if (p.startsWith(activity.filesDir.canonicalPath) || p.startsWith("/data/data/")) {
             throw SecurityException("禁止访问应用私有目录: $p")
+        }
+        // 用户配置的黑白名单（叠加在硬底线之上）
+        val cfg = StorageAccessConfig(activity)
+        val mode = cfg.pathFilterMode
+        if (mode == PathFilterMode.NONE) return
+        val list = cfg.pathList
+        if (list.isEmpty()) return
+        val matched = list.any { prefix ->
+            val cp = try { File(prefix).canonicalPath } catch (e: Exception) { prefix }
+            p == cp || p.startsWith(cp + File.separator)
+        }
+        when (mode) {
+            PathFilterMode.BLACKLIST ->
+                if (matched) throw SecurityException("路径在黑名单中: $p")
+            PathFilterMode.WHITELIST ->
+                if (!matched) throw SecurityException("路径不在白名单中: $p")
+            PathFilterMode.NONE -> {}
         }
     }
 

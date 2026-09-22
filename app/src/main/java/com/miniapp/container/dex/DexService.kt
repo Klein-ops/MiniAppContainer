@@ -41,9 +41,11 @@ class DexService : Service() {
                 // 读取 dex 字节（仅通过传入 FD，无法主动打开路径）
                 val dexBytes = java.io.FileInputStream(dexFd.fileDescriptor).use { it.readBytes() }
                 // parent 用 BootClassLoader：只能访问 Android 框架类 + Java 标准库
+                // （isolatedProcess 里 getSystemClassLoader() 本身即 BootClassLoader，其 parent 为 null，
+                //  传 null 给 InMemoryDexClassLoader 等价于用 BootClassLoader 作 parent）
                 val loader = InMemoryDexClassLoader(
                     ByteBuffer.wrap(dexBytes),
-                    java.lang.ClassLoader.getSystemClassLoader()
+                    java.lang.ClassLoader.getSystemClassLoader().parent
                 )
                 val clazz = loader.loadClass(className)
                 val method = clazz.getMethod(
