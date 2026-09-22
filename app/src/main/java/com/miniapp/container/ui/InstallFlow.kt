@@ -141,11 +141,11 @@ class InstallFlow(
                 onRefresh()
                 return@launch
             }
-            showConfirmDialog(preview, zipFile)
+            showConfirmDialog(preview, zipFile, sourceUrl)
         }
     }
 
-    private fun showConfirmDialog(preview: PreviewInfo, zipFile: File) {
+    private fun showConfirmDialog(preview: PreviewInfo, zipFile: File, sourceUrl: String = "") {
         val existing = registry.get(PathGuard.appKey(preview.uid, preview.uname))
         val isNew = existing == null
         val (verb, full) = buildAction(existing?.version, preview.version)
