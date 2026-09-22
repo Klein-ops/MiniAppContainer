@@ -178,6 +178,12 @@ class MiniAppActivity : AppCompatActivity() {
 
         val hostApp = MiniAppApp.require(application)
         val sandboxRoot = hostApp.sandbox.appDir(appInfo.appKey)
+        // 启动时清空 tmp/（临时区，避免无限增长）
+        runCatching {
+            val tmp = hostApp.sandbox.tmpDir(appInfo.appKey)
+            if (tmp.isDirectory) tmp.deleteRecursively()
+            tmp.mkdirs()
+        }
         val bridgeJs = assets.open("bridge.js").bufferedReader().use { it.readText() }
 
         configureWebView(webView)

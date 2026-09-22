@@ -131,7 +131,7 @@ MiniApp.fs.write('data/test.txt', 'Hello').then(function () {
 | 接口 | 返回类型 | 返回值 |
 |---|---|---|
 | `MiniApp.info()` | `object` | `{ uid, uname, version, entry, permissions, appKey }` |
-| `MiniApp.system(fields?)` | `object` | 全量：`{ platform, model, manufacturer, brand, osVersion, sdk, hostAppVersion, apiVersion, webviewVersion, density, densityDpi, widthPixels, heightPixels }`（`sdk`、`densityDpi`、`widthPixels`、`heightPixels` 为整数，`density` 浮点数）；`fields` 传字符串或字符串数组时**只返回指定字段** |
+| `MiniApp.system(fields?)` | `object` | 全量：`{ platform, model, manufacturer, brand, osVersion, sdk, hostAppVersion, apiVersion, webviewVersion, density, densityDpi, widthPixels, heightPixels, theme }`（`sdk`、`densityDpi`、`widthPixels`、`heightPixels` 为整数，`density` 浮点数）；`fields` 传字符串或字符串数组时**只返回指定字段** |
 | `MiniApp.ui.toast(msg)` | `boolean` | 固定 `true` |
 
 `MiniApp.toast(msg)` 与 `MiniApp.ui.toast(msg)` 等价。
@@ -143,6 +143,7 @@ MiniApp.fs.write('data/test.txt', 'Hello').then(function () {
 | `hostAppVersion` | 蜗壳 App 版本（App 更新即变化） |
 | `apiVersion` | **接口版本**：只在接口行为变化时递增，不随 App 版本变动 |
 | `webviewVersion` | 当前 WebView 实现版本（如 `113.0.5672.136`） |
+| `theme` | 当前生效主题：`"light"` / `"dark"`；蜗壳配置为"跟随系统"时由宿主代为解析系统模式后输出最终值 |
 
 ```js
 const info = await MiniApp.info();       // object
@@ -512,7 +513,7 @@ try {
 
 ---
 
-### 4.12 ADB / Shell（需审批，⚠ 危险）
+### 4.12 ADB / Shell（需审批，危险）
 
 小程序可通过 Shizuku 以 adb shell 权限执行命令。**前提**：用户已安装并启动 Shizuku、激活服务。
 
@@ -856,7 +857,7 @@ adb logcat -s MiniAppJS MiniAppBridge
 | `unknown method: xxx` | 方法名拼写错误 | 对照本手册 API 清单 |
 | `permission denied: storage` | 未声明 `storage` 或用户拒绝 | manifest 声明并允许 |
 | `storage not configured` | 已授权但未配置 WebDAV | 在「设置 → 网络存储」中填写地址 |
-| `permission denied: adb` | 未声明 `adb` 或用户拒绝 | manifest 声明并允许（⚠ 危险） |
+| `permission denied: adb` | 未声明 `adb` 或用户拒绝 | manifest 声明并允许（危险） |
 | `shizuku not installed` | 设备未安装 Shizuku | 安装 Shizuku 应用 |
 | `shizuku not active` | Shizuku 未启动 | 启动 Shizuku 并激活服务 |
 | `timeout` | 命令超过指定超时 | 增大 `timeout` 或检查命令 |

@@ -1,6 +1,7 @@
 package com.miniapp.container.sys
 
 import android.content.Context
+import android.content.res.Configuration
 import android.os.Build
 import android.util.DisplayMetrics
 import android.webkit.WebView
@@ -37,11 +38,24 @@ class SystemInfoService(private val context: Context) {
             .put("densityDpi", dm.densityDpi)
             .put("widthPixels", dm.widthPixels)
             .put("heightPixels", dm.heightPixels)
+            .put("theme", currentTheme())
 
         if (fields.isEmpty()) return full.toString()
         val out = JSONObject()
         fields.forEach { f -> if (full.has(f)) out.put(f, full.get(f)) }
         return out.toString()
+    }
+
+    /** 当前生效主题（light/dark）；跟随系统时由蜗壳代为解析系统模式。 */
+    private fun currentTheme(): String {
+        val mode = ThemeManager.current(context)
+        val night = when (mode) {
+            ThemeManager.LIGHT -> false
+            ThemeManager.DARK -> true
+            else -> (context.resources.configuration.uiMode and Configuration.UI_MODE_NIGHT_MASK) ==
+                Configuration.UI_MODE_NIGHT_YES
+        }
+        return if (night) "dark" else "light"
     }
 
     /** 当前 WebView 实现版本（如 113.0.5672.136）。 */

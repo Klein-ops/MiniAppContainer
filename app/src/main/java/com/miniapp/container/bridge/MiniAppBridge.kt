@@ -72,7 +72,7 @@ class MiniAppBridge(
          * （App 可能仅调整 UI / 修 Bug 就升级，但那不影响接口契约。）
          * 首次引入定为 1.0.0；将来接口行为变化（新增/修改/删除接口）时递增。
          */
-        const val API_VERSION = "1.4.0"
+        const val API_VERSION = "1.5.0"
         private const val TAG = "MiniAppBridge"
     }
 
