@@ -243,7 +243,7 @@ class PathFilterActivity : AppCompatActivity() {
                 setTextColor(ContextCompat.getColor(this@PathFilterActivity, R.color.brand_primary))
             })
             addView(TextView(this@PathFilterActivity).apply {
-                text = text
+                this.text = text
                 textSize = 14f
                 setTextColor(ContextCompat.getColor(this@PathFilterActivity, R.color.text_primary))
             })
