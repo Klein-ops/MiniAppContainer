@@ -96,7 +96,7 @@ class InstallFlow(
                 }
                 conn.disconnect()
             }
-            requestConfirm(zipFile)
+            requestConfirm(zipFile, sourceUrl = url)
         } catch (e: Exception) {
             activity.toast("下载失败: ${e.message}")
             zipFile.delete()
@@ -132,7 +132,7 @@ class InstallFlow(
     // ---------- 内部：二次确认 ----------
 
     /** 安装前二次确认：读 zip 内 manifest.json，展示名称/appKey/版本，按版本差异给按钮。 */
-    private fun requestConfirm(zipFile: File) {
+    private fun requestConfirm(zipFile: File, sourceUrl: String = "") {
         activity.lifecycleScope.launch {
             val preview = withContext(Dispatchers.IO) { installer.previewZip(zipFile) }
             if (preview == null) {
@@ -161,7 +161,7 @@ class InstallFlow(
             .setMessage(msg)
             .setPositiveButton(full) { _, _ ->
                 activity.lifecycleScope.launch {
-                    val r = install(zipFile)
+                    val r = install(zipFile, sourceUrl)
                     activity.toast(
                         if (r.success) "已安装: ${r.info?.uname}" else "安装失败: ${r.message}"
                     )
@@ -173,7 +173,7 @@ class InstallFlow(
             .showRounded()
     }
 
-    private suspend fun install(zipFile: File) = installer.installFromZip(zipFile)
+    private suspend fun install(zipFile: File, sourceUrl: String = "") = installer.installFromZip(zipFile, sourceUrl)
 
     /** 按已装版本与新包版本判定动作语义。 */
     private fun buildAction(existingVer: String?, newVer: String): Pair<String, String> {

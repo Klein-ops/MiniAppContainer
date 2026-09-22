@@ -19,7 +19,9 @@ data class MiniAppInfo(
     val displayName: String = "",
     val installedAt: Long,
     /** 所属分类（宿主写；随 meta.json 备份，恢复时"存在则移入、不存在则创建"）。 */
-    val category: String = ""
+    val category: String = "",
+    /** 安装来源 URL（仅从 URL 安装时记录，便于追溯）。 */
+    val sourceUrl: String = ""
 ) {
     val appKey: String get() = "${uid}_${uname}"
 
@@ -42,6 +44,7 @@ data class MiniAppInfo(
             .put("icon", icon)
             .put("displayName", displayName)
             .put("category", category)
+            .put("sourceUrl", sourceUrl)
             .put("appKey", appKey)
     }
 
@@ -57,7 +60,8 @@ data class MiniAppInfo(
             icon = o.optStringOr("icon", ""),
             displayName = o.optStringOr("displayName", ""),
             installedAt = o.optLongOr("installedAt", System.currentTimeMillis()),
-            category = o.optStringOr("category", "")
+            category = o.optStringOr("category", ""),
+            sourceUrl = o.optStringOr("sourceUrl", "")
         )
     }
 }

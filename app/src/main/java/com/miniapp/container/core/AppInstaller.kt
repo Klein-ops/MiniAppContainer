@@ -60,7 +60,7 @@ class AppInstaller(
         }
     }
 
-    suspend fun installFromZip(zipFile: File): InstallResult = withContext(Dispatchers.IO) {
+    suspend fun installFromZip(zipFile: File, sourceUrl: String = ""): InstallResult = withContext(Dispatchers.IO) {
         val tmp = File(context.cacheDir, "install_${System.currentTimeMillis()}")
         try {
             tmp.mkdirs()
@@ -112,7 +112,8 @@ class AppInstaller(
                 requiredPermissions = safeRequired,
                 icon = manifest.icon,
                 displayName = existing?.displayName ?: "",
-                installedAt = System.currentTimeMillis()
+                installedAt = System.currentTimeMillis(),
+                sourceUrl = sourceUrl
             )
             registry.put(info)   // 内存缓存 + 写沙箱 meta.json（随应用走）
 

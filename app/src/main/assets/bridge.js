@@ -2,6 +2,7 @@
   if (window.__MiniAppBridge) return;
   var seq = 0;
   var cbs = {};
+  var _wasmModules = {};   // 路径 → 已编译 WebAssembly.Module（会话内复用，省字节读取与编译）
 
   function genId() { return 'r' + (seq++); }
 
@@ -92,8 +93,15 @@
       // 利用 WebView 内置 WebAssembly JIT 引擎（高性能，支持二进制/Memory/import）
       instantiate: async function(pathOrBytes, imports) {
         try {
-          let bytes;
+          let bytes, cacheKey = null;
           if (typeof pathOrBytes === 'string') {
+            cacheKey = pathOrBytes;
+            // 命中缓存 Module：跳过字节读取与编译，仅按 imports 实例化
+            if (_wasmModules[cacheKey]) {
+              const inst = await WebAssembly.instantiate(_wasmModules[cacheKey], imports || {});
+              console.log('[MiniApp.wasm] instantiated (cached module)');
+              return inst;
+            }
             // 路径模式：通过 Bridge 读取字节（file:// 下 fetch 会被沙箱拦截，故不走 fetch）；
             // 路径相对沙箱根，如 'app/heavy.wasm'
             const b64 = await B.call('fs.readBytes', { path: pathOrBytes });
@@ -101,10 +109,17 @@
             bytes = new Uint8Array(bin.length);
             for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
           } else if (pathOrBytes && (typeof pathOrBytes === 'object') && (pathOrBytes.buffer instanceof ArrayBuffer || pathOrBytes instanceof Uint8Array || pathOrBytes instanceof Uint32Array)) {
-            // 直接传入 ArrayBuffer / TypedArray（推荐）
+            // 直接传入 ArrayBuffer / TypedArray（推荐，不缓存）
             bytes = pathOrBytes;
           } else {
             throw new Error('instantiate: 需要路径字符串或 ArrayBuffer/TypedArray');
+          }
+          if (cacheKey) {
+            // 编译 Module 缓存（同 path 后续调用复用），再用 imports 实例化
+            const module = new WebAssembly.Module(bytes);
+            _wasmModules[cacheKey] = module;
+            console.log('[MiniApp.wasm] instantiated');
+            return await WebAssembly.instantiate(module, imports || {});
           }
           const { instance } = await WebAssembly.instantiate(bytes, imports || {});
           console.log('[MiniApp.wasm] instantiated');
