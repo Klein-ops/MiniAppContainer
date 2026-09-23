@@ -204,9 +204,10 @@ class ExternalFileService(
      * - NONE：仅硬底线生效
      */
     private fun assertExternalPath(f: File) {
-        val p = try { f.canonicalPath } catch (e: Exception) { f.absolutePath }
+        val p = normalizePath(f.path)
         // 硬底线：应用私有目录永远禁（不可配置，防篡改权限记录与沙箱数据）
-        if (p.startsWith(activity.filesDir.canonicalPath) || p.startsWith("/data/data/")) {
+        val privateRoot = normalizePath(activity.filesDir.path)
+        if (p == privateRoot || p.startsWith(privateRoot + "/") || p.startsWith("/data/data/")) {
             throw SecurityException("禁止访问应用私有目录: $p")
         }
         // 规则过滤：只取启用且作用域当前小程序 的规则
@@ -225,19 +226,51 @@ class ExternalFileService(
         }
     }
 
-    private fun ruleMatches(rule: PathRule, canonicalPath: String): Boolean {
-        val rp = try { File(rule.path).canonicalPath } catch (e: Exception) { rule.path }
+    private fun ruleMatches(rule: PathRule, normalizedTarget: String): Boolean {
+        val rp = normalizePath(rule.path)
         if (rule.matchMode == MatchMode.PREFIX) {
-            return canonicalPath == rp || canonicalPath.startsWith(rp + File.separator)
+            return normalizedTarget == rp || normalizedTarget.startsWith(rp + "/")
         }
         // EXACT：规则路径为目录时放行其全部内容（访问目录内文件/子目录）；
         // 为文件（或不存在）时仅放行该路径本身。
         val rpIsDir = try { File(rule.path).isDirectory } catch (_: Exception) { false }
         return if (rpIsDir) {
-            canonicalPath == rp || canonicalPath.startsWith(rp + File.separator)
+            normalizedTarget == rp || normalizedTarget.startsWith(rp + "/")
         } else {
-            canonicalPath == rp
+            normalizedTarget == rp
         }
+    }
+
+    /**
+     * 路径规范化：纯字符串处理，**不访问文件系统**。
+     *
+     * 不能用 [File.canonicalPath]：它需解析符号链接，受宿主进程访问权限影响——
+     * 宿主对 /sdcard 有权限、对其下 Android/data 无权限时，浅路径能解析成
+     * /storage/emulated/0 而深路径抛异常回退原值，导致规则路径与目标路径的
+     * 规范化结果不一致，前缀匹配失败（白名单误判为未命中而误禁）。
+     */
+    private fun normalizePath(raw: String): String {
+        var s = raw.trim()
+        if (s.startsWith("file://")) s = s.removePrefix("file://")
+        // 统一常见别名（符号链接）到 /storage/emulated/0
+        s = when {
+            s == "/sdcard" -> "/storage/emulated/0"
+            s.startsWith("/sdcard/") -> "/storage/emulated/0" + s.removePrefix("/sdcard")
+            s == "/storage/self/primary" -> "/storage/emulated/0"
+            s.startsWith("/storage/self/primary/") ->
+                "/storage/emulated/0" + s.removePrefix("/storage/self/primary")
+            else -> s
+        }
+        // 折叠 . 与 .. 段（纯字符串，防穿越）
+        val stack = ArrayDeque<String>()
+        for (part in s.split('/')) {
+            when (part) {
+                "", "." -> {}
+                ".." -> if (stack.isNotEmpty()) stack.removeLast()
+                else -> stack.addLast(part)
+            }
+        }
+        return "/" + stack.joinToString("/")
     }
 
     /**
