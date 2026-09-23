@@ -101,7 +101,7 @@ class StorageAccessActivity : AppCompatActivity() {
         val selected = mode == current
         val row = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
-            setBackgroundColor(ContextCompat.getColor(this@StorageAccessActivity, R.color.bg_card))
+            setBackgroundResource(R.drawable.bg_card_rounded)
             setPadding(dp(16), dp(14), dp(16), dp(14))
             layoutParams = LinearLayout.LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT
@@ -185,7 +185,7 @@ class StorageAccessActivity : AppCompatActivity() {
     private fun navCard(title: String, desc: String, status: String): LinearLayout {
         val row = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
-            setBackgroundColor(ContextCompat.getColor(this@StorageAccessActivity, R.color.bg_card))
+            setBackgroundResource(R.drawable.bg_card_rounded)
             setPadding(dp(16), dp(14), dp(16), dp(14))
             layoutParams = LinearLayout.LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT

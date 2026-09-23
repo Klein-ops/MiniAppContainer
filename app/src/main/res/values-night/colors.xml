@@ -1,20 +1,20 @@
 <resources>
-    <!-- 暗色模式：品牌色提亮，背景转深 -->
-    <color name="brand_primary">#7E93F0</color>
-    <color name="brand_primary_dark">#1E2B66</color>
-    <color name="brand_accent">#FFD66E</color>
-    <color name="danger">#FF6B6B</color>
-    <color name="ok">#69DB7C</color>
+    <!-- 暗色模式：品牌色提亮，背景转深（slate 系） -->
+    <color name="brand_primary">#60A5FA</color>
+    <color name="brand_primary_dark">#1E3A8A</color>
+    <color name="brand_accent">#FBBF24</color>
+    <color name="danger">#F87171</color>
+    <color name="ok">#4ADE80</color>
 
-    <color name="brand_on_primary">#101426</color>
-    <color name="brand_primary_container">#2B3A7A</color>
-    <color name="brand_on_primary_container">#DCE1FB</color>
-    <color name="brand_on_secondary">#2A2308</color>
+    <color name="brand_on_primary">#0F172A</color>
+    <color name="brand_primary_container">#1E3A8A</color>
+    <color name="brand_on_primary_container">#DBEAFE</color>
+    <color name="brand_on_secondary">#1A1504</color>
 
-    <color name="bg_window">#12131A</color>
-    <color name="bg_card">#1D1F28</color>
-    <color name="bg_card_raised">#262933</color>
-    <color name="text_primary">#E6E8EE</color>
-    <color name="text_secondary">#9AA0AE</color>
-    <color name="divider">#2E3038</color>
+    <color name="bg_window">#0F172A</color>
+    <color name="bg_card">#1E293B</color>
+    <color name="bg_card_raised">#334155</color>
+    <color name="text_primary">#F1F5F9</color>
+    <color name="text_secondary">#94A3B8</color>
+    <color name="divider">#334155</color>
 </resources>

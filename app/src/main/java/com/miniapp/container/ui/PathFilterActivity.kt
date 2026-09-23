@@ -267,7 +267,7 @@ class PathFilterActivity : AppCompatActivity() {
 
     private fun card(block: LinearLayout.() -> Unit): LinearLayout = LinearLayout(this).apply {
         orientation = LinearLayout.VERTICAL
-        setBackgroundColor(ContextCompat.getColor(this@PathFilterActivity, R.color.bg_card))
+        setBackgroundResource(R.drawable.bg_card_rounded)
         setPadding(dp(16), dp(14), dp(16), dp(14))
         layoutParams = LinearLayout.LayoutParams(
             ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT
