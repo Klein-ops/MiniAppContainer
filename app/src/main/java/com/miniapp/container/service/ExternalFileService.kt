@@ -42,19 +42,42 @@ class ExternalFileService(
     private val fileService: FileService
 ) : BaseService(activity, appInfo, permissionManager) {
 
+    /** 会话级授权 URL 令牌缓存（同路径复用，防令牌表无限增长；随 Activity 存活，关闭即清）。 */
+    private val externalTokenCache = HashMap<String, String>()
+
+    companion object {
+        private const val MAX_EXTERNAL_TOKENS = 512
+    }
+
     // ---------- content:// URI ----------
 
-    /** 打开外部文件：校验路径后返回会话级授权 URL，小程序 fetch 流式读取（避免 base64 大 payload）。 */
+    /** 打开外部文件：校验权限后返回会话级授权 URL，小程序 fetch 流式读取（避免 base64 大 payload）。 */
     suspend fun openExternalFile(absPath: String): String = withContext(Dispatchers.IO) {
         val f = File(absPath)
-        assertExternalPath(f)
-        if (!f.exists()) throw java.io.FileNotFoundException("文件不存在: $absPath")
-        if (f.isDirectory) throw IllegalArgumentException("目录不支持授权 URL，请用 fs.listExternal 枚举: $absPath")
-        val token = java.util.UUID.randomUUID().toString().replace("-", "")
-        if (!activity.registerExternalToken(token, f)) {
-            throw IllegalStateException("WebView 会话不可用")
+        // backend()：fs.external 审批 + 路径规则 + 系统存储权限；stat 在 Shizuku 时走 uid 2000，
+        // 存在/目录判断准确（宿主侧 File.exists 对 Android/data 等宿主无权路径会误报不存在）
+        val st = backend(f).stat(f)
+        if (!st.exists) throw java.io.FileNotFoundException("文件不存在: $absPath")
+        if (st.isDir) throw IllegalArgumentException("目录不支持授权 URL，请用 fs.listExternal 枚举: $absPath")
+        // 授权 URL 的读取发生在宿主进程（WebView 拦截层 FileInputStream）：Shizuku 能读但宿主
+        // 无权读的路径（如 Android/data）不支持此通道，需明确报错而非误报"不存在"
+        if (!f.isFile) {
+            throw IllegalStateException("宿主进程无法直接读取该路径，授权 URL 不可用（请用 fs.readExternalFile）: $absPath")
         }
-        "https://${MiniAppWebViewClient.EXTERNAL_HOST}${MiniAppWebViewClient.EXTERNAL_PATH_PREFIX}$token"
+        // 同路径复用令牌；会话内总数设上限防滥用
+        val token = externalTokenCache[absPath] ?: run {
+            if (externalTokenCache.size >= MAX_EXTERNAL_TOKENS) {
+                throw IllegalStateException("授权 URL 数量超限（$MAX_EXTERNAL_TOKENS），请复用或关闭小程序")
+            }
+            val t = java.util.UUID.randomUUID().toString().replace("-", "")
+            if (!activity.registerExternalToken(t, f)) {
+                throw IllegalStateException("WebView 会话不可用")
+            }
+            externalTokenCache[absPath] = t
+            t
+        }
+        // 返回带引号的 JSON 字符串：respond() 会原样拼进 JS 源码，裸 URL 会被当作 label/注释导致语法错误
+        JSONObject.quote("https://${MiniAppWebViewClient.EXTERNAL_HOST}${MiniAppWebViewClient.EXTERNAL_PATH_PREFIX}$token")
     }
 
     /** grep：返回匹配行（不修改文件）。 */

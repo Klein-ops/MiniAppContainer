@@ -226,7 +226,7 @@ await MiniApp.fs.exportFile('data/report.txt');    // boolean true
 | 接口 | 返回类型 | 返回值 |
 |---|---|---|
 | `fs.readExternalFile(absPath)` | `string` | base64 编码的文件字节 |
-| `fs.openExternalFile(absPath)` | `string` | 会话级授权 URL（如 `https://miniapp.local/ext/<token>`），小程序 `fetch` 流式读取大文件（响应带 CORS 头）；令牌仅当前小程序会话内有效，页面关闭即失效 |
+| `fs.openExternalFile(absPath)` | `string` | 会话级授权 URL（如 `https://miniapp.invalid/ext/<token>`），小程序 `fetch` 流式读取大文件（响应带 CORS 头）；令牌仅当前小程序会话内有效（Activity 重建即失效，需重新获取），同路径复用同一令牌 |
 | `fs.writeExternalFile(absPath, base64)` | `boolean` | 成功 `true` |
 | `fs.listExternal(dir)` | `array` | `[{ name: string, isDir: boolean, size: number }]`（不递归） |
 | `fs.existsExternal(absPath)` | `boolean` | 存在 `true`，不存在 `false` |
@@ -237,6 +237,8 @@ await MiniApp.fs.exportFile('data/report.txt');    // boolean true
 | `fs.grepExternal(absPath, pattern, opts)` | `array` | 同 `fs.grep`，作用于内部储存文件 |
 | `fs.sedExternal(absPath, script)` | `boolean` | 同 `fs.sed`，作用于内部储存文件 |
 | `MiniApp.call('fs.readExternal', { uri })` | `string` | 读取 content:// URI，返回 base64 |
+
+> **`fs.openExternalFile` 限制**：授权 URL 的读取发生在宿主进程（WebView 拦截层），因此**仅支持宿主进程可直接读取的路径**。Shizuku 模式下宿主无权读的路径（如 `/sdcard/Android/data/...`）会明确报错，请改用 `fs.readExternalFile`（base64）。权限校验在发 URL 时点执行一次（此后黑白名单变更不影响已发令牌）。
 
 ```js
 const b64  = await MiniApp.fs.readExternalFile('/storage/emulated/0/Documents/a.txt'); // string

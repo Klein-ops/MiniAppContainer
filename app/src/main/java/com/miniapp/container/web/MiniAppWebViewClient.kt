@@ -10,6 +10,7 @@ import com.miniapp.container.core.PathGuard
 import java.io.ByteArrayInputStream
 import java.io.File
 import java.io.FileInputStream
+import java.util.concurrent.ConcurrentHashMap
 
 /**
  * 渲染层客户端：
@@ -23,7 +24,7 @@ class MiniAppWebViewClient(
 ) : WebViewClient() {
 
     /** 会话级外部文件授权表：token -> 真实文件。仅本 WebView 实例（当前小程序）可查。 */
-    private val externalTokens = HashMap<String, File>()
+    private val externalTokens = ConcurrentHashMap<String, File>()
 
     /** 注册外部文件授权令牌（由 fs.openExternalFile 校验权限后调用）。 */
     fun registerExternalToken(token: String, file: File) {
@@ -36,7 +37,7 @@ class MiniAppWebViewClient(
         return when (uri.scheme?.lowercase()) {
             "file" -> serveFile(uri)
             // 会话级外部文件授权 URL（fs.openExternalFile 返回）：仅放行本实例注册的令牌
-            "https" -> if (uri.host?.lowercase() == EXTERNAL_HOST) serveExternalToken(uri) else blocked()
+            "https" -> if (uri.host?.lowercase() == EXTERNAL_HOST) serveExternalToken(req.method, uri) else blocked()
             "data", "blob", "about" -> null
             else -> blocked()
         }
@@ -77,7 +78,9 @@ class MiniAppWebViewClient(
     }
 
     /** 会话级外部文件流式读取：凭令牌查表，响应带 CORS 头供 fetch 跨源读取。 */
-    private fun serveExternalToken(uri: Uri): WebResourceResponse {
+    private fun serveExternalToken(method: String, uri: Uri): WebResourceResponse {
+        // 仅 GET/HEAD：OPTIONS 预检等请求不得返回文件内容（预检头未配置，直接 404 让预检失败）
+        if (method != "GET" && method != "HEAD") return notFound()
         val path = uri.path ?: return notFound()
         if (!path.startsWith(EXTERNAL_PATH_PREFIX)) return notFound()
         val token = path.removePrefix(EXTERNAL_PATH_PREFIX)
@@ -114,7 +117,8 @@ class MiniAppWebViewClient(
 
     companion object {
         /** 会话级外部文件授权 URL 的虚拟域（不发起真实网络请求，由 shouldInterceptRequest 接管）。 */
-        const val EXTERNAL_HOST = "miniapp.local"
+        // RFC 2606 .invalid 保留域：永不解析，杜绝任何真实网络兜底
+        const val EXTERNAL_HOST = "miniapp.invalid"
         const val EXTERNAL_PATH_PREFIX = "/ext/"
 
         private val MIME = mapOf(
