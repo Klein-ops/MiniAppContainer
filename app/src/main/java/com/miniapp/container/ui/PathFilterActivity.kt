@@ -146,7 +146,8 @@ class PathFilterActivity : AppCompatActivity() {
 
         val view = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
-            setPadding(dp(4), 0, dp(4), 0)
+            // 自定义 view 在 Material 对话框里不自带内容边距，需自己留 24dp 水平
+            setPadding(dp(24), 0, dp(24), 0)
         }
         val sw = SwitchCompat(this).apply {
             text = "启用此规则"
