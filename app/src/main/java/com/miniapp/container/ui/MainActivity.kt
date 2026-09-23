@@ -70,6 +70,8 @@ class MainActivity : AppCompatActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        // 主题切换等重建后恢复所在 tab（否则底部导航选中态与页面不一致）
+        onSettingsTab = savedInstanceState?.getBoolean("settings_tab", false) ?: false
         setContentView(R.layout.activity_main)
         setSupportActionBar(findViewById<Toolbar>(R.id.toolbar))
 
@@ -273,6 +275,11 @@ class MainActivity : AppCompatActivity() {
     /** 当前是否在「设置」tab（设置页隐藏搜索按钮）。 */
     private var onSettingsTab = false
 
+    override fun onSaveInstanceState(outState: Bundle) {
+        super.onSaveInstanceState(outState)
+        outState.putBoolean("settings_tab", onSettingsTab)
+    }
+
     override fun onCreateOptionsMenu(menu: Menu): Boolean {
         menuInflater.inflate(R.menu.main_menu, menu)
         return true
@@ -343,9 +350,6 @@ class MainActivity : AppCompatActivity() {
     private fun setupBottomNav() {
         val pageApps = findViewById<View>(R.id.page_apps)
         val pageSettings = findViewById<View>(R.id.page_settings)
-        // 显式初始化可见性（不依赖 <include> 上的 android:visibility）
-        pageApps.visibility = View.VISIBLE
-        pageSettings.visibility = View.GONE
         val toolbar = findViewById<Toolbar>(R.id.toolbar)
         val bottomNav =
             findViewById<com.google.android.material.bottomnavigation.BottomNavigationView>(R.id.bottom_nav)
@@ -363,6 +367,11 @@ class MainActivity : AppCompatActivity() {
             show.animate().alpha(1f).setDuration(180).start()
             true
         }
+        // 重建后按保存的 tab 同步初始可见性与选中态（不走 listener，避免开屏动画）
+        bottomNav.menu.findItem(if (onSettingsTab) R.id.nav_settings else R.id.nav_apps)?.isChecked = true
+        pageApps.visibility = if (onSettingsTab) View.GONE else View.VISIBLE
+        pageSettings.visibility = if (onSettingsTab) View.VISIBLE else View.GONE
+        toolbar.title = if (onSettingsTab) "设置" else getString(R.string.title_app_list)
     }
 
     // ===== 设置页各项 =====

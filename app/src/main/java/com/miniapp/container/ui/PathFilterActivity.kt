@@ -3,7 +3,7 @@ package com.miniapp.container.ui
 import android.os.Bundle
 import android.view.Gravity
 import android.view.ViewGroup
-import android.widget.EditText
+import com.miniapp.container.util.InputDialog
 import android.widget.LinearLayout
 import android.widget.TextView
 import androidx.appcompat.app.AppCompatActivity
@@ -78,11 +78,11 @@ class PathFilterActivity : AppCompatActivity() {
     }
 
     private fun inputPathDialog(type: RuleType) {
-        val input = EditText(this).apply { hint = "如 /sdcard/Android/data" }
+        val (view, input) = InputDialog.create(this, "路径，如 /sdcard/Android/data")
         MaterialAlertDialogBuilder(this)
             .setTitle(if (type == RuleType.BLACKLIST) "添加黑名单路径" else "添加白名单路径")
             .setMessage("路径前缀（含子目录）或精确路径，可在「设置」中调整匹配方式。")
-            .setView(input)
+            .setView(view)
             .setPositiveButton("添加") { _, _ ->
                 val p = input.text.toString().trim()
                 if (p.isEmpty()) { toast("路径不能为空"); return@setPositiveButton }
