@@ -386,8 +386,6 @@ class MainActivity : AppCompatActivity() {
             .setOnClickListener { startActivity(Intent(this, DebugActivity::class.java)) }
         findViewById<android.view.View>(R.id.card_backup)
             .setOnClickListener { startActivity(Intent(this, BackupActivity::class.java)) }
-        findViewById<android.view.View>(R.id.card_netdisk)
-            .setOnClickListener { startActivity(Intent(this, WebdavConfigActivity::class.java)) }
         findViewById<android.view.View>(R.id.card_permission_status)
             .setOnClickListener { startActivity(Intent(this, com.miniapp.container.ui.PermissionStatusActivity::class.java)) }
         findViewById<android.view.View>(R.id.card_clean)

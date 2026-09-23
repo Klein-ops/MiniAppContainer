@@ -1,6 +1,7 @@
 package com.miniapp.container.ui
 
 import android.os.Bundle
+import android.view.WindowManager
 import android.text.InputType
 import android.widget.SeekBar
 import android.view.MotionEvent
@@ -32,6 +33,8 @@ class WebdavConfigActivity : AppCompatActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        // 进入页面不自动弹出键盘，用户点击输入框时才弹出
+        window.setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_STATE_ALWAYS_HIDDEN)
         setContentView(R.layout.activity_webdav_config)
         setupBackToolbar()
 

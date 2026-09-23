@@ -186,37 +186,6 @@
             </LinearLayout>
         </com.google.android.material.card.MaterialCardView>
 
-        <!-- 网络存储 -->
-        <com.google.android.material.card.MaterialCardView
-            android:id="@+id/card_netdisk"
-            style="@style/Widget.MiniApp.SettingCard">
-
-            <LinearLayout
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:gravity="center_vertical"
-                android:orientation="horizontal"
-                android:paddingHorizontal="16dp"
-                android:paddingVertical="14dp">
-
-                <ImageView
-                    android:layout_width="24dp"
-                    android:layout_height="24dp"
-                    android:contentDescription="网络存储"
-                    android:src="@android:drawable/ic_menu_upload"
-                    android:tint="@color/brand_primary" />
-
-                <TextView
-                    android:layout_width="0dp"
-                    android:layout_height="wrap_content"
-                    android:layout_marginStart="12dp"
-                    android:layout_weight="1"
-                    android:text="网络存储"
-                    android:textColor="@color/text_primary"
-                    android:textSize="15sp" />
-            </LinearLayout>
-        </com.google.android.material.card.MaterialCardView>
-
         <!-- 权限状态：各接口的宿主可用性总览 -->
         <com.google.android.material.card.MaterialCardView
             android:id="@+id/card_permission_status"
