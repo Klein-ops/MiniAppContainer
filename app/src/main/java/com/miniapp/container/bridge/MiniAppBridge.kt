@@ -253,7 +253,10 @@ class MiniAppBridge(
     private fun respond(reqId: String, out: BridgeOut) {
         // payload 会被原样拼进 JS：若为空会生成 __resolve(id,true,) 语法错误，
         // 导致 Promise 永不结算。空 payload 统一降级为 null。
-        val payloadJs = if (out.payload.isBlank()) "null" else out.payload
+        // U+2028/U+2029 在 JSON 中合法，但拼进 JS 源码会被（旧引擎）当作换行，
+        // 产生语法错误使 __resolve 不执行（Promise 永不结算），必须转义。
+        val payloadJs = if (out.payload.isBlank()) "null"
+        else out.payload.replace("\u2028", "\\u2028").replace("\u2029", "\\u2029")
         val js = if (out.ok) {
             "window.__MiniAppBridge.__resolve(${jsString(reqId)},true,$payloadJs)"
         } else {
@@ -277,6 +280,8 @@ class MiniAppBridge(
                 '\n' -> sb.append("\\n")
                 '\r' -> sb.append("\\r")
                 '\t' -> sb.append("\\t")
+                '\u2028' -> sb.append("\\u2028")
+                '\u2029' -> sb.append("\\u2029")
                 else -> if (c.code < 0x20) sb.append("\\u%04x".format(c.code)) else sb.append(c)
             }
         }
