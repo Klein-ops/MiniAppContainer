@@ -231,14 +231,14 @@ class ExternalFileService(
         if (rule.matchMode == MatchMode.PREFIX) {
             return normalizedTarget == rp || normalizedTarget.startsWith(rp + "/")
         }
-        // EXACT：规则路径为目录时放行其全部内容（访问目录内文件/子目录）；
-        // 为文件（或不存在）时仅放行该路径本身。
-        val rpIsDir = try { File(rule.path).isDirectory } catch (_: Exception) { false }
-        return if (rpIsDir) {
-            normalizedTarget == rp || normalizedTarget.startsWith(rp + "/")
-        } else {
-            normalizedTarget == rp
-        }
+        // EXACT：仅放行规则路径本身 + 其直接子文件；子目录（含其下一切）不放行。
+        // 例：规则 /sdcard → 可访问 /sdcard、/sdcard/123.txt；
+        //     不可访问 /sdcard/Android、/sdcard/Android/data/...。
+        if (normalizedTarget == rp) return true
+        val parent = normalizedTarget.substringBeforeLast('/', "")
+        if (parent != rp) return false
+        val isDir = try { File(normalizedTarget).isDirectory } catch (_: Exception) { false }
+        return !isDir
     }
 
     /**

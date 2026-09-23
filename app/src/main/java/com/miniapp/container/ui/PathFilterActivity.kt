@@ -165,7 +165,7 @@ class PathFilterActivity : AppCompatActivity() {
         view.addView(selectRow(prefixDot, "前缀匹配（含所有子目录）") {
             matchMode = MatchMode.PREFIX; refreshDots()
         })
-        view.addView(selectRow(exactDot, "精确匹配（目录放行内容 / 文件仅本身）") {
+        view.addView(selectRow(exactDot, "精确匹配（仅此路径与直接子文件）") {
             matchMode = MatchMode.EXACT; refreshDots()
         })
         refreshDots()
