@@ -225,6 +225,10 @@ class MiniAppActivity : AppCompatActivity() {
         webView.loadUrl(Uri.fromFile(entryFile).toString())
     }
 
+    /** 注册会话级外部文件授权令牌（WebView 拦截层按此放行 fetch 流式读取）。 */
+    fun registerExternalToken(token: String, file: File): Boolean =
+        (webView.webViewClient as? MiniAppWebViewClient)?.registerExternalToken(token, file) != null
+
     /**
      * 开屏 logo 优先用小程序自己的图标（支持 SVG/PNG），
      * 无图标或加载失败保持蜗壳默认 logo。

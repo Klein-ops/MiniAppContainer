@@ -72,7 +72,7 @@ class MiniAppBridge(
          * （App 可能仅调整 UI / 修 Bug 就升级，但那不影响接口契约。）
          * 首次引入定为 1.0.0；将来接口行为变化（新增/修改/删除接口）时递增。
          */
-        const val API_VERSION = "1.5.0"
+        const val API_VERSION = "1.6.0"
         private const val TAG = "MiniAppBridge"
     }
 
@@ -133,6 +133,7 @@ class MiniAppBridge(
         "fs.importFile" -> externalFile.importViaSaf(p.optStringOr("destPath"))
         "fs.exportFile" -> externalFile.exportViaSaf(p.optStringOr("path"))
         "fs.readExternalFile" -> externalFile.readFile(p.optStringOr("path"))
+        "fs.openExternalFile" -> externalFile.openExternalFile(p.optStringOr("path"))
         "fs.writeExternalFile" -> externalFile.writeFile(p.optStringOr("path"), p.optStringOr("base64"))
         "fs.listExternal" -> externalFile.list(p.optStringOr("dir"))
         "fs.grepExternal" -> externalFile.grepFile(

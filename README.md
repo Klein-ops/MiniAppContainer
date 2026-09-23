@@ -129,7 +129,7 @@ MiniApp.fs.grep(path, pattern, opts) / sed(path, script)   // 局部编辑，免
 // SAF 导入导出（无需权限）
 MiniApp.fs.importFile(destPath) / exportFile(path)
 // 内部储存（需 fs.external 权限；默认走 SAF，配置 Shizuku 后改走常驻 shell 身份进程，可访问 /sdcard/Android 且毫秒级）
-MiniApp.fs.readExternalFile / writeExternalFile / listExternal / existsExternal
+MiniApp.fs.readExternalFile / openExternalFile（大文件 fetch 流式读）/ writeExternalFile / listExternal / existsExternal
 MiniApp.fs.statExternal / mkdirExternal / removeExternal / renameExternal
 MiniApp.fs.grepExternal / sedExternal   // 同上，作用于内部储存
 

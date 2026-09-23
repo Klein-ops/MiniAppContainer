@@ -44,6 +44,19 @@ class ExternalFileService(
 
     // ---------- content:// URI ----------
 
+    /** 打开外部文件：校验路径后返回会话级授权 URL，小程序 fetch 流式读取（避免 base64 大 payload）。 */
+    suspend fun openExternalFile(absPath: String): String = withContext(Dispatchers.IO) {
+        val f = File(absPath)
+        assertExternalPath(f)
+        if (!f.exists()) throw java.io.FileNotFoundException("文件不存在: $absPath")
+        if (f.isDirectory) throw IllegalArgumentException("目录不支持授权 URL，请用 fs.listExternal 枚举: $absPath")
+        val token = java.util.UUID.randomUUID().toString().replace("-", "")
+        if (!activity.registerExternalToken(token, f)) {
+            throw IllegalStateException("WebView 会话不可用")
+        }
+        "https://${MiniAppWebViewClient.EXTERNAL_HOST}${MiniAppWebViewClient.EXTERNAL_PATH_PREFIX}$token"
+    }
+
     /** grep：返回匹配行（不修改文件）。 */
     suspend fun grepFile(absPath: String, pattern: String, regex: Boolean, ignoreCase: Boolean, invert: Boolean): String =
         withContext(Dispatchers.IO) {

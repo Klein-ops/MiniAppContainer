@@ -22,11 +22,21 @@ class MiniAppWebViewClient(
     private val bridgeJs: String
 ) : WebViewClient() {
 
+    /** 会话级外部文件授权表：token -> 真实文件。仅本 WebView 实例（当前小程序）可查。 */
+    private val externalTokens = HashMap<String, File>()
+
+    /** 注册外部文件授权令牌（由 fs.openExternalFile 校验权限后调用）。 */
+    fun registerExternalToken(token: String, file: File) {
+        externalTokens[token] = file
+    }
+
     override fun shouldInterceptRequest(view: WebView?, request: WebResourceRequest?): WebResourceResponse? {
         val req = request ?: return null
         val uri = req.url ?: return null
         return when (uri.scheme?.lowercase()) {
             "file" -> serveFile(uri)
+            // 会话级外部文件授权 URL（fs.openExternalFile 返回）：仅放行本实例注册的令牌
+            "https" -> if (uri.host?.lowercase() == EXTERNAL_HOST) serveExternalToken(uri) else blocked()
             "data", "blob", "about" -> null
             else -> blocked()
         }
@@ -66,6 +76,27 @@ class MiniAppWebViewClient(
         }
     }
 
+    /** 会话级外部文件流式读取：凭令牌查表，响应带 CORS 头供 fetch 跨源读取。 */
+    private fun serveExternalToken(uri: Uri): WebResourceResponse {
+        val path = uri.path ?: return notFound()
+        if (!path.startsWith(EXTERNAL_PATH_PREFIX)) return notFound()
+        val token = path.removePrefix(EXTERNAL_PATH_PREFIX)
+        if (token.isEmpty() || token.contains('/')) return notFound()
+        val target = externalTokens[token] ?: return notFound()
+        if (!target.exists() || target.isDirectory) return notFound()
+        val mime = mimeOf(target.name)
+        val encoding = if (isText(mime)) "utf-8" else null
+        val headers = mapOf(
+            "Access-Control-Allow-Origin" to "*",   // 页面 file:// 源跨源 fetch 必需
+            "Cache-Control" to "no-store"           // 敏感文件禁止缓存
+        )
+        return try {
+            WebResourceResponse(mime, encoding, 200, "OK", headers, FileInputStream(target))
+        } catch (e: Exception) {
+            notFound()
+        }
+    }
+
     private fun forbidden(): WebResourceResponse =
         response(403, "Forbidden", "forbidden")
 
@@ -82,6 +113,10 @@ class MiniAppWebViewClient(
         )
 
     companion object {
+        /** 会话级外部文件授权 URL 的虚拟域（不发起真实网络请求，由 shouldInterceptRequest 接管）。 */
+        const val EXTERNAL_HOST = "miniapp.local"
+        const val EXTERNAL_PATH_PREFIX = "/ext/"
+
         private val MIME = mapOf(
             "html" to "text/html", "htm" to "text/html",
             "js" to "application/javascript", "mjs" to "application/javascript",

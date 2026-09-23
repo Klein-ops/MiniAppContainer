@@ -226,6 +226,7 @@ await MiniApp.fs.exportFile('data/report.txt');    // boolean true
 | 接口 | 返回类型 | 返回值 |
 |---|---|---|
 | `fs.readExternalFile(absPath)` | `string` | base64 编码的文件字节 |
+| `fs.openExternalFile(absPath)` | `string` | 会话级授权 URL（如 `https://miniapp.local/ext/<token>`），小程序 `fetch` 流式读取大文件（响应带 CORS 头）；令牌仅当前小程序会话内有效，页面关闭即失效 |
 | `fs.writeExternalFile(absPath, base64)` | `boolean` | 成功 `true` |
 | `fs.listExternal(dir)` | `array` | `[{ name: string, isDir: boolean, size: number }]`（不递归） |
 | `fs.existsExternal(absPath)` | `boolean` | 存在 `true`，不存在 `false` |
@@ -239,6 +240,8 @@ await MiniApp.fs.exportFile('data/report.txt');    // boolean true
 
 ```js
 const b64  = await MiniApp.fs.readExternalFile('/storage/emulated/0/Documents/a.txt'); // string
+const url  = await MiniApp.fs.openExternalFile('/storage/emulated/0/Documents/big.bin');  // string
+const resp = await fetch(url); const buf = await resp.arrayBuffer();                       // 流式读大文件
 await MiniApp.fs.writeExternalFile('/storage/emulated/0/Documents/b.txt', base64);     // boolean
 const arr  = await MiniApp.fs.listExternal('/storage/emulated/0/Documents');           // array
 const has  = await MiniApp.fs.existsExternal('/storage/emulated/0/Documents/a.txt');   // boolean
