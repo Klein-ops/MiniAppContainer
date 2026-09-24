@@ -11,8 +11,8 @@ android {
         applicationId "com.miniapp.container"
         minSdk 26
         targetSdk 34
-        versionCode 125
-        versionName "2.2.8"
+        versionCode 126
+        versionName "2.2.9"
     }
 
     buildTypes {
