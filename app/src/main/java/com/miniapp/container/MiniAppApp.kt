@@ -56,8 +56,13 @@ class MiniAppApp : Application() {
 
     override fun onCreate() {
         super.onCreate()
-        // 主题必须在任何 Activity 渲染前生效（隔离进程不渲染 UI 也无害）
-        com.miniapp.container.sys.ThemeManager.apply(this)
+        // 主题必须在任何 Activity 渲染前生效，但**仅限能访问 credential storage 的场景**：
+        // 隔离进程（dex.run 的执行进程）与未解锁阶段读 SharedPreferences 会抛
+        // "SharedPreferences in credential encrypted storage are not available until after user is unlocked"。
+        // 隔离进程启动时同样会创建 Application，若在此无条件读偏好，dex 一执行即崩溃。
+        if (!Process.isIsolated() && isUserUnlocked()) {
+            com.miniapp.container.sys.ThemeManager.apply(this)
+        }
         ensureInitialized()
     }
 

@@ -19,8 +19,12 @@ object ThemeManager {
 
     fun labels(): Array<String> = arrayOf("跟随系统", "白天", "黑夜")
 
-    fun current(context: Context): Int =
+    fun current(context: Context): Int = try {
         context.getSharedPreferences(PREFS, Context.MODE_PRIVATE).getInt(KEY, FOLLOW)
+    } catch (_: Throwable) {
+        // 隔离进程 / 未解锁阶段 credential storage 不可用：退回跟随系统，绝不抛出
+        FOLLOW
+    }
 
     fun apply(context: Context) {
         AppCompatDelegate.setDefaultNightMode(
