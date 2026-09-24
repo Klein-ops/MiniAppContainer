@@ -51,6 +51,11 @@ class MiniAppActivity : AppCompatActivity() {
     /** 全屏开屏层（页面加载完成前显示，完成后淡出）。 */
     private lateinit var splash: android.widget.FrameLayout
     private lateinit var floatingExit: FloatingExitView
+    /**
+     * 会话级外部文件授权表（fs.openExternalFile 的授权 URL 令牌）：随 Activity 销毁清空。
+     * 由 Activity 持有，令牌注册只操作此表、不触碰 WebView，故可在任意线程调用。
+     */
+    private val externalTokens = java.util.concurrent.ConcurrentHashMap<String, File>()
 
     private val importLauncher = registerForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
         importCallback?.invoke(uri)
@@ -206,7 +211,7 @@ class MiniAppActivity : AppCompatActivity() {
         webView.addJavascriptInterface(bridge, "MiniAppNative")
         bridge.attach(webView)
 
-        webView.webViewClient = MiniAppWebViewClient(sandboxRoot, bridgeJs)
+        webView.webViewClient = MiniAppWebViewClient(sandboxRoot, bridgeJs, externalTokens)
         webView.webChromeClient = MiniAppWebChromeClient(
             onProgress = { },
             onTitle = { },
@@ -225,9 +230,10 @@ class MiniAppActivity : AppCompatActivity() {
         webView.loadUrl(Uri.fromFile(entryFile).toString())
     }
 
-    /** 注册会话级外部文件授权令牌（WebView 拦截层按此放行 fetch 流式读取）。 */
-    fun registerExternalToken(token: String, file: File): Boolean =
-        (webView.webViewClient as? MiniAppWebViewClient)?.registerExternalToken(token, file) != null
+    /** 注册会话级外部文件授权令牌（线程安全：只操作本类持有的表，不触碰 WebView）。 */
+    fun registerExternalToken(token: String, file: File) {
+        externalTokens[token] = file
+    }
 
     /**
      * 开屏 logo 优先用小程序自己的图标（支持 SVG/PNG），

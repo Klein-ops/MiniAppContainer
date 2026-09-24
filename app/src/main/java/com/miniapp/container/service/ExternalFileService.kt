@@ -71,9 +71,7 @@ class ExternalFileService(
                 throw IllegalStateException("授权 URL 数量超限（$MAX_EXTERNAL_TOKENS），请复用或关闭小程序")
             }
             val t = java.util.UUID.randomUUID().toString().replace("-", "")
-            if (!activity.registerExternalToken(t, f)) {
-                throw IllegalStateException("WebView 会话不可用")
-            }
+            activity.registerExternalToken(t, f)
             externalTokenCache[absPath] = t
             t
         }

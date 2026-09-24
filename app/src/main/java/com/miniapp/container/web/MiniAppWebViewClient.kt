@@ -10,7 +10,6 @@ import com.miniapp.container.core.PathGuard
 import java.io.ByteArrayInputStream
 import java.io.File
 import java.io.FileInputStream
-import java.util.concurrent.ConcurrentHashMap
 
 /**
  * 渲染层客户端：
@@ -20,16 +19,14 @@ import java.util.concurrent.ConcurrentHashMap
  */
 class MiniAppWebViewClient(
     private val sandboxRoot: File,
-    private val bridgeJs: String
+    private val bridgeJs: String,
+    /**
+     * 会话级外部文件授权表（token -> 真实文件），由宿主 Activity 持有并注册，本类只读。
+     * 放 Activity 而非本类：WebView 方法必须在主线程调用，而 fs.openExternalFile 在 IO
+     * 线程注册令牌——由 Activity 持有表，注册便完全不触碰 WebView。
+     */
+    private val externalTokens: Map<String, File>
 ) : WebViewClient() {
-
-    /** 会话级外部文件授权表：token -> 真实文件。仅本 WebView 实例（当前小程序）可查。 */
-    private val externalTokens = ConcurrentHashMap<String, File>()
-
-    /** 注册外部文件授权令牌（由 fs.openExternalFile 校验权限后调用）。 */
-    fun registerExternalToken(token: String, file: File) {
-        externalTokens[token] = file
-    }
 
     override fun shouldInterceptRequest(view: WebView?, request: WebResourceRequest?): WebResourceResponse? {
         val req = request ?: return null
