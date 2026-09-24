@@ -103,7 +103,7 @@ class InstallFlow(
         }
     }
 
-    /** 安装内置示例包。 */
+    /** 安装内置示例包：与 zip / URL 来源一致，走预览 + 二次确认，不再直接安装。 */
     suspend fun installSample() {
         val cache = File(activity.cacheDir, "sample_${System.currentTimeMillis()}.zip")
         try {
@@ -116,17 +116,7 @@ class InstallFlow(
             activity.toast("示例包缺失")
             return
         }
-        val preview = withContext(Dispatchers.IO) { installer.previewZip(cache) }
-        if (preview == null) {
-            activity.toast("示例包清单解析失败")
-            cache.delete()
-            return
-        }
-        val isNew = registry.get(PathGuard.appKey(preview.uid, preview.uname)) == null
-        val r = install(cache)
-        activity.toast(if (r.success) "示例已安装" else "示例安装失败: ${r.message}")
-        cache.delete()
-        onInstalled(if (r.success && isNew) currentCategory() else null, r.info?.appKey)
+        requestConfirm(cache)
     }
 
     // ---------- 内部：二次确认 ----------
