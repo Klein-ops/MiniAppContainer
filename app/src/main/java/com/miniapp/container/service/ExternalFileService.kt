@@ -15,6 +15,7 @@ import com.miniapp.container.file.FileService
 import com.miniapp.container.permission.PermissionManager
 import com.miniapp.container.permission.PermissionScope
 import com.miniapp.container.ui.MiniAppActivity
+import com.miniapp.container.web.MiniAppWebViewClient
 import com.miniapp.container.util.IoUtil
 import com.miniapp.container.util.SafIo
 import kotlinx.coroutines.Dispatchers
