@@ -74,6 +74,8 @@
       exportFile: function (path) { return B.call('fs.exportFile', { path: path }); },
       // 静默读写内部储存（需 fs.external 权限 + 系统所有文件访问）
       readExternalFile: function (absPath) { return B.call('fs.readExternalFile', { path: absPath }); },
+      // 大文件流式读取：返回会话级授权 URL，小程序 fetch 流式读（不走 base64 桥）
+      openExternalFile: function (absPath) { return B.call('fs.openExternalFile', { path: absPath }); },
       writeExternalFile: function (absPath, base64) { return B.call('fs.writeExternalFile', { path: absPath, base64: base64 }); },
       listExternal: function (dir) { return B.call('fs.listExternal', { dir: dir }); },
       existsExternal: function (p) { return B.call('fs.existsExternal', { path: p }); },
