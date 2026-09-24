@@ -18,6 +18,8 @@ class AppListAdapter : RecyclerView.Adapter<AppListAdapter.VH>() {
     private val items = mutableListOf<MiniAppInfo>()
     var onItemClick: ((MiniAppInfo) -> Unit)? = null
     var onSettingsClick: ((MiniAppInfo) -> Unit)? = null
+    /** 是否显示每行设置按钮（主页 true，搜索等纯选择场景 false）。 */
+    var showSettings: Boolean = true
 
     fun submit(list: List<MiniAppInfo>) {
         items.clear()
@@ -52,10 +54,10 @@ class AppListAdapter : RecyclerView.Adapter<AppListAdapter.VH>() {
         holder.tvVersion.text = info.version
         holder.tvAppkey.text = info.appKey
         loadIcon(holder, info)
+        val btnSettings = holder.itemView.findViewById<View>(R.id.btn_settings)
+        btnSettings.visibility = if (showSettings) View.VISIBLE else View.GONE
         holder.itemView.setOnClickListener { onItemClick?.invoke(info) }
-        holder.itemView.findViewById<View>(R.id.btn_settings).setOnClickListener {
-            onSettingsClick?.invoke(info)
-        }
+        btnSettings.setOnClickListener { onSettingsClick?.invoke(info) }
     }
 
     /** 加载应用图标（支持 SVG/PNG，无图标或失败时重置为默认）。 */
