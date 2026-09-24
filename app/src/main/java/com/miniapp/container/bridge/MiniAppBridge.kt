@@ -72,7 +72,7 @@ class MiniAppBridge(
          * （App 可能仅调整 UI / 修 Bug 就升级，但那不影响接口契约。）
          * 首次引入定为 1.0.0；将来接口行为变化（新增/修改/删除接口）时递增。
          */
-        const val API_VERSION = "1.6.0"
+        const val API_VERSION = "1.7.0"
         private const val TAG = "MiniAppBridge"
     }
 
@@ -235,7 +235,20 @@ class MiniAppBridge(
         val input = if (inputPath.isNotEmpty()) PathGuard.resolveUnderRoot(sandboxRoot, inputPath) else null
         val output = if (outputPath.isNotEmpty()) PathGuard.resolveUnderRoot(sandboxRoot, outputPath) else null
         val params = Bundle()
-        p.optJSONObject("params")?.let { o -> for (k in o.keys()) params.putString(k, o.optString(k)) }
+        p.optJSONObject("params")?.let { o ->
+            for (k in o.keys()) {
+                // 保留 JSON 值类型（Boolean/Int/Long/Double/String），供 dex 入口按类型读取；
+                // 此前一律 putString 会导致 getInt/getBoolean 取到默认值
+                when (val v = o.opt(k)) {
+                    is Boolean -> params.putBoolean(k, v)
+                    is Int -> params.putInt(k, v)
+                    is Long -> params.putLong(k, v)
+                    is Number -> params.putDouble(k, v.toDouble())
+                    is String -> params.putString(k, v)
+                    else -> params.putString(k, v?.toString())
+                }
+            }
+        }
         // 用内部保留键传递入口信息，不污染调用方传入的 params
         params.putString("__className", className)
         params.putString("__methodName", p.optStringOr("methodName", "run"))
