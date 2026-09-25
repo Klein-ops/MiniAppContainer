@@ -34,10 +34,14 @@ class PermissionManageActivity : AppCompatActivity() {
         recycler.layoutManager = LinearLayoutManager(this)
         recycler.adapter = adapter
 
-        adapter.onToggle = { scope, granted ->
+        adapter.onStateChange = { scope, state ->
             val pm = hostApp.permissionManager
-            if (granted) pm.recordGrant(app.appKey, scope) else pm.revoke(app.appKey, scope)
-            adapter.setGranted(scope, granted)
+            when (state) {
+                PermState.GRANTED -> pm.recordGrant(app.appKey, scope)
+                PermState.DENIED -> pm.revoke(app.appKey, scope)
+                PermState.DENIED_FOREVER -> pm.recordDenyForever(app.appKey, scope)
+            }
+            // 不调 adapter.setState：拖拽中 rebind 会打断 Slider，UI 由 Slider 自身反映
         }
         refresh()
     }
@@ -45,7 +49,12 @@ class PermissionManageActivity : AppCompatActivity() {
     private fun refresh() {
         val pm = hostApp.permissionManager
         val list = app.permissions.map {
-            PermItem(it, required = it in app.requiredPermissions, granted = pm.isGranted(app.appKey, it))
+            val state = when {
+                pm.isGranted(app.appKey, it) -> PermState.GRANTED
+                pm.isDeniedForever(app.appKey, it) -> PermState.DENIED_FOREVER
+                else -> PermState.DENIED
+            }
+            PermItem(it, required = it in app.requiredPermissions, state = state)
         }
         adapter.submit(list)
     }

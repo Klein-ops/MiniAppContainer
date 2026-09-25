@@ -20,7 +20,7 @@
         android:padding="16dp"
         android:textColor="@color/text_secondary"
         android:textSize="12sp"
-        android:text="切换授权状态。必要权限撤销后，下次进入小程序会重新请求。" />
+        android:text="拖动滑杆切换授权状态：左=允许，中=拒绝（下次仍会询问），右=不再询问。" />
 
     <androidx.recyclerview.widget.RecyclerView
         android:id="@+id/recycler"

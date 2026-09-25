@@ -77,12 +77,14 @@ class PermissionStore(private val file: File) {
     fun grant(appKey: String, scope: String) {
         val set = grants.getOrPut(appKey) { Collections.synchronizedSet(HashSet()) }
         set.add(scope)
+        deniedForever[appKey]?.remove(scope)   // 允许与不再询问互斥，避免并存时语义混乱
         save()
     }
 
     fun denyForever(appKey: String, scope: String) {
         val set = deniedForever.getOrPut(appKey) { Collections.synchronizedSet(HashSet()) }
         set.add(scope)
+        grants[appKey]?.remove(scope)          // 允许与不再询问互斥
         save()
     }
 
