@@ -33,6 +33,13 @@ class FileService(private val sandboxRoot: File) {
         return resolve(path)
     }
 
+    /** 打开可写字节流（仅 data/tmp），父目录自动建。供 net.download 直落沙箱文件。 */
+    fun openWritableStream(path: String): FileOutputStream {
+        val f = resolveWritable(path)
+        f.parentFile?.mkdirs()
+        return FileOutputStream(f)
+    }
+
     /** 写操作白名单：只允许 data/ 和 tmp/ 前缀。 */
     private fun assertWritable(path: String) {
         val norm = path.trim().removePrefix("./").removePrefix("/")

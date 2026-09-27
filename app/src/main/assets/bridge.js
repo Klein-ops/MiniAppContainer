@@ -195,6 +195,16 @@
           method: method, url: url,
           headers: opts.headers, body: opts.body
         });
+      },
+      // 下载直落沙箱文件（不经 JS 内存）：net.download(url, destPath, headersOpt) → {status,size,path}
+      download: function (url, destPath, opts) {
+        opts = opts || {};
+        return B.call('net.download', { url: url, destPath: destPath, headers: opts.headers });
+      },
+      // 上传沙箱文件（不经 JS 内存）：net.upload(url, srcPath, {method,headers}) → {status,body}
+      upload: function (url, srcPath, opts) {
+        opts = opts || {};
+        return B.call('net.upload', { url: url, srcPath: srcPath, method: opts.method, headers: opts.headers });
       }
     },
     clipboard: {

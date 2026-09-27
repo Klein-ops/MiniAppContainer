@@ -58,7 +58,7 @@ class MiniAppBridge(
     private var webViewRef: WeakReference<WebView> = WeakReference(null)
 
     private val externalFile = ExternalFileService(activity, appInfo, permissionManager, fileService)
-    private val net = NetService(activity, appInfo, permissionManager)
+    private val net = NetService(activity, appInfo, permissionManager, fileService)
     private val clipboard = ClipboardService(activity, appInfo, permissionManager)
     private val notification = NotificationService(activity, appInfo, permissionManager)
     private val storage = com.miniapp.container.service.StorageService(activity, appInfo, permissionManager)
@@ -152,6 +152,8 @@ class MiniAppBridge(
         // 网络
         "net.httpGet" -> net.get(p.optStringOr("url"))
         "net.httpRequest" -> net.request(p)
+        "net.download" -> net.download(p)
+        "net.upload" -> net.upload(p)
 
         // 剪贴板
         "cb.read" -> clipboard.read()
