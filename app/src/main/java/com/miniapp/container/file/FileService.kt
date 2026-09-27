@@ -8,6 +8,8 @@ import org.json.JSONArray
 import org.json.JSONObject
 import com.miniapp.container.util.TextEditor
 import java.io.File
+import java.io.FileInputStream
+import java.io.FileOutputStream
 
 /**
  * 沙箱内文件服务。
@@ -21,6 +23,15 @@ class FileService(private val sandboxRoot: File) {
 
     private fun resolve(path: String): File =
         PathGuard.resolveUnderRoot(sandboxRoot, path)
+
+    /** 解析为可读文件（app/data/tmp 均可读）。供桥层复用（如直落网络下载目标）。 */
+    fun resolveReadable(path: String): File = resolve(path)
+
+    /** 解析为可写文件（仅 data/tmp）。供桥层复用（如流式写、下载落盘）。 */
+    fun resolveWritable(path: String): File {
+        assertWritable(path)
+        return resolve(path)
+    }
 
     /** 写操作白名单：只允许 data/ 和 tmp/ 前缀。 */
     private fun assertWritable(path: String) {
@@ -82,6 +93,80 @@ class FileService(private val sandboxRoot: File) {
         val f = resolve(path)
         if (f.exists() && f.isDirectory) throw java.io.IOException("target is a directory: $path")
         IoUtil.writeBytes(f, IoUtil.fromBase64(base64))
+        "true"
+    }
+
+    /**
+     * 偏移读取指定字节区间（[offset, offset+length)）。
+     * - offset<0 → 从 0 读；length<0 → 读到文件尾
+     * - offset 超出文件长度 → 空串
+     * 返回 base64。
+     */
+    suspend fun readChunk(path: String, offset: Long, length: Long): String = withContext(Dispatchers.IO) {
+        val f = resolveReadable(path)
+        if (!f.exists()) throw java.io.FileNotFoundException("file not found: $path")
+        if (f.isDirectory) throw java.io.IOException("target is a directory: $path")
+        val start = if (offset <= 0) 0L else offset
+        if (start >= f.length()) return@withContext JSONObject.quote("")
+        val end = if (length < 0L) f.length() else minOf(start + length, f.length())
+        val toRead = (end - start).toInt()
+        FileInputStream(f).use { input ->
+            input.skip(start)
+            val buf = ByteArray(toRead)
+            var read = 0
+            while (read < toRead) {
+                val n = input.read(buf, read, toRead - read)
+                if (n < 0) break
+                read += n
+            }
+            val bytes = if (read == toRead) buf else buf.copyOf(read)
+            JSONObject.quote(IoUtil.toBase64(bytes))
+        }
+    }
+
+    /**
+     * 偏移写：[offset] 处写入 [base64] 解码后的数据。
+     * - offset 超出当前长度 → 自动以 0 字节补齐到该位置
+     * - 用于随机写、断点续传、流式分块写
+     */
+    suspend fun writeChunk(path: String, offset: Long, base64: String): String = withContext(Dispatchers.IO) {
+        assertWritable(path)
+        val f = resolve(path)
+        if (f.exists() && f.isDirectory) throw java.io.IOException("target is a directory: $path")
+        f.parentFile?.mkdirs()
+        val data = IoUtil.fromBase64(base64)
+        val pos = if (offset < 0) f.length() else offset
+        FileOutputStream(f, true).use { output ->
+            output.channel.use {
+                it.position(pos)  // position 超过当前 size 时，channel 写入会自动以 0 补齐
+                it.write(java.nio.ByteBuffer.wrap(data))
+            }
+        }
+        "true"
+    }
+
+    /** 追加写：在文件末尾追加 [base64] 数据（等价于 offset=文件尾）。 */
+    suspend fun append(path: String, base64: String): String = withContext(Dispatchers.IO) {
+        assertWritable(path)
+        val f = resolve(path)
+        if (f.exists() && f.isDirectory) throw java.io.IOException("target is a directory: $path")
+        f.parentFile?.mkdirs()
+        val data = IoUtil.fromBase64(base64)
+        FileOutputStream(f, true).use { it.write(data) }
+        "true"
+    }
+
+    /** 交截到指定大小（size 之后的字节丢弃）。 */
+    suspend fun truncate(path: String, size: Long): String = withContext(Dispatchers.IO) {
+        assertWritable(path)
+        val f = resolve(path)
+        if (f.exists() && f.isDirectory) throw java.io.IOException("target is a directory: $path")
+        if (!f.exists()) {
+            // 截断不存在的文件：创建空文件并置长
+            f.parentFile?.mkdirs()
+            FileOutputStream(f).use { }
+        }
+        FileOutputStream(f, true).use { it.channel.truncate(size) }
         "true"
     }
 
