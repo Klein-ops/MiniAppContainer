@@ -164,6 +164,11 @@ const v2 = await MiniApp.system(['apiVersion', 'webviewVersion']);
 |---|---|---|
 | `fs.read(path)` | `string` | 文件文本内容 |
 | `fs.readBytes(path)` | `string` | base64 编码的文件字节 |
+| `fs.openFile(path)` | `string` | 会话级授权 URL（如 `https://miniapp.invalid/ext/<token>`），小程序 `fetch` 流式读取沙箱内大文件（响应带 CORS 头，避免 `readBytes` 全量 base64）；令牌会话内有效、同路径复用 |
+| `fs.readChunk(path, offset, length)` | `string` | base64：读取 `[offset, offset+length)` 字节区间；`offset<0` 从 0 读，`length<0` 读到文件尾 |
+| `fs.writeChunk(path, offset, base64)` | `boolean` | 偏移写：在 `offset` 处覆写（超出当前长度自动以 0 补齐）；`offset<0` 等价追加 |
+| `fs.append(path, base64)` | `boolean` | 在文件末尾追加数据（等价 `offset=文件尾`） |
+| `fs.truncate(path, size)` | `boolean` | 截断到 `size` 字节（`size` 之后丢弃） |
 | `fs.write(path, content)` | `boolean` | 成功 `true` |
 | `fs.writeBytes(path, base64)` | `boolean` | 成功 `true` |
 | `fs.list(dir)` | `array` | `[{ name: string, isDir: boolean, size: number }]` |
@@ -186,6 +191,19 @@ const has  = await MiniApp.fs.exists('data/test.txt');      // boolean
 const st   = await MiniApp.fs.stat('data/test.txt');        // object
 await MiniApp.fs.mkdir('data/sub');                         // boolean true
 await MiniApp.fs.remove('data/tmp');                        // boolean
+
+// 流式/分块读写（大文件去 base64 全量）
+const url  = await MiniApp.fs.openFile('data/big.bin');     // 沙箱内授权 URL，可 fetch 流式读
+const resp = await fetch(url); const bytes = await resp.arrayBuffer(); // 流式读大文件
+
+const chunk = await MiniApp.fs.readChunk('data/big.bin', 0, 65536);     // string (base64)
+await MiniApp.fs.writeChunk('data/big.bin', 0, chunk);                  // boolean（偏移写）
+await MiniApp.fs.append('data/log.txt', btoa('更多内容\n'));           // boolean（追加）
+await MiniApp.fs.truncate('data/big.bin', 1024);                        // boolean（截断）
+
+// 便捷助手（bridge.js 内置）：
+const all = await MiniApp.fs.readStream('data/big.bin');     // Uint8Array（openFile+fetch 累积）
+await MiniApp.fs.writeStream('data/out.bin', bytes, 65536); // 分块循环写
 ```
 
 #### SAF 导入导出（无需权限）
@@ -300,6 +318,8 @@ instance.exports.compute(42);
 | `net.put(url, body)` | `object` | 同上 |
 | `net.delete(url)` | `object` | 同上 |
 | `net.request(method, url, opts)` | `object` | 同上 |
+| `net.download(url, destPath, opts?)` | `object` | 下载**直落沙箱文件**（data/tmp），返回 `{ status, size, path }`；文件不经 JS 内存 |
+| `net.upload(url, srcPath, opts?)` | `object` | 上传**沙箱内文件**（不经 JS 内存），返回 `{ status, body }` |
 
 `status` 为 HTTP 状态码（整数），`body` 为响应文本（字符串）。`opts` 为 `{ headers: object, body: string }`。支持 GET/POST/PUT/DELETE/PATCH 等任意方法。
 
@@ -325,6 +345,14 @@ const res2 = await MiniApp.net.request('PATCH', url, {
   headers: { 'Content-Type': 'application/json' },
   body: JSON.stringify({ patch: true })
 });
+
+// 大文件传输：直落/直传沙箱文件（文件不经 JS 内存，去 base64 全量）
+const dl = await MiniApp.net.download('https://example.com/big.bin', 'data/big.bin');
+// → { status: 200, size: 12345, path: "data/big.bin" }
+const ul = await MiniApp.net.upload('https://example.com/upload', 'data/big.bin', {
+  method: 'POST', headers: { 'Content-Type': 'application/octet-stream' }
+});
+// → { status: 200, body: "..." }
 ```
 
 ### 4.5 剪贴板（需审批）
@@ -922,6 +950,7 @@ adb logcat -s MiniAppJS MiniAppBridge
 - **无热更新**：必须重新打包 zip 并安装。
 - **SharedArrayBuffer 限制**：`file://` 协议下跨域策略可能禁用 `SharedArrayBuffer`，多线程需测试环境支持。
 - **Web Worker 限制**：`file://` 协议下 Worker 可用性取决于 WebView 实现，建议优先单线程分片计算。
+- **无"单连接流式写"**：Android WebView 拦截层拿不到请求体，无法实现"一条连接边读边写"。大文件写入请用 `fs.writeChunk` 分块（`MiniApp.fs.writeStream` 助手已封装，默认 64KB 一块）；网络下载/上传请用 `net.download` / `net.upload`（Native 侧直落/直传，不经 JS 内存）。
 
 ---
 
