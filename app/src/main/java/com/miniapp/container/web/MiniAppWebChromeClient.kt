@@ -13,6 +13,7 @@ import com.miniapp.container.R
 import com.miniapp.container.util.showRounded
 
 class MiniAppWebChromeClient(
+    private val appKey: String,
     private val onProgress: (Int) -> Unit = {},
     private val onTitle: (String) -> Unit = {},
     private val onPageFinished: (() -> Unit)? = null
@@ -80,8 +81,13 @@ class MiniAppWebChromeClient(
         val sourceId = m?.sourceId()
         val line = m?.lineNumber() ?: 0
         val msg = m?.message()
+        val level = when (m?.messageLevel()) {
+            ConsoleMessage.MessageLevel.ERROR -> "ERROR"
+            ConsoleMessage.MessageLevel.WARNING -> "WARNING"
+            else -> "LOG"
+        }
         Log.d("MiniAppJS", "[$sourceId:$line] $msg")
-        com.miniapp.container.debug.DebugBus.logJsConsole(sourceId, line, msg)
+        com.miniapp.container.debug.DebugBus.logJsConsole(appKey, sourceId, line, msg, level)
         return true
     }
 }

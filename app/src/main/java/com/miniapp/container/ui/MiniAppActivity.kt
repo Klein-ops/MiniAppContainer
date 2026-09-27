@@ -213,6 +213,7 @@ class MiniAppActivity : AppCompatActivity() {
 
         webView.webViewClient = MiniAppWebViewClient(sandboxRoot, bridgeJs, externalTokens)
         webView.webChromeClient = MiniAppWebChromeClient(
+            appKey = appInfo.appKey,
             onProgress = { },
             onTitle = { },
             onPageFinished = { hideSplash() }

@@ -205,7 +205,18 @@
         return B.call('adb.exec', { command: String(command), timeout: Number(opts.timeout) || 0 });
       }
     },
-    permission: { request: function (scope) { return B.call('perm.request', { scope: scope }); } }
+    permission: { request: function (scope) { return B.call('perm.request', { scope: scope }); } },
+    debug: {
+      // 写日志：宿主强制打上当前小程序标签（appKey），调试页可见，小程序无法伪造/去掉标签
+      log: function (msg) { return B.call('debug.log', { message: String(msg) }); },
+      // 读日志：只返回当前小程序的日志（自己的 APP 日志 + 本页 console），
+      // 看不到其他小程序的日志，也看不到系统层接口调用日志（CALL/EVT/ERR）
+      getLogs: function (n) { return B.call('debug.getLogs', { limit: n }); },
+      // 清空自己的日志行（其他小程序与系统日志保留）
+      clear: function () { return B.call('debug.clear'); },
+      // 调试模式是否开启
+      enabled: function () { return B.call('debug.enabled'); }
+    }
   };
 
   console.log('[MiniApp] bridge ready');

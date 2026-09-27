@@ -76,10 +76,17 @@ object DebugBus {
         log("[${now()}] ERR $tag: $message$detail")
     }
 
-    /** 记录前端 JS console 输出。 */
-    fun logJsConsole(sourceId: String?, line: Int, message: String?) {
+    /** 记录前端 JS console 输出（带小程序标签与级别，供按小程序隔离）。 */
+    fun logJsConsole(appKey: String?, sourceId: String?, line: Int, message: String?, level: String) {
         if (!enabled) return
-        log("[${now()}] JS ${sourceId ?: "?"}:$line ${message ?: ""}")
+        val tag = appKey ?: "?"
+        log("[${now()}] JS [$tag] $level ${sourceId ?: "?"}:$line ${message ?: ""}")
+    }
+
+    /** 记录小程序主动打的日志（MiniApp.debug.log），强制带 appKey 标签，小程序无法伪造/去掉。 */
+    fun logApp(appKey: String, message: String) {
+        if (!enabled) return
+        log("[${now()}] APP [$appKey] $message")
     }
 
     // ---------- 底层 ----------
@@ -98,10 +105,34 @@ object DebugBus {
         runCatching { f.readLines() }.getOrDefault(emptyList())
     }
 
+    /**
+     * 按小程序 appKey 过滤日志：只返回该小程序自己的日志
+     * （APP 主动日志 + 该小程序的 console 日志），
+     * 永远不包含其他小程序的日志与系统层 CALL/EVT/ERR 日志。
+     */
+    fun snapshotForApp(appKey: String): List<String> = synchronized(lock) {
+        val f = logFile ?: return emptyList()
+        runCatching { f.readLines() }
+            .getOrDefault(emptyList())
+            .filter { it.contains("[$appKey]") }
+    }
+
     /** 手动清空（并通知 UI 刷新）。 */
     fun clear() {
         synchronized(lock) {
             logFile?.let { runCatching { it.writeText("") } }
+        }
+        notifyChanged()
+    }
+
+    /** 只清空指定小程序自己的日志行（其他小程序与系统日志保留）。 */
+    fun clearForApp(appKey: String) {
+        synchronized(lock) {
+            val f = logFile ?: return
+            val kept = runCatching { f.readLines() }
+                .getOrDefault(emptyList())
+                .filterNot { it.contains("[$appKey]") }
+            runCatching { f.writeText(kept.joinToString("\n").let { if (it.isEmpty()) "" else it + "\n" }) }
         }
         notifyChanged()
     }

@@ -180,6 +180,13 @@ class MiniAppBridge(
             )
             if (granted) "true" else "false"
         }
+
+        // 小程序调试（写日志强制带 appKey 标签；读日志按 appKey 隔离）
+        "debug.log" -> { debugLog(p); "true" }
+        "debug.getLogs" -> debugLogs(p)
+        "debug.clear" -> { debugClear(); "true" }
+        "debug.enabled" -> if (com.miniapp.container.debug.DebugBus.enabled) "true" else "false"
+
         else -> throw IllegalArgumentException("unknown method: $method")
     }
 
@@ -198,6 +205,28 @@ class MiniAppBridge(
 
     private fun toast(msg: String) {
         Toast.makeText(activity, msg, Toast.LENGTH_SHORT).show()
+    }
+
+    // ---------- 小程序调试 API（debug.*） ----------
+
+    /** 记录小程序主动日志：宿主强制打上当前 appKey 标签，小程序无法伪造/去掉。 */
+    private fun debugLog(p: JSONObject) {
+        val msg = p.optStringOr("message").ifEmpty { return }
+        com.miniapp.container.debug.DebugBus.logApp(appInfo.appKey, msg)
+    }
+
+    /** 拉取自己 appKey 的日志（按标签过滤），返回 JSON 数组；其他小程序与系统日志不可见。 */
+    private fun debugLogs(p: JSONObject): String {
+        val logs = com.miniapp.container.debug.DebugBus.snapshotForApp(appInfo.appKey)
+        val limit = p.optInt("limit").takeIf { it > 0 } ?: logs.size
+        val arr = JSONArray()
+        logs.takeLast(limit).forEach { arr.put(it) }
+        return arr.toString()
+    }
+
+    /** 清空自己 appKey 的日志行（其他小程序与系统日志保留）。 */
+    private fun debugClear() {
+        com.miniapp.container.debug.DebugBus.clearForApp(appInfo.appKey)
     }
 
     private suspend fun openUrl(url: String): String {
