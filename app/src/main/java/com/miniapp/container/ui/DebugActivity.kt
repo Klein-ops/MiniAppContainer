@@ -39,13 +39,12 @@ class DebugActivity : AppCompatActivity() {
         scroll = findViewById(R.id.scroll)
         tvHint = findViewById(R.id.tv_hint)
 
-        // 按小程序过滤：从日志条目头严格提取 [appKey] 标签（APP/JS/CALL），单选切换
+        // 按小程序过滤：从日志条目头提取 appKey 标签（含 system），单选切换
         findViewById<MaterialButton>(R.id.btn_filter_log).setOnClickListener {
             val tags = DebugBus.snapshot()
-                .mapNotNull { Regex("^\\[[^]]+] (APP|JS|CALL) \\[([^\\]]+)]").find(it)?.groupValues?.get(2) }
-                .filter { it.isNotBlank() && it != "system" }
+                .mapNotNull { DebugBus.parseEntry(it)?.appKey }
                 .distinct()
-            if (tags.isEmpty()) { toast("暂无带标签的小程序日志"); return@setOnClickListener }
+            if (tags.isEmpty()) { toast("暂无带标签的日志"); return@setOnClickListener }
             val options = listOf("全部日志") + tags
             val currentIdx = if (filterAppKey == null) 0 else tags.indexOf(filterAppKey) + 1
             MaterialAlertDialogBuilder(this)

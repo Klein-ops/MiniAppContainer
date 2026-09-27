@@ -578,7 +578,7 @@ if (!r2.ok && r2.timedOut) console.log('超时，已部分输出:', r2.stdout);
 
 **隔离约束**（宿主强制，小程序无法绕过）：
 - **写**：日志由宿主带 `[appKey]` 标签写入，标签内容由宿主拼装，小程序只能提供 `message`。
-- **读**：`getLogs` 只返回严格匹配条目头 `[时间] (APP|JS) [自己的appKey]` 的行；**看不到**其他小程序的日志，也**看不到**系统层接口调用日志（`CALL` 虽已带标签但仅宿主视角 `snapshotForHost` 可见，`EVT`/`ERR` 同理）。
+- **读**：`getLogs` 只返回严格匹配条目头 `[时间] (APP|JS) [自己的appKey]` 的行；**看不到**其他小程序的日志，也**看不到**系统层日志（`CALL`/`EVT`/`ERR` 均带 `[system]` 标签，但仅宿主视角 `snapshotForHost` 可见）。
 - **清**：`clear` 只删除带自己 `[appKey]` 标签的行。
 
 ```js
@@ -853,7 +853,16 @@ console.log('WASM time:', performance.now() - t0);
 - `MiniAppBridge`：Bridge 调用与错误
 - `MiniAppJS`：页面 `console.*` 输出（由宿主转发）
 
-开启蜗壳「调试模式」后，接口调用可在「调用日志」页查看；「调用日志」页支持**按小程序过滤**（严格提取日志条目头 `[时间] TYPE [appKey]` 中的 [appKey] 标签——TYPE 仅限 APP/JS/CALL，过滤下拉排除 `system` 占位——单选切换「全部日志 / 某小程序」）。
+开启蜗壳「调试模式」后，接口调用可在「调用日志」页查看；「调用日志」页支持**按小程序过滤**（单选切换「全部日志 / system / 各小程序」；system 为系统层——宿主选 system 时查看无归属小程序的 CALL 接口调用，EVT/ERR 为内部事件默认不进过滤视图）。
+
+**日志行格式（唯一规范，所有写入方均经 `DebugBus` 收口，解析亦复用 `DebugBus.parseEntry`）**：
+```
+[HH:mm:ss.SSS] TYPE [appKey] 内容
+```
+- TYPE 仅限 `CALL`（接口调用）/ `EVT`（内部事件）/ `ERR`（异常错误）/ `JS`（console 输出）/ `APP`（小程序主动日志）
+- 所有类型都带 `[appKey]` 段：CALL/JS/APP 带归属小程序标签；EVT/ERR 及无归属 CALL 带 `[system]`
+- 时间戳由宿主生成（调用方不可控）；appKey 由宿主拼装，小程序可控内容经转义，无法伪造
+- 解析：`DebugBus.parseEntry(line)` 返回 `{type, appKey}`，严格匹配条目头，过滤/下拉/清空均复用
 
 **小程序侧调试**：小程序可用 `MiniApp.debug.*`（见 4.13）**写日志 / 读自己的日志**，无需宿主参与；`MiniApp.debug.log` 的日志与页面 `console.*` 输出均带 `[appKey]` 标签，宿主调试页可见、按小程序隔离。
 
