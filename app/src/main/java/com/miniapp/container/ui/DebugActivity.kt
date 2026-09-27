@@ -103,8 +103,21 @@ class DebugActivity : AppCompatActivity() {
         } else {
             "调试模式未开启（已有日志仍保留）· 日志落盘保存，应用重启即清空"
         }
-        val logs = if (filterAppKey == null) DebugBus.snapshot() else DebugBus.snapshotForHost(filterAppKey!!)
-        tvLog.text = if (logs.isEmpty()) "(暂无记录)" else logs.joinToString("\n\n")
+        val all = if (filterAppKey == null) DebugBus.snapshot() else DebugBus.snapshotForHost(filterAppKey!!)
+        // 渲染限流：日志可能很多（接口调用/大参数），一次性全量 joinToString 会卡死 UI，
+        // 只渲染最近 MAX_RENDER_LINES 行，其余行通过复制/导出查看全量。
+        val shown = if (all.size > MAX_RENDER_LINES) {
+            "（仅显示最近 $MAX_RENDER_LINES 行，共 ${all.size} 行；可点「复制日志」获取全量）\n\n" +
+                all.takeLast(MAX_RENDER_LINES).joinToString("\n\n")
+        } else {
+            if (all.isEmpty()) "(暂无记录)" else all.joinToString("\n\n")
+        }
+        tvLog.text = shown
         scroll.post { scroll.fullScroll(ScrollView.FOCUS_DOWN) }
+    }
+
+    companion object {
+        /** 单次渲染最多显示的日志行数（防止超大日志卡死 UI）。 */
+        private const val MAX_RENDER_LINES = 300
     }
 }

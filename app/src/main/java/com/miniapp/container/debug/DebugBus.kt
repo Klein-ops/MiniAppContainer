@@ -4,6 +4,9 @@ import java.io.File
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
+import kotlinx.coroutines.GlobalScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 
 /**
  * 调试模式总线：记录小程序运行时的一切调试信息。
@@ -34,6 +37,9 @@ object DebugBus {
 
     private const val MAX = 500
     private const val TRIM_THRESHOLD = 2 * MAX
+
+    /** CALL 日志中参数/返回值的最大记录长度（防止大 base64 全量入日志导致 UI 卡死）。 */
+    private const val MAX_CALL_TEXT_CHARS = 600
     private val ts = SimpleDateFormat("HH:mm:ss.SSS", Locale.US)
 
     /** 日志条目头：`[时间] TYPE [appKey]`。TYPE 限 CALL/EVT/ERR/JS/APP；所有类型都带 [appKey] 段（可为空，空视为无标签）。 */
@@ -71,7 +77,9 @@ object DebugBus {
         val tag = if (ok) "OK" else "ERR"
         val arrow = if (ok) "←" else "✗"
         val appTag = appKey?.let { "[$it]" } ?: "[$SYSTEM_APP_KEY]"
-        log("[${now()}] CALL $appTag $method\n  params: ${esc(params)}\n  $arrow $tag: ${esc(payload)}\n  ${ms}ms")
+        // 参数与返回值可能携带大 base64（readBytes/writeChunk 等），全量记录会拖垮日志渲染，
+        // 统一截断到 MAX_CALL_TEXT_CHARS 字符（超出部分折叠）。
+        log("[${now()}] CALL $appTag $method\n  params: ${esc(truncateText(params, MAX_CALL_TEXT_CHARS))}\n  $arrow $tag: ${esc(truncateText(payload, MAX_CALL_TEXT_CHARS))}\n  ${ms}ms")
     }
 
     /** 记录内部事件（权限审批、服务绑定、拦截等）；系统层统一带 [system] 标签。 */
@@ -103,13 +111,16 @@ object DebugBus {
     // ---------- 底层 ----------
 
     fun log(line: String) {
+    // 写盘（appendText + trimIfNeeded 全文件读写）挪到 IO 线程，避免阻塞主线程/调用线程
+    GlobalScope.launch(Dispatchers.IO) {
         synchronized(lock) {
-            val f = logFile ?: return
+            val f = logFile ?: return@launch
             runCatching { f.appendText(line + "\n") }
             trimIfNeeded(f)
         }
-        notifyChanged()
     }
+    notifyChanged()
+}
 
     fun snapshot(): List<String> = synchronized(lock) {
         val f = logFile ?: return emptyList()
@@ -218,6 +229,12 @@ object DebugBus {
     }
 
     private fun now(): String = ts.format(Date())
+
+    /** 截断超长文本（参数/返回值），保留前 [max] 字符并在尾部标注折叠信息。 */
+    private fun truncateText(s: String, max: Int): String {
+        if (s.length <= max) return s
+        return s.take(max) + "…[+${s.length - max} chars]"
+    }
 
     /**
      * 转义日志条目里的小程序可控内容：换行 / 方括号 / 反斜杠。
