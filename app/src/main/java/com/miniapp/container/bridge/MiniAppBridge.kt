@@ -94,7 +94,7 @@ class MiniAppBridge(
                 BridgeOut(false, e.message ?: e.javaClass.simpleName)
             }
             com.miniapp.container.debug.DebugBus.logCall(
-                method, paramsJson, out.ok, out.payload, System.currentTimeMillis() - t0
+                appInfo.appKey, method, paramsJson, out.ok, out.payload, System.currentTimeMillis() - t0
             )
             respond(reqId, out)
         }

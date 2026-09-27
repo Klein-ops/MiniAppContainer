@@ -39,10 +39,11 @@ class DebugActivity : AppCompatActivity() {
         scroll = findViewById(R.id.scroll)
         tvHint = findViewById(R.id.tv_hint)
 
-        // 按小程序过滤：从当前日志里提取所有 [appKey] 标签，单选切换
+        // 按小程序过滤：从日志条目头严格提取 [appKey] 标签（APP/JS/CALL），单选切换
         findViewById<MaterialButton>(R.id.btn_filter_log).setOnClickListener {
             val tags = DebugBus.snapshot()
-                .mapNotNull { Regex("\\[([^\\]]+)\\]").find(it)?.groupValues?.get(1) }
+                .mapNotNull { Regex("^\\[[^]]+] (APP|JS|CALL) \\[([^\\]]+)]").find(it)?.groupValues?.get(2) }
+                .filter { it.isNotBlank() && it != "system" }
                 .distinct()
             if (tags.isEmpty()) { toast("暂无带标签的小程序日志"); return@setOnClickListener }
             val options = listOf("全部日志") + tags
@@ -60,7 +61,7 @@ class DebugActivity : AppCompatActivity() {
 
         // 复制全部日志到系统剪贴板
         findViewById<MaterialButton>(R.id.btn_copy_log).setOnClickListener {
-            val text = (if (filterAppKey == null) DebugBus.snapshot() else DebugBus.snapshotForApp(filterAppKey!!))
+            val text = (if (filterAppKey == null) DebugBus.snapshot() else DebugBus.snapshotForHost(filterAppKey!!))
                 .joinToString("\n")
             if (text.isBlank()) { toast("暂无日志"); return@setOnClickListener }
             val cm = getSystemService(CLIPBOARD_SERVICE) as android.content.ClipboardManager
@@ -103,7 +104,7 @@ class DebugActivity : AppCompatActivity() {
         } else {
             "调试模式未开启（已有日志仍保留）· 日志落盘保存，应用重启即清空"
         }
-        val logs = if (filterAppKey == null) DebugBus.snapshot() else DebugBus.snapshotForApp(filterAppKey!!)
+        val logs = if (filterAppKey == null) DebugBus.snapshot() else DebugBus.snapshotForHost(filterAppKey!!)
         tvLog.text = if (logs.isEmpty()) "(暂无记录)" else logs.joinToString("\n\n")
         scroll.post { scroll.fullScroll(ScrollView.FOCUS_DOWN) }
     }

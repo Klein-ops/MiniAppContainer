@@ -55,38 +55,39 @@ object DebugBus {
 
     // ---------- 分类日志方法 ----------
 
-    /** 记录 JS Bridge 接口调用。 */
-    fun logCall(method: String, params: String, ok: Boolean, payload: String, ms: Long) {
+    /** 记录 JS Bridge 接口调用（带 appKey 标签，供宿主按小程序过滤；小程序侧不可见）。 */
+    fun logCall(appKey: String?, method: String, params: String, ok: Boolean, payload: String, ms: Long) {
         if (!enabled) return
         val tag = if (ok) "OK" else "ERR"
         val arrow = if (ok) "←" else "✗"
-        log("[${now()}] CALL $method\n  params: $params\n  $arrow $tag: $payload\n  ${ms}ms")
+        val appTag = appKey?.let { "[$it]" } ?: "[system]"
+        log("[${now()}] CALL $appTag $method\n  params: ${esc(params)}\n  $arrow $tag: ${esc(payload)}\n  ${ms}ms")
     }
 
     /** 记录内部事件（权限审批、服务绑定、拦截等）。 */
     fun logEvent(category: String, message: String) {
         if (!enabled) return
-        log("[${now()}] EVT $category: $message")
+        log("[${now()}] EVT $category: ${esc(message)}")
     }
 
     /** 记录异常与错误。 */
     fun logError(tag: String, message: String, throwable: Throwable? = null) {
         if (!enabled) return
-        val detail = throwable?.let { " | ${it.javaClass.simpleName}: ${it.message}" } ?: ""
-        log("[${now()}] ERR $tag: $message$detail")
+        val detail = throwable?.let { " | ${it.javaClass.simpleName}: ${esc(it.message ?: "")}" } ?: ""
+        log("[${now()}] ERR $tag: ${esc(message)}$detail")
     }
 
     /** 记录前端 JS console 输出（带小程序标签与级别，供按小程序隔离）。 */
     fun logJsConsole(appKey: String?, sourceId: String?, line: Int, message: String?, level: String) {
         if (!enabled) return
         val tag = appKey ?: "?"
-        log("[${now()}] JS [$tag] $level ${sourceId ?: "?"}:$line ${message ?: ""}")
+        log("[${now()}] JS [$tag] $level ${esc(sourceId ?: "?")}:$line ${esc(message ?: "")}")
     }
 
     /** 记录小程序主动打的日志（MiniApp.debug.log），强制带 appKey 标签，小程序无法伪造/去掉。 */
     fun logApp(appKey: String, message: String) {
         if (!enabled) return
-        log("[${now()}] APP [$appKey] $message")
+        log("[${now()}] APP [$appKey] ${esc(message)}")
     }
 
     // ---------- 底层 ----------
@@ -109,12 +110,25 @@ object DebugBus {
      * 按小程序 appKey 过滤日志：只返回该小程序自己的日志
      * （APP 主动日志 + 该小程序的 console 日志），
      * 永远不包含其他小程序的日志与系统层 CALL/EVT/ERR 日志。
+     *
+     * 严格匹配条目头 `[时间] TYPE [appKey]`，不模糊 contains。
      */
     fun snapshotForApp(appKey: String): List<String> = synchronized(lock) {
         val f = logFile ?: return emptyList()
         runCatching { f.readLines() }
             .getOrDefault(emptyList())
-            .filter { it.contains("[$appKey]") }
+            .filter { line -> line.matches(Regex("^\\[[^]]+] (APP|JS) \\[$appKey]")) }
+    }
+
+    /**
+     * 宿主视角：按小程序 appKey 过滤全部日志（含 CALL 接口调用记录），
+     * 供 DebugActivity「按小程序过滤」使用；标签严格取条目头。
+     */
+    fun snapshotForHost(appKey: String): List<String> = synchronized(lock) {
+        val f = logFile ?: return emptyList()
+        runCatching { f.readLines() }
+            .getOrDefault(emptyList())
+            .filter { line -> line.matches(Regex("^\\[[^]]+] (APP|JS|CALL) \\[$appKey]")) }
     }
 
     /** 手动清空（并通知 UI 刷新）。 */
@@ -125,13 +139,13 @@ object DebugBus {
         notifyChanged()
     }
 
-    /** 只清空指定小程序自己的日志行（其他小程序与系统日志保留）。 */
+    /** 只清空指定小程序自己的日志行（APP/JS/CALL 带该标签的条目，其他小程序与系统日志保留）。 */
     fun clearForApp(appKey: String) {
         synchronized(lock) {
             val f = logFile ?: return
             val kept = runCatching { f.readLines() }
                 .getOrDefault(emptyList())
-                .filterNot { it.contains("[$appKey]") }
+                .filterNot { line -> line.matches(Regex("^\\[[^]]+] (APP|JS|CALL) \\[$appKey]")) }
             runCatching { f.writeText(kept.joinToString("\n").let { if (it.isEmpty()) "" else it + "\n" }) }
         }
         notifyChanged()
@@ -160,4 +174,15 @@ object DebugBus {
     }
 
     private fun now(): String = ts.format(Date())
+
+    /**
+     * 转义日志条目里的小程序可控内容：换行 / 方括号 / 反斜杠。
+     * 防止小程序通过 message/params 里的换行伪造出额外的
+     * `[时间] APP [别的appKey] ...` 假标签行（保证约束1：标签无法伪造）。
+     */
+    private fun esc(s: String): String = s
+        .replace("\\", "\\\\")
+        .replace("\n", "\\n")
+        .replace("[", "\\[")
+        .replace("]", "\\]")
 }
