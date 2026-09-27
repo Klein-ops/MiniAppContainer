@@ -109,6 +109,14 @@ class MiniAppBridge(
         // 沙箱内文件
         "fs.read" -> fileService.read(p.optStringOr("path"))
         "fs.readBytes" -> fileService.readBytes(p.optStringOr("path"))
+        "fs.openFile" -> {
+            val f = fileService.resolveReadable(p.optStringOr("path"))
+            externalFile.openSandboxFile(f)
+        }
+        "fs.readChunk" -> fileService.readChunk(p.optStringOr("path"), p.optLong("offset"), p.optLong("length"))
+        "fs.writeChunk" -> fileService.writeChunk(p.optStringOr("path"), p.optLong("offset"), p.optStringOr("base64"))
+        "fs.append" -> fileService.append(p.optStringOr("path"), p.optStringOr("base64"))
+        "fs.truncate" -> fileService.truncate(p.optStringOr("path"), p.optLong("size"))
         "fs.write" -> fileService.write(p.optStringOr("path"), p.optStringOr("content"))
         "fs.writeBytes" -> fileService.writeBytes(p.optStringOr("path"), p.optStringOr("base64"))
         "fs.list" -> fileService.list(p.optStringOr("path"))

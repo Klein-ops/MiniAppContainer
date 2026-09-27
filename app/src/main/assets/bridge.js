@@ -55,6 +55,49 @@
       readBytes: function (p) { return B.call('fs.readBytes', { path: p }); },
       write: function (p, content) { return B.call('fs.write', { path: p, content: content }); },
       writeBytes: function (p, b64) { return B.call('fs.writeBytes', { path: p, base64: b64 }); },
+      // 流式读：返回沙箱内文件的会话授权 URL，小程序 fetch 流式分段读取（避免 readBytes 全量 base64）
+      openFile: function (p) { return B.call('fs.openFile', { path: p }); },
+      // 偏移读块：返回 base64（readChunk(path, offset, length)；length<0 读到文件尾）
+      readChunk: function (p, offset, length) { return B.call('fs.readChunk', { path: p, offset: offset, length: length }); },
+      // 偏移写块（随机写/断点续传）；offset<0 视为追加
+      writeChunk: function (p, offset, b64) { return B.call('fs.writeChunk', { path: p, offset: offset, base64: b64 }); },
+      // 追加写（等价 offset=文件尾）
+      append: function (p, b64) { return B.call('fs.append', { path: p, base64: b64 }); },
+      // 截断到指定字节数
+      truncate: function (p, size) { return B.call('fs.truncate', { path: p, size: size }); },
+      // 流式写助手：以固定块大小循环 writeChunk 写入（空 ArrayBuffer 可先建文件）
+      writeStream: async function (p, bytes, chunkSize) {
+        chunkSize = chunkSize || 65536;
+        var view = (bytes instanceof Uint8Array) ? bytes : new Uint8Array(bytes);
+        var off = 0, size = chunkSize;
+        while (off < view.length) {
+          if (off + size > view.length) size = view.length - off;
+          var chunk = view.subarray(off, off + size);
+          // 二进制→base64
+          var bin = '';
+          for (var i = 0; i < chunk.length; i++) bin += String.fromCharCode(chunk[i]);
+          await B.call('fs.writeChunk', { path: p, offset: off, base64: btoa(bin) });
+          off += size;
+        }
+        return true;
+      },
+      // 流式读辅助：openFile → fetch → getReader 累积为 Uint8Array（大文件建议配合 readChunk 自行分片）
+      readStream: async function (p) {
+        var url = await B.call('fs.openFile', { path: p });
+        var resp = await fetch(url);
+        if (!resp.ok) throw new Error('openFile fetch failed: ' + resp.status);
+        var reader = resp.body.getReader();
+        var chunks = [];
+        for (;;) {
+          var r = await reader.read();
+          if (r.done) break;
+          chunks.push(r.value);
+        }
+        var total = chunks.reduce(function (a, c) { return a + c.length; }, 0);
+        var out = new Uint8Array(total), pos = 0;
+        for (var i = 0; i < chunks.length; i++) { out.set(chunks[i], pos); pos += chunks[i].length; }
+        return out;
+      },
       list: function (p) { return B.call('fs.list', { path: p }); },
       exists: function (p) { return B.call('fs.exists', { path: p }); },
       stat: function (p) { return B.call('fs.stat', { path: p }); },

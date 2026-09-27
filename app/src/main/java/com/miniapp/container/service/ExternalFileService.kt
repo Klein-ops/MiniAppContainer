@@ -76,8 +76,40 @@ class ExternalFileService(
             t
         }
         // 返回带引号的 JSON 字符串：respond() 会原样拼进 JS 源码，裸 URL 会被当作 label/注释导致语法错误
-        JSONObject.quote("https://${MiniAppWebViewClient.EXTERNAL_HOST}${MiniAppWebViewClient.EXTERNAL_PATH_PREFIX}$token")
+        JSONObject.quote(urlForToken(token))
     }
+
+    /**
+     * 为**沙箱内**文件签发会话级授权 URL（条件同 [openExternalFile]，但目标已在沙箱内、
+     * 必经 PathGuard 解析，故用宿主直接可达的 [File] 即可，无需走 StorageBackend 权限链）。
+     *
+     * 令牌仍由宿主持有并注册到 [MiniAppActivity.registerExternalToken]，WebView 拦截层（
+     * [MiniAppWebViewClient.serveExternalToken]）与被 `fs.external` 鉴权的外部文件走同一张表、
+     * 同一套 FileInputStream 流式响应——沙箱内文件由此获得与大文件一致的流式读取能力
+     * （避免 readBytes 的 base64 全量进内存）。
+     */
+    suspend fun openSandboxFile(f: File): String {
+        val target = if (f.isDirectory) {
+            throw IllegalArgumentException("directories not supported for auth URL, use fs.list instead: ${f.path}")
+        } else if (!f.isFile) {
+            throw java.io.FileNotFoundException("file not found: ${f.path}")
+        } else f
+        val absPath = target.absolutePath
+        val token = externalTokenCache[absPath] ?: run {
+            if (externalTokenCache.size >= MAX_EXTERNAL_TOKENS) {
+                throw IllegalStateException("auth URL limit exceeded ($MAX_EXTERNAL_TOKENS), reuse tokens or close the mini app")
+            }
+            val t = java.util.UUID.randomUUID().toString().replace("-", "")
+            activity.registerExternalToken(t, target)
+            externalTokenCache[absPath] = t
+            t
+        }
+        return JSONObject.quote(urlForToken(token))
+    }
+
+    /** 由令牌组装授权 URL（JSON 已引用形态由调用方决定引用位置）。 */
+    private fun urlForToken(token: String): String =
+        "https://${MiniAppWebViewClient.EXTERNAL_HOST}${MiniAppWebViewClient.EXTERNAL_PATH_PREFIX}$token"
 
     /** grep：返回匹配行（不修改文件）。 */
     suspend fun grepFile(absPath: String, pattern: String, regex: Boolean, ignoreCase: Boolean, invert: Boolean): String =
