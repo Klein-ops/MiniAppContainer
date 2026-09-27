@@ -566,6 +566,27 @@ if (!r2.ok && r2.timedOut) console.log('超时，已部分输出:', r2.stdout);
 
 ---
 
+### 4.13 小程序调试
+小程序可通过 `MiniApp.debug.*` 便捷调试自己（写日志 / 读日志），**无需宿主参与**。
+
+| 接口 | 返回类型 | 返回值 |
+|---|---|---|
+| `MiniApp.debug.log(msg)` | `boolean` | 固定 `true`；记录一条日志，**宿主强制打上当前小程序标签（appKey）**，小程序无法伪造/去掉标签 |
+| `MiniApp.debug.getLogs(n?)` | `array` | 只返回**当前小程序**的日志（自己的 APP 日志 + 本页 `console.*` 输出），JSON 字符串数组；`n` 为最多返回条数（缺省返回全部） |
+| `MiniApp.debug.clear()` | `boolean` | 固定 `true`；只清空**当前小程序**的日志行（其他小程序与系统日志保留） |
+| `MiniApp.debug.enabled()` | `boolean` | 蜗壳调试模式开关状态（`true` 表示已开启） |
+
+**隔离约束**（宿主强制，小程序无法绕过）：
+- **写**：日志由宿主带 `[appKey]` 标签写入，标签内容由宿主拼装，小程序只能提供 `message`。
+- **读**：`getLogs` 只返回含自己 `[appKey]` 标签的行；**看不到**其他小程序的日志，也**看不到**系统层接口调用日志（`CALL`/`EVT`/`ERR`）。
+- **清**：`clear` 只删除带自己 `[appKey]` 标签的行。
+
+```js
+MiniApp.debug.log('用户点击了按钮');     // 宿主调试页可见，带 [appKey] 标签
+const logs = await MiniApp.debug.getLogs(50); // 只返回自己的日志（JSON 数组）
+await MiniApp.debug.clear();              // 清自己的日志
+```
+---
 ## 五、权限模型
 
 ### 5.1 权限等级
@@ -832,7 +853,9 @@ console.log('WASM time:', performance.now() - t0);
 - `MiniAppBridge`：Bridge 调用与错误
 - `MiniAppJS`：页面 `console.*` 输出（由宿主转发）
 
-开启蜗壳「调试模式」后，接口调用可在「调用日志」页查看。
+开启蜗壳「调试模式」后，接口调用可在「调用日志」页查看；「调用日志」页支持**按小程序过滤**（提取日志中的 [appKey] 标签，单选切换「全部日志 / 某小程序」）。
+
+**小程序侧调试**：小程序可用 `MiniApp.debug.*`（见 4.13）**写日志 / 读自己的日志**，无需宿主参与；`MiniApp.debug.log` 的日志与页面 `console.*` 输出均带 `[appKey]` 标签，宿主调试页可见、按小程序隔离。
 
 > `wasm.*` 由前端 `bridge.js` 实现，**不会**出现在调用日志中；相关输出请看页面 `console`（前缀 `[MiniApp.wasm]`）。
 
