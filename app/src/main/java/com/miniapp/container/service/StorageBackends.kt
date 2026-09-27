@@ -57,8 +57,8 @@ interface StorageBackend {
 class DirectStorageBackend : StorageBackend {
 
     override fun read(f: File): ByteArray {
-        if (!f.exists()) throw FileNotFoundException("文件不存在: ${f.absolutePath}")
-        if (f.isDirectory) throw IOException("目标是目录: ${f.absolutePath}")
+        if (!f.exists()) throw FileNotFoundException("file not found: ${f.absolutePath}")
+        if (f.isDirectory) throw IOException("target is a directory: ${f.absolutePath}")
         return IoUtil.readBytes(f)
     }
 
@@ -68,8 +68,8 @@ class DirectStorageBackend : StorageBackend {
     }
 
     override fun list(dir: File): List<StorageEntry> {
-        if (!dir.exists()) throw FileNotFoundException("目录不存在: ${dir.absolutePath}")
-        if (!dir.isDirectory) throw IOException("目标不是目录: ${dir.absolutePath}")
+        if (!dir.exists()) throw FileNotFoundException("directory not found: ${dir.absolutePath}")
+        if (!dir.isDirectory) throw IOException("target is not a directory: ${dir.absolutePath}")
         return dir.listFiles()?.sortedBy { it.name }?.map {
             StorageEntry(it.name, it.isDirectory, it.length())
         } ?: emptyList()

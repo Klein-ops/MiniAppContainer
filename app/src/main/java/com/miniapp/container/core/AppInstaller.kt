@@ -61,13 +61,15 @@ class AppInstaller(
     }
 
     suspend fun installFromZip(zipFile: File, sourceUrl: String = ""): InstallResult = withContext(Dispatchers.IO) {
+        com.miniapp.container.debug.DebugBus.logEvent("install", "installFromZip: ${zipFile.name} sourceUrl=$sourceUrl")
         val tmp = File(context.cacheDir, "install_${System.currentTimeMillis()}")
         try {
             tmp.mkdirs()
             try {
                 IoUtil.unzip(zipFile, tmp)
             } catch (t: Throwable) {
-                return@withContext InstallResult(false, message = "解压失败: ${t.message}")
+                com.miniapp.container.debug.DebugBus.logError("install", "unzip failed", t)
+                return@withContext InstallResult(false, message = "unzip failed: ${t.message}")
             }
 
             // 清单查找：zip 根目录优先，否则递归查找第一个 manifest.json。
@@ -75,16 +77,16 @@ class AppInstaller(
             val manifestFile = File(tmp, "manifest.json").takeIf { it.isFile }
                 ?: tmp.walkTopDown().firstOrNull { it.isFile && it.name == "manifest.json" }
             if (manifestFile == null) {
-                return@withContext InstallResult(false, message = "清单 manifest.json 不存在")
+                return@withContext InstallResult(false, message = "manifest.json not found in package")
             }
             val appRoot = manifestFile.parentFile ?: tmp
             val manifest = AppManifest.parse(manifestFile)
-                ?: return@withContext InstallResult(false, message = "清单解析失败或字段缺失")
+                ?: return@withContext InstallResult(false, message = "manifest parse failed or required fields missing")
 
             val uid = PathGuard.sanitizeName(manifest.uid)
-                ?: return@withContext InstallResult(false, message = "uid 非法: ${manifest.uid}")
+                ?: return@withContext InstallResult(false, message = "invalid uid: ${manifest.uid}")
             val uname = PathGuard.sanitizeName(manifest.uname)
-                ?: return@withContext InstallResult(false, message = "uname 非法: ${manifest.uname}")
+                ?: return@withContext InstallResult(false, message = "invalid uname: ${manifest.uname}")
             val appKey = PathGuard.appKey(uid, uname)
 
             // 创建或复用沙箱；更新时保留 data/ 与 tmp/，只替换 app/
@@ -175,13 +177,14 @@ class AppInstaller(
             context.assets.open(assetName).use { IoUtil.copy(it, cache) }
             installFromZip(cache)
         } catch (t: Throwable) {
-            InstallResult(false, message = "读取内置包失败: ${t.message}")
+            InstallResult(false, message = "failed to read built-in package: ${t.message}")
         } finally {
             cache.delete()
         }
     }
 
     suspend fun uninstall(appKey: String): Boolean = withContext(Dispatchers.IO) {
+        com.miniapp.container.debug.DebugBus.logEvent("install", "uninstall: $appKey")
         registry.remove(appKey)   // meta.json 随沙箱目录删除
         permissionManager.clearApp(appKey)   // 卸载时清除权限记录
         val deleted = sandbox.delete(appKey)

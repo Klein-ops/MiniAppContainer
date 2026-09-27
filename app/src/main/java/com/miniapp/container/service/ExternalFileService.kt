@@ -58,17 +58,17 @@ class ExternalFileService(
         // backend()：fs.external 审批 + 路径规则 + 系统存储权限；stat 在 Shizuku 时走 uid 2000，
         // 存在/目录判断准确（宿主侧 File.exists 对 Android/data 等宿主无权路径会误报不存在）
         val st = backend(f).stat(f)
-        if (!st.exists) throw java.io.FileNotFoundException("文件不存在: $absPath")
-        if (st.isDir) throw IllegalArgumentException("目录不支持授权 URL，请用 fs.listExternal 枚举: $absPath")
+        if (!st.exists) throw java.io.FileNotFoundException("file not found: $absPath")
+        if (st.isDir) throw IllegalArgumentException("directories not supported for auth URL, use fs.listExternal instead: $absPath")
         // 授权 URL 的读取发生在宿主进程（WebView 拦截层 FileInputStream）：Shizuku 能读但宿主
         // 无权读的路径（如 Android/data）不支持此通道，需明确报错而非误报"不存在"
         if (!f.isFile) {
-            throw IllegalStateException("宿主进程无法直接读取该路径，授权 URL 不可用（请用 fs.readExternalFile）: $absPath")
+            throw IllegalStateException("host process cannot read this path, auth URL unavailable (use fs.readExternalFile): $absPath")
         }
         // 同路径复用令牌；会话内总数设上限防滥用
         val token = externalTokenCache[absPath] ?: run {
             if (externalTokenCache.size >= MAX_EXTERNAL_TOKENS) {
-                throw IllegalStateException("授权 URL 数量超限（$MAX_EXTERNAL_TOKENS），请复用或关闭小程序")
+                throw IllegalStateException("auth URL limit exceeded ($MAX_EXTERNAL_TOKENS), reuse tokens or close the mini app")
             }
             val t = java.util.UUID.randomUUID().toString().replace("-", "")
             activity.registerExternalToken(t, f)
@@ -84,7 +84,7 @@ class ExternalFileService(
         withContext(Dispatchers.IO) {
             val f = File(absPath)
             assertExternalPath(f)
-            if (!f.exists()) throw java.io.FileNotFoundException("文件不存在: $absPath")
+            if (!f.exists()) throw java.io.FileNotFoundException("file not found: $absPath")
             val arr = org.json.JSONArray()
             TextEditor.grep(f.readText(Charsets.UTF_8), pattern, regex, ignoreCase, invert)
                 .forEach { arr.put(it) }
@@ -95,8 +95,8 @@ class ExternalFileService(
     suspend fun sedFile(absPath: String, script: String): String = withContext(Dispatchers.IO) {
         val f = File(absPath)
         assertExternalPath(f)
-        if (!f.exists()) throw java.io.FileNotFoundException("文件不存在: $absPath")
-        if (f.isDirectory) throw java.io.IOException("目标是目录: $absPath")
+        if (!f.exists()) throw java.io.FileNotFoundException("file not found: $absPath")
+        if (f.isDirectory) throw java.io.IOException("target is a directory: $absPath")
         val text = f.readText(Charsets.UTF_8)
         val result = TextEditor.sed(text, script)
         f.writeText(result, Charsets.UTF_8)
@@ -243,7 +243,7 @@ class ExternalFileService(
         // 硬底线：应用私有目录永远禁（不可配置，防篡改权限记录与沙箱数据）
         val privateRoot = normalizePath(activity.filesDir.path)
         if (p == privateRoot || p.startsWith(privateRoot + "/") || p.startsWith("/data/data/")) {
-            throw SecurityException("禁止访问应用私有目录: $p")
+            throw SecurityException("access to app private directory is forbidden: $p")
         }
         // 规则过滤：只取启用且作用域当前小程序 的规则
         val active = StorageAccessConfig(activity).rules().filter {
@@ -253,11 +253,11 @@ class ExternalFileService(
         val blacklists = active.filter { it.type == RuleType.BLACKLIST }
         // 有白名单规则时：路径必须命中至少一条才放行
         if (whitelists.isNotEmpty() && !whitelists.any { ruleMatches(it, p) }) {
-            throw SecurityException("路径不在白名单中: $p")
+            throw SecurityException("path not in whitelist: $p")
         }
         // 黑名单规则：命中即禁（在白名单之后的二次过滤）
         if (blacklists.any { ruleMatches(it, p) }) {
-            throw SecurityException("路径在黑名单中: $p")
+            throw SecurityException("path is in blacklist: $p")
         }
     }
 
@@ -330,7 +330,7 @@ class ExternalFileService(
                     } catch (e2: Exception) { /* 无该设置项 */ }
                 }
             }
-            throw SecurityException("已跳转系统设置，请开启「所有文件访问权限」后重试")
+            throw SecurityException("redirected to system settings, please enable 'All files access' and retry")
         } else {
             val needed = mutableListOf<String>()
             if (ContextCompat.checkSelfPermission(
@@ -348,7 +348,7 @@ class ExternalFileService(
                     if (cont.isActive) cont.resume(r)
                 }
             }
-            if (!result.values.all { it }) throw SecurityException("存储权限被拒绝")
+            if (!result.values.all { it }) throw SecurityException("storage permission denied")
         }
     }
 }

@@ -29,8 +29,8 @@ object StorageUserServiceConnector {
     @Synchronized
     fun acquire(context: Context): IStorageUserService {
         check(Looper.myLooper() != Looper.getMainLooper()) {
-            "StorageUserServiceConnector.acquire 必须在 IO 线程调用：" +
-                "绑定回调经主线程派发，主线程阻塞等待会死锁（binder 回调永远轮不到执行）"
+            "StorageUserServiceConnector.acquire must be called on IO thread: " +
+                "binding callback is dispatched on main thread, blocking would deadlock"
         }
         val alive = service?.let {
             runCatching { it.asBinder().isBinderAlive }.getOrDefault(false)
@@ -63,13 +63,18 @@ object StorageUserServiceConnector {
         try {
             Shizuku.bindUserService(args, conn)
         } catch (t: Throwable) {
-            throw IOException("无法绑定存储服务: ${t.message}")
+            com.miniapp.container.debug.DebugBus.logError("storage-connector", "bindUserService failed", t)
+            throw IOException("failed to bind storage service: ${t.message}")
         }
 
         if (!latch.await(BIND_TIMEOUT_MS, TimeUnit.MILLISECONDS)) {
             runCatching { Shizuku.unbindUserService(args, conn, true) }
-            throw IOException("存储服务连接超时（Shizuku 未就绪？）")
+            com.miniapp.container.debug.DebugBus.logError("storage-connector", "bind timeout (${BIND_TIMEOUT_MS}ms)")
+            throw IOException("storage service connection timeout (Shizuku not ready?)")
         }
-        return bound[0] ?: throw IOException("存储服务连接失败")
+        if (bound[0] == null) {
+            com.miniapp.container.debug.DebugBus.logError("storage-connector", "bind returned null")
+        }
+        return bound[0] ?: throw IOException("storage service connection failed")
     }
 }

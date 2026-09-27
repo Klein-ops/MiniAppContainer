@@ -39,7 +39,7 @@ class AdbService(
 
     suspend fun exec(p: JSONObject): String {
         val command = p.optStringOr("command")
-        if (command.isBlank()) throw IllegalArgumentException("command 不能为空")
+        if (command.isBlank()) throw IllegalArgumentException("command is required")
         // timeout：省略或 0 → 默认 30s；负数 → 永不超时；正数 → 直接采用（无上限）
         val rawTimeout = p.optLongOr("timeout", DEFAULT_TIMEOUT_MS)
             .let { if (it == 0L) DEFAULT_TIMEOUT_MS else it }

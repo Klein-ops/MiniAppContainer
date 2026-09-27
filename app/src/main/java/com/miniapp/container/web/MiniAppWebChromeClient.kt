@@ -77,7 +77,11 @@ class MiniAppWebChromeClient(
 
     override fun onConsoleMessage(consoleMessage: ConsoleMessage?): Boolean {
         val m = consoleMessage
-        Log.d("MiniAppJS", "[${m?.sourceId()}:${m?.lineNumber()}] ${m?.message()}")
+        val sourceId = m?.sourceId()
+        val line = m?.lineNumber() ?: 0
+        val msg = m?.message()
+        Log.d("MiniAppJS", "[$sourceId:$line] $msg")
+        com.miniapp.container.debug.DebugBus.logJsConsole(sourceId, line, msg)
         return true
     }
 }

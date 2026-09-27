@@ -78,7 +78,7 @@ class NotificationService(
                     if (cont.isActive) cont.resume(r)
                 }
             }
-            if (!result.values.all { it }) throw SecurityException("通知权限被拒绝")
+            if (!result.values.all { it }) throw SecurityException("notification permission denied")
         }
     }
 }

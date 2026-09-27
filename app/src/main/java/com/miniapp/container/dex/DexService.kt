@@ -31,11 +31,11 @@ class DexService : Service() {
             val result = Bundle()
             try {
                 if (params == null || dexFd == null) {
-                    result.putString("error", "缺少 params 或 dexFd")
+                    result.putString("error", "missing params or dexFd")
                     return result
                 }
                 val className = params.getString("__className")
-                    ?: return result.apply { putString("error", "缺少 className") }
+                    ?: return result.apply { putString("error", "missing className") }
                 val methodName = params.getString("__methodName") ?: "run"
 
                 // 读取 dex 字节（仅通过传入 FD，无法主动打开路径）

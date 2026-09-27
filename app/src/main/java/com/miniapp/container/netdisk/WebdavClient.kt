@@ -82,7 +82,7 @@ class WebdavClient(private val config: WebdavConfig) {
             client.newCall(newBuilder("MKCOL", sub, null).build()).execute().use { resp ->
                 val code = resp.code
                 if (code !in 200..299 && code != 405) {
-                    throw IOException("MKCOL 失败 ($code): ${sub.joinToString("/")}")
+                    throw IOException("MKCOL failed ($code): ${sub.joinToString("/")}")
                 }
             }
         }

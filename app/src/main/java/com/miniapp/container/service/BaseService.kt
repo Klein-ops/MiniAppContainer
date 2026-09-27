@@ -29,6 +29,10 @@ abstract class BaseService(
         val granted = permissionManager.ensurePermission(
             activity, appInfo.appKey, appInfo.permissions, scope
         )
+        com.miniapp.container.debug.DebugBus.logEvent(
+            "permission",
+            "scope=$scope appKey=${appInfo.appKey} granted=$granted"
+        )
         if (!granted) throw SecurityException("permission denied: $scope")
     }
 

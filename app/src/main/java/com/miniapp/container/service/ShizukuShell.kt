@@ -23,7 +23,7 @@ data class ShellResult(
 
     /** 失败时抛出带 stderr 的 IOException，成功则返回 stdout。 */
     fun requireStdout(): ByteArray {
-        if (!ok) throw java.io.IOException(detail.ifBlank { error ?: "shell 执行失败" })
+        if (!ok) throw java.io.IOException(detail.ifBlank { error ?: "shell execution failed" })
         if (exitCode != 0) {
             val msg = stderr.trim().ifBlank { "exitCode=$exitCode" }
             throw java.io.IOException(msg)

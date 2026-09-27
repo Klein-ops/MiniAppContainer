@@ -33,7 +33,10 @@ class DexRunner(private val context: Context) {
         output: File?,
         params: Bundle
     ): Bundle = withContext(Dispatchers.IO) {
-        val svc = bind() ?: throw IllegalStateException("无法连接 Dex 执行服务（设备可能不支持隔离进程）")
+        val svc = bind() ?: run {
+            com.miniapp.container.debug.DebugBus.logError("dex", "failed to connect to Dex execution service (bind timeout or not supported)")
+            throw IllegalStateException("failed to connect to Dex execution service (device may not support isolated process)")
+        }
         var dexFd: ParcelFileDescriptor? = null
         var inputFd: ParcelFileDescriptor? = null
         var outputFd: ParcelFileDescriptor? = null

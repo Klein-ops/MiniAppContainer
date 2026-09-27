@@ -40,7 +40,7 @@ class StorageService(
     private fun resolve(rel: String): List<String> {
         val parts = rel.trim().trim('/').split('/').filter { it.isNotEmpty() }
         if (parts.any { it == "." || it == ".." }) {
-            throw SecurityException("路径非法（禁止 . 或 ..）: $rel")
+            throw SecurityException("illegal path (segment '.' or '..' is forbidden): $rel")
         }
         return appRoot() + parts
     }
@@ -55,7 +55,7 @@ class StorageService(
 
     /** 上传数据：把 base64 写入指定相对路径。返回 "true"。 */
     suspend fun upload(rel: String, base64: String): String = withContext(Dispatchers.IO) {
-        if (rel.isBlank()) throw IllegalArgumentException("path 不能为空")
+        if (rel.isBlank()) throw IllegalArgumentException("path is required")
         ensurePermission()
         ensureConfigured()
         val segs = resolve(rel)
@@ -72,14 +72,14 @@ class StorageService(
 
     /** 下载数据：读取指定相对路径，返回 base64。 */
     suspend fun download(rel: String): String = withContext(Dispatchers.IO) {
-        if (rel.isBlank()) throw IllegalArgumentException("path 不能为空")
+        if (rel.isBlank()) throw IllegalArgumentException("path is required")
         ensurePermission()
         ensureConfigured()
         val segs = resolve(rel)
         val tmp = File(activity.cacheDir, "storage_${System.currentTimeMillis()}.tmp")
         try {
             val ok = WebdavClient(config).get(segs, tmp)
-            if (!ok) throw java.io.FileNotFoundException("文件不存在: $rel")
+            if (!ok) throw java.io.FileNotFoundException("file not found: $rel")
             JSONObject.quote(IoUtil.toBase64(tmp.readBytes()))
         } finally {
             tmp.delete()
@@ -102,7 +102,7 @@ class StorageService(
 
     /** 删除文件/目录。返回 "true"/"false"。 */
     suspend fun delete(rel: String): String = withContext(Dispatchers.IO) {
-        if (rel.isBlank()) throw IllegalArgumentException("path 不能为空")
+        if (rel.isBlank()) throw IllegalArgumentException("path is required")
         ensurePermission()
         ensureConfigured()
         WebdavClient(config).delete(resolve(rel)).toString()

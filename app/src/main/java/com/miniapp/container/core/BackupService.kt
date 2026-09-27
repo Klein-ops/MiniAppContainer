@@ -117,7 +117,7 @@ class BackupService(
         try {
             IoUtil.unzip(zipFile, tmp)   // 自带 Zip-Slip 防护
             val manifestFile = File(tmp, "backup.json")
-            if (!manifestFile.isFile) throw IOException("备份文件缺少 backup.json（可能不是蜗壳备份）")
+            if (!manifestFile.isFile) throw IOException("backup file missing backup.json (may not be a Woke backup)")
             val root = JSONObject(manifestFile.readText(Charsets.UTF_8))
 
             val apps = root.optJSONArray("apps") ?: JSONArray()
@@ -137,7 +137,7 @@ class BackupService(
                 if (ok) restored++
             }
             if (restored == 0 && apps.length() > 0) {
-                throw IOException("备份内容无法恢复（应用数据缺失或格式不符）")
+                throw IOException("backup content cannot be restored (app data missing or format mismatch)")
             }
 
             // 4) 分类回填：以备份 meta.json 里的 category 为准——

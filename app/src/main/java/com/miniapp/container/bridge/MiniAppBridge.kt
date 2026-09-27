@@ -90,20 +90,14 @@ class MiniAppBridge(
             } catch (e: Throwable) {
                 if (e is kotlinx.coroutines.CancellationException) throw e
                 Log.w(TAG, "bridge call '$method' failed", e)
+                com.miniapp.container.debug.DebugBus.logError("bridge:$method", e.message ?: "", e)
                 BridgeOut(false, e.message ?: e.javaClass.simpleName)
             }
-            logIfDebug(method, paramsJson, out, t0)
+            com.miniapp.container.debug.DebugBus.logCall(
+                method, paramsJson, out.ok, out.payload, System.currentTimeMillis() - t0
+            )
             respond(reqId, out)
         }
-    }
-
-    private fun logIfDebug(method: String, paramsJson: String, out: BridgeOut, t0: Long) {
-        if (!com.miniapp.container.debug.DebugBus.enabled) return
-        val ms = System.currentTimeMillis() - t0
-        val result = if (out.ok) "← 返回: ${out.payload}" else "✗ 错误: ${out.payload}"
-        com.miniapp.container.debug.DebugBus.log(
-            "→ $method\n参数: $paramsJson\n$result\n耗时: ${ms}ms"
-        )
     }
 
     private suspend fun handle(method: String, p: JSONObject): String = when (method) {
@@ -226,10 +220,10 @@ class MiniAppBridge(
         // 无网络/无路径访问/无系统服务/不能加载 native，天然受限，故不再要求审批。
         val dexPath = p.optStringOr("dex")
         val className = p.optStringOr("className")
-        if (dexPath.isEmpty()) throw IllegalArgumentException("dex 路径不能为空")
-        if (className.isEmpty()) throw IllegalArgumentException("className 不能为空")
+        if (dexPath.isEmpty()) throw IllegalArgumentException("dex path required")
+        if (className.isEmpty()) throw IllegalArgumentException("className required")
         val dexFile = PathGuard.resolveUnderRoot(sandboxRoot, dexPath)
-        if (!dexFile.isFile) throw java.io.FileNotFoundException("dex 文件不存在: $dexPath")
+        if (!dexFile.isFile) throw java.io.FileNotFoundException("dex file not found: $dexPath")
         val inputPath = p.optStringOr("input")
         val outputPath = p.optStringOr("output")
         val input = if (inputPath.isNotEmpty()) PathGuard.resolveUnderRoot(sandboxRoot, inputPath) else null

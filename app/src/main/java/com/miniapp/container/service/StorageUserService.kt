@@ -30,8 +30,8 @@ class StorageUserService : IStorageUserService.Stub() {
 
     override fun read(path: String): ByteArray {
         val f = File(path)
-        if (!f.exists()) throw SecurityException("文件不存在: $path")
-        if (f.isDirectory) throw SecurityException("目标是目录: $path")
+        if (!f.exists()) throw SecurityException("file not found: $path")
+        if (f.isDirectory) throw SecurityException("target is a directory: $path")
         return f.readBytes()
     }
 
@@ -43,8 +43,8 @@ class StorageUserService : IStorageUserService.Stub() {
 
     override fun list(dir: String): Array<Bundle> {
         val f = File(dir)
-        if (!f.exists()) throw SecurityException("目录不存在: $dir")
-        if (!f.isDirectory) throw SecurityException("目标不是目录: $dir")
+        if (!f.exists()) throw SecurityException("directory not found: $dir")
+        if (!f.isDirectory) throw SecurityException("target is not a directory: $dir")
         val files = f.listFiles()?.sortedBy { it.name } ?: emptyList()
         return files.map {
             Bundle().apply {
@@ -86,7 +86,7 @@ class StorageUserService : IStorageUserService.Stub() {
         val proc = try {
             ProcessBuilder("sh", "-c", command).start()
         } catch (t: Throwable) {
-            throw SecurityException("无法启动 sh: ${t.message}")
+            throw SecurityException("failed to start sh: ${t.message}")
         }
 
         // 并发读 stdout/stderr（字节），防止管道写满导致 sh 阻塞

@@ -70,7 +70,7 @@ class MiniAppDocumentsProvider : DocumentsProvider() {
         val target = if (docId == ROOT_ID || docId.isEmpty()) root
         else File(root, docId).canonicalFile
         if (!PathGuard.isInSandbox(root, target)) {
-            throw SecurityException("禁止访问开放目录之外: $docId")
+            throw SecurityException("access outside exposed directory: $docId")
         }
         return target
     }
@@ -106,7 +106,7 @@ class MiniAppDocumentsProvider : DocumentsProvider() {
         val file = fileFor(documentId)
         // 不存在的 document 必须抛异常：此前返回空行导致 MT 等管理器
         // 查询目标时误判"文件已存在"，拒绝新建/新建文件夹
-        if (!file.exists()) throw FileNotFoundException("不存在: $documentId")
+        if (!file.exists()) throw FileNotFoundException("not found: $documentId")
         val cursor = MatrixCursor(projection ?: DEFAULT_DOCUMENT_PROJECTION)
         includeFile(cursor, file)
         return cursor
@@ -129,7 +129,7 @@ class MiniAppDocumentsProvider : DocumentsProvider() {
         mode: String,
         signal: CancellationSignal?
     ): ParcelFileDescriptor {
-        if (!canServe()) throw FileNotFoundException("存储不可用（用户未解锁）")
+        if (!canServe()) throw FileNotFoundException("storage unavailable (user not unlocked)")
         val file = fileFor(documentId)
         if (!file.exists()) throw FileNotFoundException(documentId)
         val flags = when (mode) {
@@ -152,31 +152,31 @@ class MiniAppDocumentsProvider : DocumentsProvider() {
         mimeType: String,
         displayName: String
     ): String {
-        if (!canServe()) throw FileNotFoundException("存储不可用（用户未解锁）")
+        if (!canServe()) throw FileNotFoundException("storage unavailable (user not unlocked)")
         val parent = fileFor(parentDocumentId)
-        if (!parent.isDirectory) throw FileNotFoundException("父目录不存在: $parentDocumentId")
+        if (!parent.isDirectory) throw FileNotFoundException("parent directory not found: $parentDocumentId")
         val safe = displayName.replace('/', '_').replace('\\', '_')
         val file = uniqueFile(parent, safe)
         val ok = if (mimeType == DocumentsContract.Document.MIME_TYPE_DIR) file.mkdirs()
         else file.createNewFile()
-        if (!ok) throw java.io.IOException("创建失败: $safe")
+        if (!ok) throw java.io.IOException("create failed: $safe")
         return docIdFor(file)
     }
 
     /** 删除文件/目录（MT 等管理器"覆盖保存"先建临时文件再删旧文件）。 */
     override fun deleteDocument(documentId: String) {
         val file = fileFor(documentId)
-        if (!file.exists()) throw FileNotFoundException("不存在: $documentId")
-        if (!file.delete()) throw java.io.IOException("删除失败: $documentId")
+        if (!file.exists()) throw FileNotFoundException("not found: $documentId")
+        if (!file.delete()) throw java.io.IOException("delete failed: $documentId")
     }
 
     /** 重命名（"覆盖保存"流程把临时文件改回原名时调用）。 */
     override fun renameDocument(documentId: String, displayName: String): String {
         val file = fileFor(documentId)
-        if (!file.exists()) throw FileNotFoundException("不存在: $documentId")
+        if (!file.exists()) throw FileNotFoundException("not found: $documentId")
         val safe = displayName.replace('/', '_').replace('\\', '_')
         val target = File(file.parentFile, safe)
-        if (!file.renameTo(target)) throw java.io.IOException("重命名失败: $documentId")
+        if (!file.renameTo(target)) throw java.io.IOException("rename failed: $documentId")
         return docIdFor(target)
     }
 

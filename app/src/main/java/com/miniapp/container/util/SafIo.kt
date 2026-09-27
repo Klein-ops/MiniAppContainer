@@ -19,24 +19,24 @@ object SafIo {
     /** 读取 SAF uri 全部字节；打不开抛 IOException。 */
     fun readBytes(context: Context, uri: Uri): ByteArray =
         context.contentResolver.openInputStream(uri)?.use { it.readBytes() }
-            ?: throw IOException("无法读取所选文件（provider 未返回数据流）")
+            ?: throw IOException("cannot read selected file (provider returned no stream)")
 
     /** 把字节写入 SAF uri；打不开抛 IOException。 */
     fun writeBytes(context: Context, uri: Uri, bytes: ByteArray) {
         context.contentResolver.openOutputStream(uri)?.use { it.write(bytes) }
-            ?: throw IOException("无法写入所选位置（provider 未返回数据流）")
+            ?: throw IOException("cannot write to selected location (provider returned no stream)")
     }
 
     /** 把本地文件内容写入 SAF uri。 */
     fun writeFile(context: Context, uri: Uri, src: File) {
         context.contentResolver.openOutputStream(uri)?.use { out ->
             src.inputStream().use { it.copyTo(out) }
-        } ?: throw IOException("无法写入所选位置（provider 未返回数据流）")
+        } ?: throw IOException("cannot write to selected location (provider returned no stream)")
     }
 
     /** 把 SAF uri 内容读到本地文件（自动建父目录）。 */
     fun readToFile(context: Context, uri: Uri, dest: File) {
         context.contentResolver.openInputStream(uri)?.use { IoUtil.copy(it, dest) }
-            ?: throw IOException("无法读取所选文件（provider 未返回数据流）")
+            ?: throw IOException("cannot read selected file (provider returned no stream)")
     }
 }

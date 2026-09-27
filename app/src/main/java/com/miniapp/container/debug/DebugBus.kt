@@ -1,9 +1,18 @@
 package com.miniapp.container.debug
 
 import java.io.File
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
 
 /**
- * 调试模式总线：记录小程序对 JS Bridge 接口的调用（方法、参数、返回值、耗时）。
+ * 调试模式总线：记录小程序运行时的一切调试信息。
+ *
+ * 日志类型：
+ * - **CALL** — JS Bridge 接口调用（方法、参数、返回值/错误、耗时）
+ * - **EVT** — 内部事件（权限审批、Shizuku 绑定、沙箱安装/卸载、WebView 拦截等）
+ * - **ERR** — 异常与错误（接口异常、服务绑定失败、Dex 隔离进程崩溃等）
+ * - **JS**  — 前端 console 输出（console.log/warn/error 等）
  *
  * **落盘而非常驻内存**：日志追加写入应用私有目录的 `debug/log.txt`，
  * 由 [attach] 在应用启动时清空（与"日志只保留本次会话"效果一致），
@@ -18,6 +27,7 @@ object DebugBus {
 
     private const val MAX = 500
     private const val TRIM_THRESHOLD = 2 * MAX
+    private val ts = SimpleDateFormat("HH:mm:ss.SSS", Locale.US)
 
     @Volatile
     var enabled: Boolean = false
@@ -43,8 +53,38 @@ object DebugBus {
         notifyChanged()
     }
 
-    fun log(line: String) {
+    // ---------- 分类日志方法 ----------
+
+    /** 记录 JS Bridge 接口调用。 */
+    fun logCall(method: String, params: String, ok: Boolean, payload: String, ms: Long) {
         if (!enabled) return
+        val tag = if (ok) "OK" else "ERR"
+        val arrow = if (ok) "←" else "✗"
+        log("[${now()}] CALL $method\n  params: $params\n  $arrow $tag: $payload\n  ${ms}ms")
+    }
+
+    /** 记录内部事件（权限审批、服务绑定、拦截等）。 */
+    fun logEvent(category: String, message: String) {
+        if (!enabled) return
+        log("[${now()}] EVT $category: $message")
+    }
+
+    /** 记录异常与错误。 */
+    fun logError(tag: String, message: String, throwable: Throwable? = null) {
+        if (!enabled) return
+        val detail = throwable?.let { " | ${it.javaClass.simpleName}: ${it.message}" } ?: ""
+        log("[${now()}] ERR $tag: $message$detail")
+    }
+
+    /** 记录前端 JS console 输出。 */
+    fun logJsConsole(sourceId: String?, line: Int, message: String?) {
+        if (!enabled) return
+        log("[${now()}] JS ${sourceId ?: "?"}:$line ${message ?: ""}")
+    }
+
+    // ---------- 底层 ----------
+
+    fun log(line: String) {
         synchronized(lock) {
             val f = logFile ?: return
             runCatching { f.appendText(line + "\n") }
@@ -87,4 +127,6 @@ object DebugBus {
         val copy = synchronized(listeners) { listeners.toList() }
         copy.forEach { it() }
     }
+
+    private fun now(): String = ts.format(Date())
 }

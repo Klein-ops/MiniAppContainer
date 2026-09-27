@@ -27,7 +27,7 @@ class FileService(private val sandboxRoot: File) {
         val norm = path.trim().removePrefix("./").removePrefix("/")
         val prefix = norm.substringBefore('/')
         if (prefix != "data" && prefix != "tmp") {
-            throw SecurityException("写操作仅允许 data/ 和 tmp/ 目录: $path")
+            throw SecurityException("write operations only allowed in data/ and tmp/: $path")
         }
     }
 
@@ -35,7 +35,7 @@ class FileService(private val sandboxRoot: File) {
     suspend fun grep(path: String, pattern: String, regex: Boolean, ignoreCase: Boolean, invert: Boolean): String =
         withContext(Dispatchers.IO) {
             val f = resolve(path)
-            if (!f.exists()) throw java.io.FileNotFoundException("文件不存在: $path")
+            if (!f.exists()) throw java.io.FileNotFoundException("file not found: $path")
             val arr = JSONArray()
             TextEditor.grep(f.readText(Charsets.UTF_8), pattern, regex, ignoreCase, invert)
                 .forEach { arr.put(it) }
@@ -46,8 +46,8 @@ class FileService(private val sandboxRoot: File) {
     suspend fun sed(path: String, script: String): String = withContext(Dispatchers.IO) {
         assertWritable(path)
         val f = resolve(path)
-        if (!f.exists()) throw java.io.FileNotFoundException("文件不存在: $path")
-        if (f.isDirectory) throw java.io.IOException("目标是目录: $path")
+        if (!f.exists()) throw java.io.FileNotFoundException("file not found: $path")
+        if (f.isDirectory) throw java.io.IOException("target is a directory: $path")
         val text = f.readText(Charsets.UTF_8)
         val result = TextEditor.sed(text, script)
         f.writeText(result, Charsets.UTF_8)
@@ -56,22 +56,22 @@ class FileService(private val sandboxRoot: File) {
 
     suspend fun read(path: String): String = withContext(Dispatchers.IO) {
         val f = resolve(path)
-        if (!f.exists()) throw java.io.FileNotFoundException("文件不存在: $path")
-        if (f.isDirectory) throw java.io.IOException("目标是目录: $path")
+        if (!f.exists()) throw java.io.FileNotFoundException("file not found: $path")
+        if (f.isDirectory) throw java.io.IOException("target is a directory: $path")
         JSONObject.quote(f.readText(Charsets.UTF_8))
     }
 
     suspend fun readBytes(path: String): String = withContext(Dispatchers.IO) {
         val f = resolve(path)
-        if (!f.exists()) throw java.io.FileNotFoundException("文件不存在: $path")
-        if (f.isDirectory) throw java.io.IOException("目标是目录: $path")
+        if (!f.exists()) throw java.io.FileNotFoundException("file not found: $path")
+        if (f.isDirectory) throw java.io.IOException("target is a directory: $path")
         JSONObject.quote(IoUtil.toBase64(IoUtil.readBytes(f)))
     }
 
     suspend fun write(path: String, content: String): String = withContext(Dispatchers.IO) {
         assertWritable(path)
         val f = resolve(path)
-        if (f.exists() && f.isDirectory) throw java.io.IOException("目标是目录: $path")
+        if (f.exists() && f.isDirectory) throw java.io.IOException("target is a directory: $path")
         f.parentFile?.mkdirs()
         f.writeText(content, Charsets.UTF_8)
         "true"
@@ -80,15 +80,15 @@ class FileService(private val sandboxRoot: File) {
     suspend fun writeBytes(path: String, base64: String): String = withContext(Dispatchers.IO) {
         assertWritable(path)
         val f = resolve(path)
-        if (f.exists() && f.isDirectory) throw java.io.IOException("目标是目录: $path")
+        if (f.exists() && f.isDirectory) throw java.io.IOException("target is a directory: $path")
         IoUtil.writeBytes(f, IoUtil.fromBase64(base64))
         "true"
     }
 
     suspend fun list(dir: String): String = withContext(Dispatchers.IO) {
         val f = resolve(dir)
-        if (!f.exists()) throw java.io.FileNotFoundException("目录不存在: $dir")
-        if (!f.isDirectory) throw java.io.IOException("目标不是目录: $dir")
+        if (!f.exists()) throw java.io.FileNotFoundException("directory not found: $dir")
+        if (!f.isDirectory) throw java.io.IOException("target is not a directory: $dir")
         val arr = JSONArray()
         f.listFiles()?.sortedBy { it.name }?.forEach {
             arr.put(JSONObject()

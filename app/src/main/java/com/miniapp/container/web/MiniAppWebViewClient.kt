@@ -97,14 +97,18 @@ class MiniAppWebViewClient(
         }
     }
 
-    private fun forbidden(): WebResourceResponse =
-        response(403, "Forbidden", "forbidden")
+    private fun forbidden(): WebResourceResponse {
+        com.miniapp.container.debug.DebugBus.logEvent("web", "request forbidden (cross-sandbox or path traversal)")
+        return response(403, "Forbidden", "forbidden")
+    }
 
     private fun notFound(): WebResourceResponse =
         response(404, "Not Found", "not found")
 
-    private fun blocked(): WebResourceResponse =
-        response(403, "Blocked", "blocked: out-of-sandbox access must go through MiniApp bridge")
+    private fun blocked(): WebResourceResponse {
+        com.miniapp.container.debug.DebugBus.logEvent("web", "request blocked (non-file scheme, must go through bridge)")
+        return response(403, "Blocked", "blocked: out-of-sandbox access must go through MiniApp bridge")
+    }
 
     private fun response(code: Int, reason: String, body: String): WebResourceResponse =
         WebResourceResponse(
