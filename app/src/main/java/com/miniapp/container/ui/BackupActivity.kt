@@ -19,6 +19,7 @@ import com.google.android.material.button.MaterialButton
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.miniapp.container.MiniAppApp
 import com.miniapp.container.R
+import com.miniapp.container.util.DialogText
 import com.miniapp.container.util.SafIo
 import com.miniapp.container.util.setupBackToolbar
 import com.miniapp.container.util.stamp
@@ -234,7 +235,7 @@ class BackupActivity : AppCompatActivity() {
         adapter.onDelete = { name ->
             MaterialAlertDialogBuilder(this)
                 .setTitle("删除备份")
-                .setMessage("确定删除备份文件\n$name\n？此操作不可恢复。")
+                .setView(DialogText.scrollable(this, "确定删除备份文件\n$name\n？此操作不可恢复。"))
                 .setPositiveButton("删除") { _, _ ->
                     lifecycleScope.launch { doDeleteBackup(name) }
                 }

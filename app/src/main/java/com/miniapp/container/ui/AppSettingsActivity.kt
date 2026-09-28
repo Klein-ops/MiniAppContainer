@@ -7,6 +7,7 @@ import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.graphics.Canvas
 import android.graphics.drawable.Icon
+import android.widget.LinearLayout
 import com.caverock.androidsvg.SVG
 import java.io.File
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
@@ -14,6 +15,7 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.lifecycle.lifecycleScope
 import com.miniapp.container.MiniAppApp
 import com.miniapp.container.R
+import com.miniapp.container.util.DialogText
 import com.miniapp.container.util.InputDialog
 import com.miniapp.container.util.setupBackToolbar
 import com.miniapp.container.util.showRounded
@@ -131,10 +133,15 @@ class AppSettingsActivity : AppCompatActivity() {
         val (view, input) = InputDialog.create(
             this, "显示名称", initial = info.displayName.ifBlank { info.uname }
         )
+        val desc = DialogText.scrollable(this, "仅影响显示，不影响应用身份（${info.uid}_${info.uname}）")
+        val column = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            addView(desc)
+            addView(view)
+        }
         MaterialAlertDialogBuilder(this)
             .setTitle("重命名")
-            .setMessage("仅影响显示，不影响应用身份（${info.uid}_${info.uname}）")
-            .setView(view)
+            .setView(column)
             .setPositiveButton("确定") { _, _ ->
                 val name = input.text.toString().trim()
                 hostApp.registry.put(info.copy(displayName = name))   // 写沙箱 meta.json
@@ -177,7 +184,7 @@ class AppSettingsActivity : AppCompatActivity() {
     private fun confirmClearData() {
         MaterialAlertDialogBuilder(this)
             .setTitle("清空数据")
-            .setMessage("将清空 ${info.uname} 的沙箱数据（data/ 和 tmp/），应用资源不受影响。")
+            .setView(DialogText.scrollable(this, "将清空 ${info.uname} 的沙箱数据（data/ 和 tmp/），应用资源不受影响。"))
             .setPositiveButton("清空") { _, _ ->
                 lifecycleScope.launch {
                     val sandbox = java.io.File(hostApp.filesDir, "miniapps/${info.uid}_${info.uname}")
@@ -190,7 +197,7 @@ class AppSettingsActivity : AppCompatActivity() {
     private fun confirmUninstall() {
         MaterialAlertDialogBuilder(this)
             .setTitle("卸载")
-            .setMessage("卸载 ${info.uname}？沙箱与权限记录将被清除。")
+            .setView(DialogText.scrollable(this, "卸载 ${info.uname}？沙箱与权限记录将被清除。"))
             .setPositiveButton("卸载") { _, _ ->
                 lifecycleScope.launch {
                     hostApp.installer.uninstall(info.appKey)

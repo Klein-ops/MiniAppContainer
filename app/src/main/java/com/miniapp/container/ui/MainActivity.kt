@@ -22,6 +22,7 @@ import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.miniapp.container.MiniAppApp
 import com.miniapp.container.R
+import com.miniapp.container.util.DialogText
 import com.miniapp.container.util.InputDialog
 import com.miniapp.container.util.showRounded
 import com.miniapp.container.util.toast
@@ -333,7 +334,7 @@ class MainActivity : AppCompatActivity() {
     private fun confirmUninstall(info: MiniAppInfo) {
         MaterialAlertDialogBuilder(this)
             .setTitle("卸载")
-            .setMessage("卸载 ${info.uname}？\n沙箱数据与权限记录将被清除。")
+            .setView(DialogText.scrollable(this, "卸载 ${info.uname}？\n沙箱数据与权限记录将被清除。"))
             .setPositiveButton("卸载") { _, _ ->
                 lifecycleScope.launch {
                     hostApp.installer.uninstall(info.appKey)

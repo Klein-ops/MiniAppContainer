@@ -8,6 +8,7 @@ import com.miniapp.container.core.AppInstaller
 import com.miniapp.container.core.AppRegistry
 import com.miniapp.container.core.PathGuard
 import com.miniapp.container.core.PreviewInfo
+import com.miniapp.container.util.DialogText
 import com.miniapp.container.util.InputDialog
 import com.miniapp.container.util.SafIo
 import com.miniapp.container.util.Version
@@ -77,7 +78,7 @@ class InstallFlow(
         val confirmed = suspendCancellableCoroutine<Boolean> { cont ->
             MaterialAlertDialogBuilder(activity)
                 .setTitle("从 URL 安装")
-                .setMessage("安装来源：$url\n\n来自网络的安装包可能不可信，请仅安装你信任的来源。是否继续？")
+                .setView(DialogText.scrollable(activity, "安装来源：$url\n\n来自网络的安装包可能不可信，请仅安装你信任的来源。是否继续？"))
                 .setPositiveButton("继续") { _, _ -> if (cont.isActive) cont.resume(true) }
                 .setNegativeButton("取消") { _, _ -> if (cont.isActive) cont.resume(false) }
                 .showRounded()
@@ -162,10 +163,13 @@ class InstallFlow(
         if (problems.isEmpty()) { showConfirmDialog(preview, zipFile, sourceUrl); return }
         MaterialAlertDialogBuilder(activity)
             .setTitle("兼容性警告")
-            .setMessage(
-                "「${preview.uname}」声明了更高的运行环境要求：\n" +
-                    problems.joinToString("\n") { "• $it" } +
-                    "\n\n当前环境可能无法正常运行该小程序。仍要安装吗？"
+            .setView(
+                DialogText.scrollable(
+                    activity,
+                    "「${preview.uname}」声明了更高的运行环境要求：\n" +
+                        problems.joinToString("\n") { "• $it" } +
+                        "\n\n当前环境可能无法正常运行该小程序。仍要安装吗？"
+                )
             )
             .setPositiveButton("仍然安装") { _, _ -> showConfirmDialog(preview, zipFile, sourceUrl) }
             .setNegativeButton("取消") { _, _ -> zipFile.delete() }
@@ -185,7 +189,7 @@ class InstallFlow(
         }
         MaterialAlertDialogBuilder(activity)
             .setTitle("确认${verb}「${preview.uname}」？")
-            .setMessage(msg)
+            .setView(DialogText.scrollable(activity, msg))
             .setPositiveButton(full) { _, _ ->
                 activity.lifecycleScope.launch {
                     val r = install(zipFile, sourceUrl)
