@@ -119,10 +119,16 @@ class NetService(
         if (!src.isFile) throw java.io.FileNotFoundException("file not found: $srcPath")
 
         val method = p.optStringOr("method", "POST").uppercase()
-        val reqBody = src.asRequestBody("application/octet-stream".toMediaTypeOrNull())
-
+        // 自定义 Content-Type：优先取 headers 里的（作为 body 的 media type，OkHttp 会据此设置请求头），
+        // 没传则默认 application/octet-stream。同时把 headers 里的 Content-Type 移除，避免与 body media type 冲突。
+        val headersObj = p.optJSONObject("headers")
+        val customContentType = headersObj?.optString("Content-Type", "")?.takeIf { it.isNotBlank() }
+        val mediaType = (customContentType ?: "application/octet-stream").toMediaTypeOrNull()
+        val reqBody = src.asRequestBody(mediaType)
         val builder = Request.Builder().url(url).method(method, reqBody)
-        p.optJSONObject("headers")?.let { h -> for (k in h.keys()) builder.header(k, h.optString(k)) }
+        headersObj?.let { h ->
+            for (k in h.keys()) if (!k.equals("Content-Type", ignoreCase = true)) builder.header(k, h.optString(k))
+        }
 
         client.newCall(builder.build()).execute().use { resp ->
             JSONObject()

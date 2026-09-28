@@ -10,6 +10,7 @@ import com.miniapp.container.util.TextEditor
 import java.io.File
 import java.io.FileInputStream
 import java.io.FileOutputStream
+import java.io.RandomAccessFile
 
 /**
  * 沙箱内文件服务。
@@ -142,12 +143,12 @@ class FileService(private val sandboxRoot: File) {
         if (f.exists() && f.isDirectory) throw java.io.IOException("target is a directory: $path")
         f.parentFile?.mkdirs()
         val data = IoUtil.fromBase64(base64)
+        // 真偏移写：RandomAccessFile 的 seek+write 支持任意位置覆盖写；
+        // 不能用 FileOutputStream(f, true)（append 模式会忽略 position，导致 offset<EOF 的写入被追加到末尾）
         val pos = if (offset < 0) f.length() else offset
-        FileOutputStream(f, true).use { output ->
-            output.channel.use {
-                it.position(pos)  // position 超过当前 size 时，channel 写入会自动以 0 补齐
-                it.write(java.nio.ByteBuffer.wrap(data))
-            }
+        RandomAccessFile(f, "rw").use { raf ->
+            raf.seek(pos)  // seek 超过当前 size 时，write 自动以 0 补齐中间空洞
+            raf.write(data)
         }
         "true"
     }

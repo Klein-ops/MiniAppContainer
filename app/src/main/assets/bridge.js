@@ -65,6 +65,8 @@
       append: function (p, b64) { return B.call('fs.append', { path: p, base64: b64 }); },
       // 截断到指定字节数
       truncate: function (p, size) { return B.call('fs.truncate', { path: p, size: size }); },
+      // 删除文件/目录
+      remove: function (p) { return B.call('fs.remove', { path: p }); },
       // 流式写助手：以固定块大小循环 writeChunk 写入（空 ArrayBuffer 可先建文件）
       writeStream: async function (p, bytes, chunkSize) {
         chunkSize = chunkSize || 65536;
