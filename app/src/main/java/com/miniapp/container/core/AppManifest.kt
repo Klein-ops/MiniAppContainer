@@ -14,7 +14,11 @@ data class AppManifest(
     val wasm: List<String>,
     val permissions: List<String>,
     val requiredPermissions: List<String>,
-    val icon: String = ""
+    val icon: String = "",
+    /** 可选：要求宿主 API 最低版本（语义化三段，如 "2.0.0"）；空串=不检查。 */
+    val minApiVersion: String = "",
+    /** 可选：要求 WebView 内核最低主版本（如 "113"）；空串=不检查。 */
+    val minWebviewVersion: String = ""
 ) {
     companion object {
         fun parse(file: File): AppManifest? = try {
@@ -35,7 +39,9 @@ data class AppManifest(
                 wasm = o.optStringList("wasm"),
                 permissions = o.optStringList("permissions"),
                 requiredPermissions = o.optStringList("requiredPermissions"),
-                icon = o.optStringOr("icon", "")
+                icon = o.optStringOr("icon", ""),
+                minApiVersion = o.optStringOr("minApiVersion", "").trim(),
+                minWebviewVersion = o.optStringOr("minWebviewVersion", "").trim()
             )
         }
     }

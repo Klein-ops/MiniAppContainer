@@ -10,7 +10,15 @@ import java.io.File
 import java.util.zip.ZipInputStream
 import org.json.JSONObject
 /** zip 包内小程序清单摘要（安装前二次确认用）。 */
-data class PreviewInfo(val uid: String, val uname: String, val version: String)
+data class PreviewInfo(
+    val uid: String,
+    val uname: String,
+    val version: String,
+    /** 可选：要求宿主 API 最低版本；空串=未声明。 */
+    val minApiVersion: String = "",
+    /** 可选：要求 WebView 内核最低主版本；空串=未声明。 */
+    val minWebviewVersion: String = ""
+)
 
 /** 应用包安装结果。 */
 data class InstallResult(
@@ -53,7 +61,13 @@ class AppInstaller(
                 val uid = m.optString("uid").trim()
                 val uname = m.optString("uname").trim()
                 if (uid.isEmpty() || uname.isEmpty()) return@withContext null
-                PreviewInfo(uid = uid, uname = uname, version = m.optString("version", "0.0.0"))
+                PreviewInfo(
+                    uid = uid,
+                    uname = uname,
+                    version = m.optString("version", "0.0.0"),
+                    minApiVersion = m.optString("minApiVersion", "").trim(),
+                    minWebviewVersion = m.optString("minWebviewVersion", "").trim()
+                )
             }
         } catch (_: Throwable) {
             null

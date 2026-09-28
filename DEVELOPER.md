@@ -59,7 +59,9 @@ my_app/
   "wasm": ["sample.wasm"],
   "icon": "icon.png",
   "permissions": ["net", "sys.openUrl", "fs.external"],
-  "requiredPermissions": ["net"]
+  "requiredPermissions": ["net"],
+  "minApiVersion": "2.0.0",
+  "minWebviewVersion": "113"
 }
 ```
 
@@ -73,6 +75,8 @@ my_app/
 | `icon` | 应用图标路径（可选） | 相对应用根，支持 SVG/PNG，如 `"icon.png"`；不设则显示默认图标 |
 | `permissions` | 能力声明 | 见第五章权限范围 |
 | `requiredPermissions` | 必要权限子集 | 必须同时出现在 `permissions` 中 |
+| `minApiVersion` | （可选）要求宿主 API 最低版本 | 语义化三段，如 `"2.0.0"`；**未声明=不检查**。仅安装时校验，不满足弹警告，确认后仍可安装 |
+| `minWebviewVersion` | （可选）要求 WebView 内核最低主版本 | 只填主版本号，如 `"113"`；未声明=不检查。仅安装时校验，不满足弹警告，确认后仍可安装 |
 
 **关键规则**：
 - `uid` + `uname` 共同构成唯一身份（`appKey = uid + "_" + uname`）。两者完全一致才视为同一应用（更新），否则是全新应用（独立沙箱）。
@@ -150,8 +154,8 @@ const info = await MiniApp.info();       // object
 const ok = await MiniApp.ui.toast('提示'); // boolean true
 
 // 只取需要的字段，不必每次解析全量
-const v = await MiniApp.system('hostAppVersion');     // { hostAppVersion: "1.9.0" }
-const v2 = await MiniApp.system(['apiVersion', 'webviewVersion']);
+const v = await MiniApp.system('hostAppVersion');     // { hostAppVersion: "2.5.0" }
+const v2 = await MiniApp.system(['apiVersion', 'webviewVersion']); // { apiVersion: "2.0.0", webviewVersion: "..." }
 ```
 
 ### 4.2 文件系统（沙箱内）

@@ -13,6 +13,7 @@ import com.miniapp.container.util.SafIo
 import com.miniapp.container.util.Version
 import com.miniapp.container.util.showRounded
 import com.miniapp.container.util.toast
+import android.webkit.WebView
 import java.io.File
 import java.net.HttpURLConnection
 import java.net.URL
@@ -131,8 +132,44 @@ class InstallFlow(
                 onRefresh()
                 return@launch
             }
-            showConfirmDialog(preview, zipFile, sourceUrl)
+            checkCompatibility(preview, zipFile, sourceUrl)
         }
+    }
+
+    /**
+     * 安装前兼容性检查（可选声明，仅在安装时检查一次，运行时不查）。
+     *
+     * 小程序可在 manifest.json 声明 `minApiVersion`（宿主 API 最低版本）与
+     * `minWebviewVersion`（WebView 内核最低主版本）。两者均为可选，未声明=不检查。
+     * 不满足时只弹警告，用户确认后仍可安装——不强制、不拒绝，警告放行。
+     */
+    private fun checkCompatibility(preview: PreviewInfo, zipFile: File, sourceUrl: String = "") {
+        val apiVersion = com.miniapp.container.bridge.MiniAppBridge.API_VERSION
+        val webviewVersion = try {
+            WebView.getCurrentWebViewPackage()?.versionName ?: ""
+        } catch (_: Throwable) { "" }
+        val problems = mutableListOf<String>()
+        if (preview.minApiVersion.isNotBlank() && Version.compare(apiVersion, preview.minApiVersion) < 0) {
+            problems += "宿主 API 版本 ${preview.minApiVersion}（当前 ${apiVersion}）"
+        }
+        if (preview.minWebviewVersion.isNotBlank()) {
+            val curMajor = webviewVersion.substringBefore('.').toIntOrNull()
+            val needMajor = preview.minWebviewVersion.substringBefore('.').toIntOrNull()
+            if (needMajor != null && (curMajor == null || curMajor < needMajor)) {
+                problems += "WebView 内核版本 ${preview.minWebviewVersion}（当前 ${webviewVersion.ifBlank { "未知" }}）"
+            }
+        }
+        if (problems.isEmpty()) { showConfirmDialog(preview, zipFile, sourceUrl); return }
+        MaterialAlertDialogBuilder(activity)
+            .setTitle("兼容性警告")
+            .setMessage(
+                "「${preview.uname}」声明了更高的运行环境要求：\n" +
+                    problems.joinToString("\n") { "• $it" } +
+                    "\n\n当前环境可能无法正常运行该小程序。仍要安装吗？"
+            )
+            .setPositiveButton("仍然安装") { _, _ -> showConfirmDialog(preview, zipFile, sourceUrl) }
+            .setNegativeButton("取消") { _, _ -> zipFile.delete() }
+            .showRounded()
     }
 
     private fun showConfirmDialog(preview: PreviewInfo, zipFile: File, sourceUrl: String = "") {
