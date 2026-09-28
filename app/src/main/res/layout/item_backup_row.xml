@@ -10,15 +10,23 @@
     android:paddingTop="6dp"
     android:paddingBottom="6dp">
 
-    <TextView
-        android:id="@+id/tv_backup_name"
+    <HorizontalScrollView
+        android:id="@+id/sv_backup_name"
         android:layout_width="0dp"
         android:layout_height="wrap_content"
         android:layout_weight="1"
-        android:ellipsize="middle"
-        android:singleLine="true"
-        android:textColor="@color/text_primary"
-        android:textSize="14sp" />
+        android:fillViewport="false"
+        android:scrollbars="horizontal">
+
+        <TextView
+            android:id="@+id/tv_backup_name"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:gravity="center_vertical"
+            android:maxLines="1"
+            android:textColor="@color/text_primary"
+            android:textSize="14sp" />
+    </HorizontalScrollView>
 
     <ImageButton
         android:id="@+id/btn_backup_delete"

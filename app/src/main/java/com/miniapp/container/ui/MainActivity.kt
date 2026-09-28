@@ -161,7 +161,7 @@ class MainActivity : AppCompatActivity() {
     private fun confirmDeleteCategory(cat: String) {
         MaterialAlertDialogBuilder(this)
             .setTitle("删除分类")
-            .setMessage("删除分类「$cat」？\n其中的小程序将移回「默认」。")
+            .setView(DialogText.scrollable(this, "删除分类「$cat」？\n其中的小程序将移回「默认」。"))
             .setPositiveButton("删除") { _, _ ->
                 hostApp.categoryManager.removeCategory(cat)
                 if (currentFilter == cat) currentFilter = com.miniapp.container.core.CategoryManager.DEFAULT
