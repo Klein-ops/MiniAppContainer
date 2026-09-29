@@ -21,6 +21,9 @@ import com.miniapp.container.core.StorageMode
 import com.miniapp.container.service.ShizukuShell
 import com.miniapp.container.service.ShizukuState
 import com.miniapp.container.util.setupBackToolbar
+import com.miniapp.container.util.dp
+import com.miniapp.container.util.hint
+import com.miniapp.container.util.sectionTitle
 import com.miniapp.container.util.showRounded
 import com.miniapp.container.util.toast
 import kotlinx.coroutines.launch
@@ -286,20 +289,5 @@ class StorageAccessActivity : AppCompatActivity() {
     }
 
     // ---------- 小部件 ----------
-
-    private fun sectionTitle(text: String): TextView = TextView(this).apply {
-        this.text = text
-        textSize = 14f
-        setTextColor(ContextCompat.getColor(this@StorageAccessActivity, R.color.text_secondary))
-        setPadding(0, 0, 0, dp(10))
-    }
-
-    private fun hint(text: String): TextView = TextView(this).apply {
-        this.text = text
-        textSize = 12f
-        setTextColor(ContextCompat.getColor(this@StorageAccessActivity, R.color.text_secondary))
-        setPadding(0, dp(6), 0, 0)
-    }
-
-    private fun dp(v: Int): Int = (v * resources.displayMetrics.density).toInt()
+    // sectionTitle / hint / dp 统一见 util/UiExt.kt（option/navCard 为本页特有，保留）
 }

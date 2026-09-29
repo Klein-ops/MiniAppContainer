@@ -12,7 +12,6 @@ import java.io.BufferedOutputStream
 import java.io.File
 import java.io.IOException
 import java.util.zip.ZipEntry
-import java.util.zip.ZipInputStream
 import java.util.zip.ZipOutputStream
 
 /** 备份失败原因（便于 UI 区分提示）。 */

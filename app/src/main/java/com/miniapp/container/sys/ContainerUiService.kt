@@ -2,7 +2,6 @@ package com.miniapp.container.sys
 
 import android.content.pm.ActivityInfo
 import android.graphics.Color
-import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.WindowInsetsControllerCompat
 import com.miniapp.container.ui.MiniAppActivity

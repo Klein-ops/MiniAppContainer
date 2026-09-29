@@ -1,7 +1,6 @@
 package com.miniapp.container.service
 
 import android.content.Context
-import android.os.Bundle
 import com.miniapp.container.IStorageUserService
 import com.miniapp.container.util.IoUtil
 import java.io.File
@@ -95,13 +94,6 @@ class DirectStorageBackend : StorageBackend {
     override fun rename(from: File, to: File): Boolean = from.renameTo(to)
 }
 
-/**
- * Shizuku 后端：以 shell（adb shell 身份）执行文件操作。
- *
- * 因 shell 走的是进程管道（ParcelFileDescriptor 字节流），**读写不经 base64**，
- * 不产生体积膨胀。优势：Android 11+ 亦能访问 `sdcard/Android`（传统方式被 scoped
- * storage 拦住）。
- */
 /**
  * Shizuku 后端：通过 [StorageUserServiceConnector] 绑定 UserService，
  * 由常驻的 shell 身份进程直接用 File API 读写（不再 fork sh 进程）。

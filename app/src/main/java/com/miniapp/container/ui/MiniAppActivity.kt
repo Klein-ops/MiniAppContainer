@@ -12,7 +12,6 @@ import android.view.ViewGroup
 import android.webkit.WebSettings
 import android.webkit.WebView
 import android.widget.ImageView
-import android.widget.ProgressBar
 import android.widget.Toast
 import com.caverock.androidsvg.SVG
 import com.google.android.material.dialog.MaterialAlertDialogBuilder

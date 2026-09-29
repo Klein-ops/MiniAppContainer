@@ -190,24 +190,6 @@ class MainActivity : AppCompatActivity() {
             .showRounded()
     }
 
-    /** 显示"移动到分类"对话框。 */
-    private fun showMoveToCategory(info: MiniAppInfo) {
-        val cats = hostApp.categoryManager.listCategories().toMutableList()
-        cats.add("＋ 新建分类…")
-        MaterialAlertDialogBuilder(this)
-            .setTitle("移动 ${info.uname} 到分类")
-            .setItems(cats.toTypedArray()) { _, which ->
-                if (which == cats.size - 1) {
-                    showAddCategoryAndMove(info)
-                } else {
-                    hostApp.categoryManager.moveTo(info.appKey, cats[which])
-                    refresh()
-                    toast("已移到 ${cats[which]}")
-                }
-            }
-            .showRounded()
-    }
-
     private fun showAddCategoryAndMove(info: MiniAppInfo) {
         val (view, input) = InputDialog.create(this, "分类名称")
         MaterialAlertDialogBuilder(this)
@@ -323,29 +305,6 @@ class MainActivity : AppCompatActivity() {
     private fun openAppSettings(appKey: String) {
         startActivity(Intent(this, AppSettingsActivity::class.java).putExtra(AppSettingsActivity.EXTRA_APP_KEY, appKey))
     }
-
-    private fun openPermissionManage(appKey: String) {
-        startActivity(
-            Intent(this, PermissionManageActivity::class.java)
-                .putExtra(PermissionManageActivity.EXTRA_APP_KEY, appKey)
-        )
-    }
-
-    private fun confirmUninstall(info: MiniAppInfo) {
-        MaterialAlertDialogBuilder(this)
-            .setTitle("卸载")
-            .setView(DialogText.scrollable(this, "卸载 ${info.uname}？\n沙箱数据与权限记录将被清除。"))
-            .setPositiveButton("卸载") { _, _ ->
-                lifecycleScope.launch {
-                    hostApp.installer.uninstall(info.appKey)
-                    refreshCategoryBar()
-                    refresh()
-                }
-            }
-            .setNegativeButton("取消", null)
-            .showRounded()
-    }
-
 
     // ===== 底部导航：应用 / 设置 同容器切换（不新开页面，选中态正常高亮）=====
     private fun setupBottomNav() {

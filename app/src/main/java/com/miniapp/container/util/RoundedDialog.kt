@@ -2,8 +2,6 @@ package com.miniapp.container.util
 
 import android.app.Dialog
 import android.graphics.drawable.Drawable
-import android.view.ViewGroup
-import android.view.WindowManager
 import android.graphics.drawable.GradientDrawable
 import android.graphics.drawable.InsetDrawable
 import androidx.appcompat.app.AlertDialog

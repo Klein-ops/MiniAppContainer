@@ -4,6 +4,11 @@ import android.os.Bundle
 import android.view.Gravity
 import android.view.ViewGroup
 import com.miniapp.container.util.InputDialog
+import com.miniapp.container.util.addChild
+import com.miniapp.container.util.card
+import com.miniapp.container.util.dp
+import com.miniapp.container.util.hint
+import com.miniapp.container.util.sectionTitle
 import android.widget.LinearLayout
 import android.widget.TextView
 import androidx.appcompat.app.AppCompatActivity
@@ -47,7 +52,7 @@ class PathFilterActivity : AppCompatActivity() {
 
     private fun render() {
         container.removeAllViews()
-        container.addView(sectionTitle("访问规则"))
+        container.addView(sectionTitle("访问规则", 4))
         container.addView(addCard())
         val rules = config.rules()
         if (rules.isEmpty()) {
@@ -156,7 +161,7 @@ class PathFilterActivity : AppCompatActivity() {
         }
         view.addView(sw)
 
-        view.addView(sectionTitle("匹配方式"))
+        view.addView(sectionTitle("匹配方式", 4))
         val prefixDot = TextView(this)
         val exactDot = TextView(this)
         fun refreshDots() {
@@ -171,7 +176,7 @@ class PathFilterActivity : AppCompatActivity() {
         })
         refreshDots()
 
-        view.addView(sectionTitle("作用域 · 全不勾选 = 所有小程序"))
+        view.addView(sectionTitle("作用域 · 全不勾选 = 所有小程序", 4))
         val scopeSummary = TextView(this).apply {
             text = if (appKeys.isEmpty()) "所有小程序" else "仅 ${appKeys.size} 个小程序"
             textSize = 14f
@@ -264,40 +269,6 @@ class PathFilterActivity : AppCompatActivity() {
         emptyList()
     }
 
-    // ==================== 小部件 ====================
-
-    private fun card(block: LinearLayout.() -> Unit): LinearLayout = LinearLayout(this).apply {
-        orientation = LinearLayout.VERTICAL
-        setBackgroundResource(R.drawable.bg_card_rounded)
-        setPadding(dp(16), dp(14), dp(16), dp(14))
-        layoutParams = LinearLayout.LayoutParams(
-            ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT
-        ).apply { bottomMargin = dp(12) }
-        isClickable = true
-        block()
-    }
-
-    private fun LinearLayout.addChild(text: String, color: Int, size: Float) {
-        addView(TextView(this@PathFilterActivity).apply {
-            this.text = text
-            textSize = size
-            setTextColor(ContextCompat.getColor(this@PathFilterActivity, color))
-        })
-    }
-
-    private fun sectionTitle(text: String): TextView = TextView(this).apply {
-        this.text = text
-        textSize = 14f
-        setTextColor(ContextCompat.getColor(this@PathFilterActivity, R.color.text_secondary))
-        setPadding(0, dp(4), 0, dp(10))
-    }
-
-    private fun hint(text: String): TextView = TextView(this).apply {
-        this.text = text
-        textSize = 12f
-        setTextColor(ContextCompat.getColor(this@PathFilterActivity, R.color.text_secondary))
-        setPadding(0, dp(6), 0, 0)
-    }
-
-    private fun dp(v: Int): Int = (v * resources.displayMetrics.density).toInt()
+// ==================== 小部件 ====================
+    // card / sectionTitle / hint / dp / addChild 统一见 util/UiExt.kt
 }

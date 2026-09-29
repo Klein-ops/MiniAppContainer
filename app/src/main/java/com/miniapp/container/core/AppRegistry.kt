@@ -1,6 +1,5 @@
 package com.miniapp.container.core
 
-import org.json.JSONArray
 import org.json.JSONObject
 import java.io.File
 import java.util.LinkedHashMap
