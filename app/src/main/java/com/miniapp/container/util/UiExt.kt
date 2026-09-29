@@ -31,19 +31,25 @@ fun Activity.card(block: LinearLayout.() -> Unit): LinearLayout = LinearLayout(t
 }
 
 /** 小节标题（默认无上边距；需要时传 [topPaddingDp]）。 */
-fun Activity.sectionTitle(text: String, topPaddingDp: Int = 0): TextView = TextView(this).apply {
-    this.text = text
-    textSize = 14f
-    setTextColor(ContextCompat.getColor(this, R.color.text_secondary))
-    setPadding(0, dp(topPaddingDp), 0, dp(10))
+fun Activity.sectionTitle(text: String, topPaddingDp: Int = 0): TextView {
+    val activity = this
+    return TextView(activity).apply {
+        this.text = text
+        textSize = 14f
+        setTextColor(ContextCompat.getColor(activity, R.color.text_secondary))
+        setPadding(0, dp(topPaddingDp), 0, dp(10))
+    }
 }
 
 /** 提示文字。 */
-fun Activity.hint(text: String): TextView = TextView(this).apply {
-    this.text = text
-    textSize = 12f
-    setTextColor(ContextCompat.getColor(this, R.color.text_secondary))
-    setPadding(0, dp(6), 0, 0)
+fun Activity.hint(text: String): TextView {
+    val activity = this
+    return TextView(activity).apply {
+        this.text = text
+        textSize = 12f
+        setTextColor(ContextCompat.getColor(activity, R.color.text_secondary))
+        setPadding(0, dp(6), 0, 0)
+    }
 }
 
 /** 向容器追加一行指定颜色/字号的文字。 */
