@@ -33,7 +33,7 @@ Android Studio：`Open` 项目根目录 → Sync → Run。
 1. 启动 App，进入应用列表（空）。底部导航栏：**应用** / **设置**。
 2. 点击列表顶部的 **「安装新应用」卡片**，三种安装方式：
    - **安装应用包（zip）**：系统文件选择器选 zip 安装。
-   - **安装内置示例**：安装 `assets/sample/sample_app.zip`（demo/hello），含手写 `sample.wasm`（add / fib）。
+   - **安装内置示例**：安装 `assets/sample/sample_app.zip`（demo/showcase v2.0.0），含 WASM 演示（add / fib）与 Dex 隔离进程演示（demo.dex）。
    - **从 URL 安装**：输入 zip 直链，下载后安装并清理临时包。
 3. 点击列表项启动小程序，进入全屏 WebView 容器（左上角悬浮球，闲置自动贴边收起）。最近任务里显示小程序自己的名字与图标（取自 manifest 的 `icon`），而非宿主名。长按文字默认不弹系统选择/复制菜单（接近原生），需要长按复制的页面调 `sys.setTextSelection(true)` 放行。
 4. 应用列表分类栏支持切换分类、长按分类删除、长按应用拖动排序；应用设置页支持：重命名 / 权限管理 / 移动分类 / 创建桌面快捷方式 / 清空数据 / 卸载。
@@ -81,8 +81,9 @@ MiniAppContainer/
          ├─ sys/                系统信息
          ├─ util/               IO/工具
          ├─ web/                WebViewClient（隔离拦截）+ WebChromeClient
-         └─ ui/                 MainActivity（列表）+ SettingsActivity（设置）+ MiniAppActivity（容器）
-                                + AppSettingsActivity / PermissionManageActivity / BackupActivity / DebugActivity + 适配器
+         └─ ui/                 MainActivity（列表 + 底部导航设置页）+ MiniAppActivity（容器）
+                                + AppSettingsActivity / PermissionManageActivity / BackupActivity / DebugActivity
+                                + PathFilterActivity / StorageAccessActivity / WebdavConfigActivity / SearchDialog / 适配器
 ```
 
 ---
