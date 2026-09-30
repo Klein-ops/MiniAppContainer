@@ -15,10 +15,12 @@ data class AppManifest(
     val permissions: List<String>,
     val requiredPermissions: List<String>,
     val icon: String = "",
-    /** 可选：要求宿主 API 最低版本（语义化三段，如 "2.0.0"）；空串=不检查。 */
+    /** 可选：要求宿主 API 最低版本（语义化三段，如 "2.1.0"）；空串=不检查。 */
     val minApiVersion: String = "",
     /** 可选：要求 WebView 内核最低主版本（如 "113"）；空串=不检查。 */
-    val minWebviewVersion: String = ""
+    val minWebviewVersion: String = "",
+    /** 可选：显示名称（小程序包在 manifest 里声明的展示名；空=回落 uname）。 */
+    val displayName: String = ""
 ) {
     companion object {
         fun parse(file: File): AppManifest? = try {
@@ -26,7 +28,6 @@ data class AppManifest(
         } catch (t: Throwable) {
             null
         }
-
         fun parse(o: JSONObject): AppManifest? {
             val uid = o.optStringOr("uid").trim()
             val uname = o.optStringOr("uname").trim()
@@ -38,10 +39,11 @@ data class AppManifest(
                 entry = o.optStringOr("entry", "index.html"),
                 wasm = o.optStringList("wasm"),
                 permissions = o.optStringList("permissions"),
-                requiredPermissions = o.optStringList("requiredPermissions"),
+requiredPermissions = o.optStringList("requiredPermissions"),
                 icon = o.optStringOr("icon", ""),
                 minApiVersion = o.optStringOr("minApiVersion", "").trim(),
-                minWebviewVersion = o.optStringOr("minWebviewVersion", "").trim()
+                minWebviewVersion = o.optStringOr("minWebviewVersion", "").trim(),
+                displayName = o.optStringOr("displayName", "").trim()
             )
         }
     }

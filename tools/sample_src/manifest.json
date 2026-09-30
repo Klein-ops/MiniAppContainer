@@ -1,7 +1,8 @@
 {
   "uid": "demo",
   "uname": "showcase",
-  "version": "2.1.0",
+  "displayName": "蜗壳测试小程序",
+  "version": "2.2.0",
   "entry": "index.html",
   "icon": "icon.svg",
   "wasm": ["sample.wasm"],

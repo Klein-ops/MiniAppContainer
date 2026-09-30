@@ -60,7 +60,7 @@ my_app/
   "icon": "icon.png",
   "permissions": ["net", "sys.openUrl", "fs.external"],
   "requiredPermissions": ["net"],
-  "minApiVersion": "2.0.0",
+  "minApiVersion": "2.1.0",
   "minWebviewVersion": "113"
 }
 ```
@@ -75,7 +75,7 @@ my_app/
 | `icon` | 应用图标路径（可选） | 相对应用根，支持 SVG/PNG，如 `"icon.png"`；不设则显示默认图标 |
 | `permissions` | 能力声明 | 见第五章权限范围 |
 | `requiredPermissions` | 必要权限子集 | 必须同时出现在 `permissions` 中 |
-| `minApiVersion` | （可选）要求宿主 API 最低版本 | 语义化三段，如 `"2.0.0"`；**未声明=不检查**。仅安装时校验，不满足弹警告，确认后仍可安装 |
+| `minApiVersion` | （可选）要求宿主 API 最低版本 | 语义化三段，如 `"2.1.0"`；**未声明=不检查**。仅安装时校验，不满足弹警告，确认后仍可安装 |
 | `minWebviewVersion` | （可选）要求 WebView 内核最低主版本 | 只填主版本号，如 `"113"`；未声明=不检查。仅安装时校验，不满足弹警告，确认后仍可安装 |
 
 **关键规则**：
@@ -155,7 +155,7 @@ const ok = await MiniApp.ui.toast('提示'); // boolean true
 
 // 只取需要的字段，不必每次解析全量
 const v = await MiniApp.system('hostAppVersion');     // { hostAppVersion: "2.5.0" }
-const v2 = await MiniApp.system(['apiVersion', 'webviewVersion']); // { apiVersion: "2.0.0", webviewVersion: "..." }
+const v2 = await MiniApp.system(['apiVersion', 'webviewVersion']); // { apiVersion: "2.1.0", webviewVersion: "..." }
 ```
 
 ### 4.2 文件系统（沙箱内）
@@ -250,6 +250,7 @@ await MiniApp.fs.exportFile('data/report.txt');    // boolean true
 | `fs.readExternalFile(absPath)` | `string` | base64 编码的文件字节 |
 | `fs.openExternalFile(absPath)` | `string` | 会话级授权 URL（如 `https://miniapp.invalid/ext/<token>`），小程序 `fetch` 流式读取大文件（响应带 CORS 头）；令牌仅当前小程序会话内有效（Activity 重建即失效，需重新获取），同路径复用同一令牌 |
 | `fs.writeExternalFile(absPath, base64)` | `boolean` | 成功 `true` |
+| `fs.writeExternalFileStream(absPath, sandboxSrcPath)` | `boolean` | 把沙箱内文件（`sandboxSrcPath`）**native 流式对拷**到外部 `absPath`，全程不经 base64。配合 `fs.writeStream` 可实现"开发者零 base64 写外部文件"：先流式写沙箱临时文件，再对拷到外部 |
 | `fs.listExternal(dir)` | `array` | `[{ name: string, isDir: boolean, size: number }]`（不递归） |
 | `fs.existsExternal(absPath)` | `boolean` | 存在 `true`，不存在 `false` |
 | `fs.statExternal(absPath)` | `object` | 同 `fs.stat` 的字段（`lastModified` 精度同样取决于文件系统） |
@@ -267,6 +268,9 @@ const b64  = await MiniApp.fs.readExternalFile('/storage/emulated/0/Documents/a.
 const url  = await MiniApp.fs.openExternalFile('/storage/emulated/0/Documents/big.bin');  // string
 const resp = await fetch(url); const buf = await resp.arrayBuffer();                       // 流式读大文件
 await MiniApp.fs.writeExternalFile('/storage/emulated/0/Documents/b.txt', base64);     // boolean
+// 零 base64 写外部文件：先流式写沙箱临时文件，再 native 对拷到外部
+await MiniApp.fs.writeStream('tmp/out.bin', new Uint8Array(...), 65536);                 // 沙箱内流式写
+await MiniApp.fs.writeExternalFileStream('/storage/emulated/0/Documents/b.bin', 'tmp/out.bin'); // boolean
 const arr  = await MiniApp.fs.listExternal('/storage/emulated/0/Documents');           // array
 const has  = await MiniApp.fs.existsExternal('/storage/emulated/0/Documents/a.txt');   // boolean
 const st   = await MiniApp.fs.statExternal('/storage/emulated/0/Documents/a.txt');     // object
@@ -514,6 +518,8 @@ public static android.os.Bundle run(
 |---|---|---|
 | `storage.upload(path, base64)` | `boolean` | 成功 `true` |
 | `storage.download(path)` | `string` | base64 编码的文件字节 |
+| `storage.uploadFile(rel, sandboxSrcPath)` | `boolean` | 把沙箱内文件（`sandboxSrcPath`）**OkHttp 文件流式 PUT** 直传到 WebDAV 相对路径 `rel`，全程不经 base64（对应沙箱侧 `fs` 用 `fs.writeStream` 先流式写临时文件） |
+| `storage.downloadTo(rel, sandboxDestPath)` | `boolean` | WebDAV 相对路径 `rel` **流式 GET 直落**到沙箱文件 `sandboxDestPath`，全程不经 base64（目标仅限 `data/`、`tmp/` 白名单） |
 | `storage.list(path)` | `array` | `[{ name: string, isDir: boolean }]`（`path` 为 `''` 表示小程序根目录） |
 | `storage.delete(path)` | `boolean` | 删除成功 `true`；目标不存在也返回 `true` |
 
@@ -527,6 +533,13 @@ public static android.os.Bundle run(
 ```js
 // 上传（base64 内容）
 await MiniApp.storage.upload('notes/a.txt', btoa('hello'));   // boolean true
+
+// 流式上传（零 base64）：先把文件流式写进沙箱，再 native 直传 WebDAV
+await MiniApp.fs.writeStream('tmp/up.bin', new Uint8Array(...), 65536);
+await MiniApp.storage.uploadFile('notes/up.bin', 'tmp/up.bin'); // boolean true
+
+// 流式下载（零 base64）：WebDAV 直落到沙箱 data/
+await MiniApp.storage.downloadTo('notes/up.bin', 'data/up_dl.bin'); // boolean true
 
 // 下载
 const b64 = await MiniApp.storage.download('notes/a.txt');     // string (base64)
@@ -956,7 +969,7 @@ adb logcat -s MiniAppJS MiniAppBridge
 - **无热更新**：必须重新打包 zip 并安装。
 - **SharedArrayBuffer 限制**：`file://` 协议下跨域策略可能禁用 `SharedArrayBuffer`，多线程需测试环境支持。
 - **Web Worker 限制**：`file://` 协议下 Worker 可用性取决于 WebView 实现，建议优先单线程分片计算。
-- **无"单连接流式写"**：Android WebView 拦截层拿不到请求体，无法实现"一条连接边读边写"。大文件写入请用 `fs.writeChunk` 分块（`MiniApp.fs.writeStream` 助手已封装，默认 64KB 一块）；网络下载/上传请用 `net.download` / `net.upload`（Native 侧直落/直传，不经 JS 内存）。
+- **无"单连接流式写"**：Android WebView 拦截层拿不到请求体，无法实现"一条连接边读边写"。大文件写入请用 `fs.writeChunk` 分块（`MiniApp.fs.writeStream` 助手已封装，默认 64KB 一块）；网络下载/上传请用 `net.download` / `net.upload`（Native 侧直落/直传，不经 JS 内存）。写外部文件/WebDAV 的零 base64 路径：`fs.writeStream`（沙箱临时文件）→ `fs.writeExternalFileStream` / `storage.uploadFile`、`storage.downloadTo`（native 流式对拷/直传直落）。旧 base64 接口（`readBytes/writeBytes/readChunk/writeChunk/append/readExternalFile/writeExternalFile/storage.upload/download`）仍受支持，与流式方案互补（中小文件 base64、大文件流式）。
 
 ---
 
@@ -965,8 +978,8 @@ adb logcat -s MiniAppJS MiniAppBridge
 详见 `tools/sample_src/` 和 `app/src/main/assets/sample/sample_app.zip`。
 
 包含：
-- `manifest.json`：声明 `demo/showcase` v2.1.0，权限 `net`/`sys.openUrl`/`fs.external`/`clipboard`/`notification`/`storage`/`vibrate`/`flashlight`/`adb`（必要权限留空，点按时按需审批）
-- `index.html` + `style.css` + `app.js`：UI 与交互，覆盖新接口
+- `manifest.json`：声明 `demo/showcase` v2.2.0（`displayName`=「蜗壳测试小程序」），权限 `net`/`sys.openUrl`/`fs.external`/`clipboard`/`notification`/`storage`/`vibrate`/`flashlight`/`adb`（必要权限留空，点按时按需审批）
+- `index.html` + `style.css` + `app.js`：UI 与交互，覆盖新接口；页面内置**一键测试**（遍历全部接口输出逐项 PASS/FAIL，便于定位接口问题）
 - `sample.wasm`：导出 `add(i32,i32)->i32` 和 `fib(i32)->i32`
 - `demo.dex`：Dex 隔离进程演示（入口 `com.miniapp.demo.Demo#run`，四个 action：info/fib/reverse/echo）
 - `icon.svg`：小程序图标

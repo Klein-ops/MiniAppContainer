@@ -61,7 +61,7 @@ class MiniAppBridge(
     private val net = NetService(activity, appInfo, permissionManager, fileService)
     private val clipboard = ClipboardService(activity, appInfo, permissionManager)
     private val notification = NotificationService(activity, appInfo, permissionManager)
-    private val storage = com.miniapp.container.service.StorageService(activity, appInfo, permissionManager)
+    private val storage = com.miniapp.container.service.StorageService(activity, appInfo, permissionManager, fileService)
     private val adb = com.miniapp.container.service.AdbService(activity, appInfo, permissionManager)
     private val vibrate = com.miniapp.container.service.VibrateService(activity, appInfo, permissionManager)
     private val flashlight = com.miniapp.container.service.FlashlightService(activity, appInfo, permissionManager)
@@ -72,7 +72,7 @@ class MiniAppBridge(
          * （App 可能仅调整 UI / 修 Bug 就升级，但那不影响接口契约。）
          * 首次引入定为 1.0.0；将来接口行为变化（新增/修改/删除接口）时递增。
          */
-        const val API_VERSION = "2.0.0"
+        const val API_VERSION = "2.1.0"
         private const val TAG = "MiniAppBridge"
     }
 
@@ -137,6 +137,9 @@ class MiniAppBridge(
         "fs.readExternalFile" -> externalFile.readFile(p.optStringOr("path"))
         "fs.openExternalFile" -> externalFile.openExternalFile(p.optStringOr("path"))
         "fs.writeExternalFile" -> externalFile.writeFile(p.optStringOr("path"), p.optStringOr("base64"))
+        "fs.writeExternalFileStream" -> externalFile.writeExternalFileStream(
+            p.optStringOr("absPath"), p.optStringOr("sandboxSrcPath")
+        )
         "fs.listExternal" -> externalFile.list(p.optStringOr("dir"))
         "fs.grepExternal" -> externalFile.grepFile(
             p.optStringOr("path"), p.optStringOr("pattern"),
@@ -166,6 +169,8 @@ class MiniAppBridge(
         // 网络存储
         "storage.upload" -> storage.upload(p.optStringOr("path"), p.optStringOr("base64"))
         "storage.download" -> storage.download(p.optStringOr("path"))
+        "storage.uploadFile" -> storage.uploadFile(p.optStringOr("rel"), p.optStringOr("sandboxSrcPath"))
+        "storage.downloadTo" -> storage.downloadTo(p.optStringOr("rel"), p.optStringOr("sandboxDestPath"))
         "storage.list" -> storage.list(p.optStringOr("path"))
         "storage.delete" -> storage.delete(p.optStringOr("path"))
 

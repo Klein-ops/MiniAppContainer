@@ -17,7 +17,9 @@ data class PreviewInfo(
     /** 可选：要求宿主 API 最低版本；空串=未声明。 */
     val minApiVersion: String = "",
     /** 可选：要求 WebView 内核最低主版本；空串=未声明。 */
-    val minWebviewVersion: String = ""
+    val minWebviewVersion: String = "",
+    /** 可选：清单声明的显示名称（空=回落 uname）。 */
+    val displayName: String = ""
 )
 
 /** 应用包安装结果。 */
@@ -66,7 +68,8 @@ class AppInstaller(
                     uname = uname,
                     version = m.optString("version", "0.0.0"),
                     minApiVersion = m.optString("minApiVersion", "").trim(),
-                    minWebviewVersion = m.optString("minWebviewVersion", "").trim()
+                    minWebviewVersion = m.optString("minWebviewVersion", "").trim(),
+                    displayName = m.optString("displayName", "").trim()
                 )
             }
         } catch (_: Throwable) {
@@ -127,7 +130,8 @@ class AppInstaller(
                 permissions = manifest.permissions,
                 requiredPermissions = safeRequired,
                 icon = manifest.icon,
-                displayName = existing?.displayName ?: "",
+                // 显示名：manifest 声明优先；未声明时保留已装实例的用户自定义名（更新不覆盖）
+                displayName = manifest.displayName.ifBlank { existing?.displayName ?: "" },
                 installedAt = System.currentTimeMillis(),
                 sourceUrl = sourceUrl
             )

@@ -122,6 +122,9 @@
       // 大文件流式读取：返回会话级授权 URL，小程序 fetch 流式读（不走 base64 桥）
       openExternalFile: function (absPath) { return B.call('fs.openExternalFile', { path: absPath }); },
       writeExternalFile: function (absPath, base64) { return B.call('fs.writeExternalFile', { path: absPath, base64: base64 }); },
+      // 流式写外部文件：把沙箱内文件（sandboxSrcPath）对拷到绝对路径（absPath），全程不经 base64
+      // 配合 fs.writeStream 使用：先流式写沙箱临时文件，再对拷到外部（开发者零 base64）
+      writeExternalFileStream: function (absPath, sandboxSrcPath) { return B.call('fs.writeExternalFileStream', { absPath: absPath, sandboxSrcPath: sandboxSrcPath }); },
       listExternal: function (dir) { return B.call('fs.listExternal', { dir: dir }); },
       existsExternal: function (p) { return B.call('fs.existsExternal', { path: p }); },
       statExternal: function (p) { return B.call('fs.statExternal', { path: p }); },
@@ -221,6 +224,10 @@
       // 网络存储（需 storage 权限）：小程序在 WebDAV 上的独立目录 /MiniAppContainer/data/<uid>_<uname>/
       upload: function (path, base64) { return B.call('storage.upload', { path: String(path), base64: String(base64) }); },
       download: function (path) { return B.call('storage.download', { path: String(path) }); },
+      // 流式上传：把沙箱内文件（sandboxSrcPath）直传到 WebDAV 相对路径（rel），不经 base64
+      uploadFile: function (rel, sandboxSrcPath) { return B.call('storage.uploadFile', { rel: String(rel), sandboxSrcPath: String(sandboxSrcPath) }); },
+      // 流式下载：把 WebDAV 相对路径（rel）直落到沙箱文件（sandboxDestPath），不经 base64
+      downloadTo: function (rel, sandboxDestPath) { return B.call('storage.downloadTo', { rel: String(rel), sandboxDestPath: String(sandboxDestPath) }); },
       list: function (path) { return B.call('storage.list', { path: String(path || '') }); },
       delete: function (path) { return B.call('storage.delete', { path: String(path) }); }
     },

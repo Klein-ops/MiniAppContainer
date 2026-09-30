@@ -84,7 +84,33 @@ class MainActivity : AppCompatActivity() {
         adapter = AppListAdapter()
         adapter.onItemClick = { startMiniApp(it) }
         adapter.onSettingsClick = { openAppSettings(it.appKey) }
-        findViewById<View>(R.id.install_card).setOnClickListener { installFlow.showOptions() }
+        // 安装卡片：单击 = 安装菜单（不再含"内置示例"项）；长按按住满 5 秒 = 直接安装测试小程序（隐藏入口防误装）
+        val installCard = findViewById<View>(R.id.install_card)
+        installCard.setOnClickListener { installFlow.showOptions() }
+        val longPressSample = Runnable {
+            lifecycleScope.launch { installFlow.installSample() }
+        }
+        val hintSample = Runnable {
+            Toast.makeText(this, "继续按住以安装测试小程序…", Toast.LENGTH_SHORT).show()
+        }
+        installCard.setOnTouchListener { v, event ->
+            when (event.action) {
+                android.view.MotionEvent.ACTION_DOWN -> {
+                    // 按住开始：0.6s 后提示（此时已排除单击），5s 后触发安装测试小程序
+                    v.postDelayed(hintSample, 600)
+                    v.postDelayed(longPressSample, 5000)
+                    false
+                }
+                android.view.MotionEvent.ACTION_UP,
+                android.view.MotionEvent.ACTION_CANCEL -> {
+                    // 松手/取消：取消两个定时器（不足 5 秒不触发）；单击场景由系统继续走 click
+                    v.removeCallbacks(hintSample)
+                    v.removeCallbacks(longPressSample)
+                    false
+                }
+                else -> false
+            }
+        }
         setupBottomNav()
         setupSettingsPage()
         recycler.layoutManager = LinearLayoutManager(this)

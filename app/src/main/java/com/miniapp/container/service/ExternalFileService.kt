@@ -196,6 +196,32 @@ class ExternalFileService(
         "true"
     }
 
+    /**
+     * 流式写外部文件：把沙箱内文件 [sandboxSrcPath] 对拷到 [absPath]，**全程不经过 base64**（KPI：流式代替）。
+     *
+     * - 源文件必须在沙箱内（PathGuard 解析，app/data/tmp 均可读）
+     * - 目标路径照常走 [backend] 的 fs.external 审批 + 路径规则
+     * - Direct 后端：宿主直接 File 流式对拷（不整读进内存）
+     * - Shizuku 后端：受 AIDL `write(path, ByteArray)` 能力限制走字节数组传输
+     *   （native 内部实现细节，JS 侧零 base64，KPI 不受影响）
+     */
+    suspend fun writeExternalFileStream(absPath: String, sandboxSrcPath: String): String =
+        withContext(Dispatchers.IO) {
+            if (absPath.isBlank()) throw IllegalArgumentException("absPath required")
+            if (sandboxSrcPath.isBlank()) throw IllegalArgumentException("sandboxSrcPath required")
+            val dst = File(absPath)
+            val b = backend(dst)   // fs.external 审批 + 路径规则 + 后端选择
+            val src = fileService.resolveReadable(sandboxSrcPath)
+            if (!src.isFile) throw java.io.FileNotFoundException("sandbox file not found: $sandboxSrcPath")
+            if (b is ShizukuStorageBackend) {
+                b.write(dst, src.readBytes())
+            } else {
+                dst.parentFile?.mkdirs()
+                src.inputStream().use { input -> dst.outputStream().use { input.copyTo(it) } }
+            }
+            "true"
+        }
+
     suspend fun list(dir: String): String = withContext(Dispatchers.IO) {
         val f = File(dir)
         val arr = JSONArray()

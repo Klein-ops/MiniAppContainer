@@ -33,11 +33,179 @@
   function textToB64(s) {
     return btoa(unescape(encodeURIComponent(s)));
   }
+  function summarize(v) {
+    var s;
+    if (v == null) return 'null';
+    if (typeof v === 'string') s = v;
+    else if (v instanceof Uint8Array) s = v.length + ' bytes';
+    else {
+      try { s = JSON.stringify(v); } catch (e) { s = String(v); }
+    }
+    if (s.length > 120) s = s.slice(0, 120) + '…';
+    return s;
+  }
 
   var wasm = null;
   function ensureWasm() {
     if (wasm) return Promise.resolve(wasm);
     return MiniApp.wasm.instantiate('app/sample.wasm').then(function (inst) { wasm = inst; return inst; });
+  }
+
+  // ---------- 一键测试（遍历全部接口，输出逐项 PASS/FAIL） ----------
+  function assert(cond, msg) { if (!cond) throw new Error(msg || '断言失败'); }
+
+  /** 重置测试用到的沙箱数据，保证测试可重复跑。 */
+  function resetTestData() {
+    var bytes = new TextEncoder().encode('一键测试数据 ' + new Date().toISOString());
+    return MiniApp.fs.write('data/test.txt', '测试数据 ' + new Date().toISOString())
+      .then(function () { return MiniApp.fs.writeStream('data/stream.bin', bytes, 64); })
+      .then(function () { return '测试数据已重置（data/test.txt + data/stream.bin）'; });
+  }
+
+  /**
+   * 顺序调用全部接口并汇总 PASS/FAIL，便于定位接口问题。
+   * - 纯自动测试，不使用 prompt（避免连跑被卡住）；交互类接口（SAF 导入导出、openUrl、手电筒）不纳入
+   * - 涉及权限的项会触发宿主授权弹窗（permission 弹窗），涉及 WebDAV 的项需要已配置存储
+   * - 任一项失败不中断，继续跑完并汇总
+   */
+  function runAllTests() {
+    var tests = [
+      { name: 'app.info', fn: function () {
+          return MiniApp.info().then(function (v) { assert(v && v.appKey !== undefined, '缺 appKey'); return 'appKey=' + v.appKey; });
+        } },
+      { name: 'system.info', fn: function () {
+          return MiniApp.system().then(function (v) { assert(v, '返回空'); return 'api=' + (v.api || v.apiVersion || '?'); });
+        } },
+      { name: 'fs.write/read', fn: function () {
+          var c = '测试 ' + Date.now();
+          return MiniApp.fs.write('data/test.txt', c).then(function () { return MiniApp.fs.read('data/test.txt'); })
+            .then(function (r) { assert(r.indexOf(c) >= 0, '写读不一致'); return '往返一致'; });
+        } },
+      { name: 'fs.list', fn: function () {
+          return MiniApp.fs.list('data').then(function (l) { assert(Array.isArray(l), '非数组'); return 'items=' + l.length; });
+        } },
+      { name: 'fs.stat', fn: function () {
+          return MiniApp.fs.stat('data/test.txt').then(function (s) { assert(s && s.exists, 'stat 异常'); return 'size=' + s.size; });
+        } },
+      { name: 'fs.exists', fn: function () {
+          return MiniApp.fs.exists('data/test.txt').then(function (e) { assert(e === 'true' || e === true, 'exists 异常'); return String(e); });
+        } },
+      { name: 'fs.writeChunk(追加)', fn: function () {
+          return MiniApp.fs.writeChunk('data/chunk.txt', -1, textToB64('甲\n')).then(function (r) { assert(r === 'true', '返回非true'); return 'offset=-1'; });
+        } },
+      { name: 'fs.readChunk', fn: function () {
+          return MiniApp.fs.readChunk('data/chunk.txt', 0, 4).then(function (b64) { assert(typeof b64 === 'string' && b64.length > 0, '读取异常'); return b64.length + ' chars'; });
+        } },
+      { name: 'fs.append', fn: function () {
+          return MiniApp.fs.append('data/test.txt', textToB64('尾\n')).then(function (r) { assert(r === 'true', '返回非true'); return 'ok'; });
+        } },
+      { name: 'fs.truncate', fn: function () {
+          return MiniApp.fs.truncate('data/test.txt', 0).then(function (r) { assert(r === 'true', '返回非true'); return '0 字节'; });
+        } },
+      { name: 'fs.writeStream/readStream(零base64)', fn: function () {
+          var bytes = new TextEncoder().encode('流式 ' + Date.now());
+          return MiniApp.fs.writeStream('data/stream.bin', bytes, 64).then(function () {
+            return MiniApp.fs.readStream('data/stream.bin').then(function (rb) {
+              assert(rb.length === bytes.length, '字节数不一致'); return rb.length + 'B 往返一致';
+            });
+          });
+        } },
+      { name: 'fs.grep', fn: function () {
+          return MiniApp.fs.write('data/grep.txt', 'line1\n蜗壳行\nline3').then(function () {
+            return MiniApp.fs.grep('data/grep.txt', '蜗壳', { ignoreCase: true }).then(function (r) {
+              assert(Array.isArray(r) && r.length === 1, '命中数异常=' + r.length); return '命中 ' + r.length + ' 行';
+            });
+          });
+        } },
+      { name: 'fs.sed', fn: function () {
+          return MiniApp.fs.sed('data/grep.txt', 's/line/LINE/g').then(function () {
+            return MiniApp.fs.read('data/grep.txt').then(function (t) { assert(t.indexOf('LINE1') >= 0, 'sed 未生效'); return '已替换'; });
+          });
+        } },
+      { name: 'cb.write/read', fn: function () {
+          return MiniApp.clipboard.write('剪贴板测试').then(function () { return MiniApp.clipboard.read(); })
+            .then(function (t) { assert(t === '剪贴板测试', '写读不一致'); return '往返一致'; });
+        } },
+      { name: 'notify.show/cancel', fn: function () {
+          return MiniApp.notification.show('一键测试', '通知测试').then(function () { return MiniApp.notification.cancel(); })
+            .then(function () { return '已发已撤'; });
+        } },
+      { name: 'debug.log/getLogs/clear', fn: function () {
+          return MiniApp.debug.log('一键测试日志').then(function () {
+            return MiniApp.debug.getLogs(5).then(function (r) {
+              assert(Array.isArray(r), '非数组');
+              return MiniApp.debug.clear().then(function () { return 'log+get+clear'; });
+            });
+          });
+        } },
+      { name: 'dex.run(fib)', fn: function () {
+          return MiniApp.dex.run({ dex: 'app/demo.dex', className: 'com.miniapp.demo.Demo', params: { action: 'fib', n: 15 } })
+            .then(function (r) { assert(r && typeof r === 'object' && Object.keys(r).length > 0, 'dex 返回异常'); return summarize(r); });
+        } },
+      { name: 'wasm.instantiate', fn: function () {
+          return ensureWasm().then(function (inst) { assert(inst && inst.exports && inst.exports.add, '无 add 导出'); return 'add(2,3)=' + inst.exports.add(2, 3); });
+        } },
+      { name: 'sys.vibrate', fn: function () {
+          return MiniApp.sys.vibrate(50).then(function () { return '50ms'; });
+        } },
+      { name: 'sys.setTextSelection', fn: function () {
+          return MiniApp.sys.setTextSelection(false).then(function () { return 'off'; });
+        } },
+      { name: 'net.get/net.download(直落)', fn: function () {
+          return MiniApp.net.get('https://example.com/').then(function (r) {
+            assert(r && r.status, 'net.get 异常');
+            return MiniApp.net.download('https://example.com/', 'data/dl.html').then(function (d) {
+              assert(d && d.size >= 0, 'download 异常'); return 'get=' + r.status + ', dl=' + d.size + 'B';
+            });
+          });
+        } },
+      { name: 'fs.writeExternalFileStream(流式外部写)', fn: function () {
+          var bytes = new TextEncoder().encode('外部流式 ' + Date.now());
+          return MiniApp.fs.writeStream('tmp/ext_src.bin', bytes, 64).then(function () {
+            return MiniApp.fs.writeExternalFileStream('/storage/emulated/0/Documents/wk_stream_test.txt', 'tmp/ext_src.bin');
+          }).then(function (r) { assert(r === 'true', '返回非true'); return '已对拷外部文件'; });
+        } }
+    ];
+    // 网络存储统一追加（需要 storage 权限 + WebDAV 已配置；未配置会以 FAIL 呈现便于定位）
+    tests = tests.concat([
+      { name: 'storage.list', fn: function () {
+          return MiniApp.storage.list('').then(function (r) { assert(Array.isArray(r), '非数组'); return 'items=' + r.length; });
+        } },
+      { name: 'storage.uploadFile(流式上传)', fn: function () {
+          return MiniApp.storage.uploadFile('test/stream.bin', 'data/stream.bin').then(function (r) { assert(r === 'true', '返回非true'); return '已直传'; });
+        } },
+      { name: 'storage.downloadTo(流式下载)', fn: function () {
+          return MiniApp.storage.downloadTo('test/stream.bin', 'data/stream_dl.bin').then(function (r) { assert(r === 'true', '返回非true'); return '已直落'; });
+        } },
+      { name: 'storage.delete', fn: function () {
+          return MiniApp.storage.delete('test/stream.bin').then(function (r) { return 'deleted=' + r; });
+        } }
+    ]);
+
+    var idx = 0;
+    var lines = [];
+    function next() {
+      if (idx >= tests.length) {
+        var pass = 0, fail = 0;
+        lines.forEach(function (x) { if (x.indexOf('PASS ') === 0) pass++; else if (x.indexOf('FAIL ') === 0) fail++; });
+        lines.push('---- 结束 ----');
+        lines.push('通过 ' + pass + ' / ' + tests.length + '，失败 ' + fail);
+        show(lines.join('\n'));
+        return;
+      }
+      var t = tests[idx++];
+      var label = '[' + idx + '/' + tests.length + '] ' + t.name;
+      Promise.resolve().then(t.fn).then(function (detail) {
+        lines.push('PASS ' + label + (detail ? '  → ' + detail : ''));
+        next();
+      }, function (e) {
+        lines.push('FAIL ' + label + '  → ' + (e && e.message ? e.message : e));
+        next();
+      });
+    }
+    show('一键测试开始（共 ' + tests.length + ' 项）…');
+    lines.push('---- 一键测试 ' + new Date().toTimeString().slice(0, 8) + ' ----');
+    next();
   }
 
   var actions = {
@@ -165,6 +333,21 @@
       return MiniApp.fs.writeExternalFile(p, textToB64(content))
         .then(function () { return '已写入外部文件: ' + p; });
     },
+    // 流式写外部文件：先流式写沙箱临时文件（writeStream，零 base64），再 native 对拷到外部（KPI 演示）
+    'stream-ext-write': function () {
+      var p = ask('要写入的外部文件（绝对路径）', '/storage/emulated/0/Documents/wk_stream.txt');
+      if (p == null) return '已取消';
+      var content = ask('流式写入内容（自动分块）', '流式外部写入 ' + new Date().toISOString());
+      if (content == null) return '已取消';
+      var bytes = new TextEncoder().encode(content);
+      return MiniApp.fs.writeStream('tmp/ext_src.bin', bytes, 64)
+        .then(function () {
+          return MiniApp.fs.writeExternalFileStream(p, 'tmp/ext_src.bin');
+        })
+        .then(function () {
+          return '流式写入外部文件 ' + p + '（' + bytes.length + ' 字节，全程无 base64）';
+        });
+    },
     renameExt: function () {
       var from = ask('源文件路径', '/storage/emulated/0/Documents/wk.txt');
       if (from == null) return '已取消';
@@ -259,6 +442,26 @@
         return '已下载 ' + path + '（' + b64.length + ' 字符 base64，非文本）';
       });
     },
+    // 流式上传：沙箱内文件直传 WebDAV（不经 base64）
+    'storage-upload-file': function () {
+      var path = ask('WebDAV 路径', 'upload/stream.bin');
+      if (path == null) return '已取消';
+      var src = ask('源沙箱文件', 'data/stream.bin');
+      if (src == null) return '已取消';
+      return MiniApp.storage.uploadFile(path, src).then(function (r) {
+        return '流式上传 ' + src + ' → ' + path + '\n返回: ' + summarize(r);
+      });
+    },
+    // 流式下载：WebDAV 直落沙箱文件（不经 base64）
+    'storage-download-to': function () {
+      var path = ask('WebDAV 路径', 'upload/stream.bin');
+      if (path == null) return '已取消';
+      var dest = ask('目标沙箱文件', 'data/stream_dl.bin');
+      if (dest == null) return '已取消';
+      return MiniApp.storage.downloadTo(path, dest).then(function (r) {
+        return '流式下载 ' + path + ' → ' + dest + '\n' + summarize(r);
+      });
+    },
     'storage-delete': function () {
       var path = ask('要删除的 WebDAV 路径', 'upload/test.txt');
       if (path == null) return '已取消';
@@ -333,6 +536,15 @@
     // ---- 权限 ----
     perm: function () {
       return MiniApp.permission.request('net').then(function (ok) { return 'net 授权: ' + (ok ? '是' : '否'); });
+    },
+
+    // ---- 一键测试 ----
+    'run-all': function () {
+      runAllTests();
+      return '一键测试已开始，结果见输出…';
+    },
+    'reset-test': function () {
+      return resetTestData();
     }
   };
 

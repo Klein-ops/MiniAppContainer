@@ -45,17 +45,21 @@ class InstallFlow(
     private val onRefresh: () -> Unit
 ) {
 
-    /** 安装入口：应用包 / 内置示例 / URL。 */
+    /**
+     * 安装入口：应用包 / URL。
+     *
+     * 内置示例（蜗壳测试小程序）不再出现在菜单中：改为在安装卡片上**长按 5 秒**触发
+     * [installSample]（见 MainActivity 的 install_card 长按逻辑），隐藏入口防误装。
+     */
     fun showOptions() {
         MaterialAlertDialogBuilder(activity)
             .setTitle("安装")
-            .setItems(arrayOf("安装应用包（zip）", "安装内置示例", "从 URL 安装")) { _, which ->
+            .setItems(arrayOf("安装应用包（zip）", "从 URL 安装")) { _, which ->
                 when (which) {
                     0 -> launchPickZip(
                         arrayOf("application/zip", "application/octet-stream", "*/*")
                     )
-                    1 -> activity.lifecycleScope.launch { installSample() }
-                    2 -> showUrlDialog()
+                    1 -> showUrlDialog()
                 }
             }.showRounded()
     }

@@ -3,13 +3,13 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
-  <title>蜗壳示例</title>
+  <title>蜗壳测试小程序</title>
   <link rel="stylesheet" href="style.css" />
 </head>
 <body>
   <header>
-    <h1>蜗壳示例</h1>
-    <p class="sub">demo / showcase · v2.1.0 · 接口演示集</p>
+    <h1>蜗壳测试小程序</h1>
+    <p class="sub">demo / showcase · v2.2.0 · 接口演示 / 一键测试</p>
   </header>
   <main>
     <section class="card">
@@ -35,6 +35,7 @@
         <button data-act="truncate">截断 truncate</button>
         <button data-act="stream-write">流式写 writeStream</button>
         <button data-act="stream-read">流式读 readStream</button>
+        <button data-act="stream-ext-write" class="primary">流式写外部文件</button>
         <button data-act="grep">grep 搜索</button>
         <button data-act="sed">sed 编辑</button>
       </div>
@@ -100,6 +101,8 @@
         <button data-act="storage-list">列 WebDAV 目录</button>
         <button data-act="storage-upload" class="primary">上传到 WebDAV</button>
         <button data-act="storage-download" class="primary">从 WebDAV 下载</button>
+        <button data-act="storage-upload-file" class="primary">流式上传文件</button>
+        <button data-act="storage-download-to" class="primary">流式下载到沙箱</button>
         <button data-act="storage-delete">删除 WebDAV 文件</button>
       </div>
     </section>
@@ -134,6 +137,15 @@
         <button data-act="statusbar">状态栏色</button>
         <button data-act="selection">允许长按选择</button>
       </div>
+    </section>
+
+    <section class="card">
+      <h2>一键测试 <span class="tag">遍历全部接口</span></h2>
+      <div class="grid">
+        <button data-act="run-all" class="primary" id="btn-run-all">全量测试（连跑）</button>
+        <button data-act="reset-test">重置测试数据</button>
+      </div>
+      <p class="hint">按顺序调用全部接口并输出逐项 pass / fail，便于定位接口问题。涉及权限/网络的项会先弹授权或需已配置。</p>
     </section>
 
     <pre id="out">点击按钮查看输出…</pre>
