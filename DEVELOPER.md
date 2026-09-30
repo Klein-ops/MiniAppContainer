@@ -965,7 +965,7 @@ adb logcat -s MiniAppJS MiniAppBridge
 详见 `tools/sample_src/` 和 `app/src/main/assets/sample/sample_app.zip`。
 
 包含：
-- `manifest.json`：声明 `demo/showcase` v2.0.0，权限 `net`/`sys.openUrl`/`fs.external`/`clipboard`/`notification`/`storage`/`vibrate`/`flashlight`/`adb`（必要权限留空，点按时按需审批）
+- `manifest.json`：声明 `demo/showcase` v2.1.0，权限 `net`/`sys.openUrl`/`fs.external`/`clipboard`/`notification`/`storage`/`vibrate`/`flashlight`/`adb`（必要权限留空，点按时按需审批）
 - `index.html` + `style.css` + `app.js`：UI 与交互，覆盖新接口
 - `sample.wasm`：导出 `add(i32,i32)->i32` 和 `fib(i32)->i32`
 - `demo.dex`：Dex 隔离进程演示（入口 `com.miniapp.demo.Demo#run`，四个 action：info/fib/reverse/echo）
@@ -976,7 +976,7 @@ adb logcat -s MiniAppJS MiniAppBridge
 ```bash
 cd tools/sample_src
 zip -j ../../app/src/main/assets/sample/sample_app.zip \
-  manifest.json index.html style.css app.js sample.wasm
+  manifest.json index.html style.css app.js sample.wasm demo.dex icon.svg
 ```
 
 ---

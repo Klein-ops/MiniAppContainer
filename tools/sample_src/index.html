@@ -3,27 +3,139 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
-  <title>示例小程序</title>
+  <title>蜗壳示例</title>
   <link rel="stylesheet" href="style.css" />
 </head>
 <body>
   <header>
-    <h1>示例小程序</h1>
-    <p class="sub">uid/uname: demo/hello</p>
+    <h1>蜗壳示例</h1>
+    <p class="sub">demo / showcase · v2.1.0 · 接口演示集</p>
   </header>
   <main>
-    <section class="grid">
-      <button data-act="info">应用信息</button>
-      <button data-act="system">系统信息</button>
-      <button data-act="write">写文件 test.txt</button>
-      <button data-act="read">读文件 test.txt</button>
-      <button data-act="list">列目录 data/</button>
-      <button data-act="wasm-add">WASM add(2,3)</button>
-      <button data-act="wasm-fib">WASM fib(15)</button>
-      <button data-act="net" class="danger">网络请求(需审批)</button>
-      <button data-act="openurl" class="danger">打开链接(需审批)</button>
-      <button data-act="perm">预请求 net 权限</button>
+    <section class="card">
+      <h2>应用与系统</h2>
+      <div class="grid">
+        <button data-act="info">应用信息</button>
+        <button data-act="system">系统信息</button>
+        <button data-act="open-url" class="primary">打开网页 sys.openUrl</button>
+      </div>
     </section>
+
+    <section class="card">
+      <h2>沙箱文件</h2>
+      <div class="grid">
+        <button data-act="write">写入 data/test.txt</button>
+        <button data-act="read">读取</button>
+        <button data-act="list">列目录</button>
+        <button data-act="stat">文件信息</button>
+        <button data-act="exists">exists 判断</button>
+        <button data-act="chunk-write">分块写 writeChunk</button>
+        <button data-act="chunk-read">分块读 readChunk</button>
+        <button data-act="append">追加 append</button>
+        <button data-act="truncate">截断 truncate</button>
+        <button data-act="stream-write">流式写 writeStream</button>
+        <button data-act="stream-read">流式读 readStream</button>
+        <button data-act="grep">grep 搜索</button>
+        <button data-act="sed">sed 编辑</button>
+      </div>
+    </section>
+
+    <section class="card">
+      <h2>SAF 导入导出 <span class="tag">无需权限</span></h2>
+      <div class="grid">
+        <button data-act="import" class="primary">导入到沙箱 importFile</button>
+        <button data-act="export" class="primary">导出到系统 exportFile</button>
+      </div>
+    </section>
+
+    <section class="card">
+      <h2>外部文件 <span class="tag">需 fs.external</span></h2>
+      <div class="grid">
+        <button data-act="listExt">列内部储存</button>
+        <button data-act="readExt">读外部文件（base64）</button>
+        <button data-act="openExt" class="primary">大文件流式读（fetch）</button>
+        <button data-act="writeExt">写外部文件</button>
+        <button data-act="renameExt">重命名外部文件</button>
+      </div>
+    </section>
+
+    <section class="card">
+      <h2>WASM（WebView JIT）</h2>
+      <div class="grid">
+        <button data-act="wasm-add">add(2,3)</button>
+        <button data-act="wasm-fib">fib(15)</button>
+      </div>
+    </section>
+
+    <section class="card">
+      <h2>网络 <span class="tag">需 net</span></h2>
+      <div class="grid">
+        <button data-act="net">HTTP GET</button>
+        <button data-act="net-post" class="primary">POST + 自定义头</button>
+        <button data-act="net-download" class="primary">下载直落沙箱</button>
+        <button data-act="net-upload" class="primary">上传沙箱文件</button>
+        <button data-act="perm">请求 net 权限</button>
+      </div>
+    </section>
+
+    <section class="card">
+      <h2>剪贴板 <span class="tag">需 clipboard</span></h2>
+      <div class="grid">
+        <button data-act="cb-read">读剪贴板</button>
+        <button data-act="cb-write">写剪贴板</button>
+      </div>
+    </section>
+
+    <section class="card">
+      <h2>通知 <span class="tag">需 notification</span></h2>
+      <div class="grid">
+        <button data-act="notify">发送通知</button>
+        <button data-act="notify-cancel">取消通知</button>
+      </div>
+    </section>
+
+    <section class="card">
+      <h2>网络存储 <span class="tag">需 storage + WebDAV</span></h2>
+      <div class="grid">
+        <button data-act="storage-list">列 WebDAV 目录</button>
+        <button data-act="storage-upload" class="primary">上传到 WebDAV</button>
+        <button data-act="storage-download" class="primary">从 WebDAV 下载</button>
+        <button data-act="storage-delete">删除 WebDAV 文件</button>
+      </div>
+    </section>
+
+    <section class="card">
+      <h2>小程序调试 <span class="tag">debug.*</span></h2>
+      <div class="grid">
+        <button data-act="debug-log">写日志 debug.log</button>
+        <button data-act="debug-logs">读日志 getLogs</button>
+        <button data-act="debug-clear">清空日志 clear</button>
+        <button data-act="debug-enabled">调试开关 enabled</button>
+      </div>
+    </section>
+
+    <section class="card">
+      <h2>Dex 隔离进程执行</h2>
+      <div class="grid">
+        <button data-act="dex-info" class="primary">进程信息</button>
+        <button data-act="dex-fib" class="primary">fib(30)</button>
+        <button data-act="dex-reverse" class="primary">字符串反转</button>
+      </div>
+    </section>
+
+    <section class="card">
+      <h2>设备控制</h2>
+      <div class="grid">
+        <button data-act="vibrate">震动 300ms</button>
+        <button data-act="flashlight">手电筒开</button>
+        <button data-act="flashlight-off">手电筒关</button>
+        <button data-act="orientation">横屏</button>
+        <button data-act="portrait">竖屏</button>
+        <button data-act="statusbar">状态栏色</button>
+        <button data-act="selection">允许长按选择</button>
+      </div>
+    </section>
+
     <pre id="out">点击按钮查看输出…</pre>
   </main>
   <script src="app.js"></script>

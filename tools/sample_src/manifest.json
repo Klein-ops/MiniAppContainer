@@ -1,9 +1,10 @@
 {
   "uid": "demo",
-  "uname": "hello",
-  "version": "1.0.0",
+  "uname": "showcase",
+  "version": "2.1.0",
   "entry": "index.html",
+  "icon": "icon.svg",
   "wasm": ["sample.wasm"],
-  "permissions": ["net", "sys.openUrl", "fs.external"],
-  "requiredPermissions": ["net"]
+  "permissions": ["net", "sys.openUrl", "fs.external", "clipboard", "notification", "storage", "vibrate", "flashlight", "adb"],
+  "requiredPermissions": []
 }
