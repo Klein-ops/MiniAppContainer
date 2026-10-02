@@ -3,6 +3,7 @@ package com.miniapp.container.ui
 import android.view.LayoutInflater
 import android.view.ViewGroup
 import android.widget.TextView
+import androidx.core.content.ContextCompat
 import androidx.recyclerview.widget.RecyclerView
 import com.google.android.material.slider.Slider
 import com.miniapp.container.R
@@ -68,9 +69,9 @@ class PermissionListAdapter : RecyclerView.Adapter<PermissionListAdapter.VH>() {
         }
         holder.tag.setTextColor(
             when {
-                PermissionRegistry.isDangerous(it.scope) -> 0xFFE03131.toInt()
-                it.required -> 0xFFE03131.toInt()
-                else -> 0xFF6B7280.toInt()
+                PermissionRegistry.isDangerous(it.scope) -> ContextCompat.getColor(holder.itemView.context, R.color.danger)
+                it.required -> ContextCompat.getColor(holder.itemView.context, R.color.danger)
+                else -> ContextCompat.getColor(holder.itemView.context, R.color.text_secondary)
             }
         )
         // 先解绑避免回填触发；拖动过程即回调，最终值写入持久状态

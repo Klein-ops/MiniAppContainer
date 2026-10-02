@@ -10,9 +10,9 @@
         android:id="@+id/toolbar"
         android:layout_width="match_parent"
         android:layout_height="?attr/actionBarSize"
-        android:background="@color/brand_primary_dark"
+        android:background="@color/md3_surfaceContainer"
         app:title="访问黑白名单"
-        app:titleTextColor="#FFFFFF" />
+        app:titleTextColor="@color/md3_onSurface" />
 
     <ScrollView
         android:layout_width="match_parent"

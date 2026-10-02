@@ -56,8 +56,8 @@
             android:layout_height="wrap_content"
             android:layout_marginTop="20dp"
             android:text="允许"
-            android:textColor="#FFFFFF"
-            app:backgroundTint="@color/brand_primary"
+            android:textColor="@color/md3_onPrimary"
+            app:backgroundTint="@color/md3_primary"
             app:cornerRadius="12dp" />
 
         <com.google.android.material.button.MaterialButton

@@ -11,8 +11,8 @@
         android:layout_width="match_parent"
         android:layout_height="?attr/actionBarSize"
         app:title="调用日志"
-        app:titleTextColor="#FFFFFF"
-        android:background="@color/brand_primary_dark" />
+        app:titleTextColor="@color/md3_onSurface"
+        android:background="@color/md3_surfaceContainer" />
 
     <LinearLayout
         android:layout_width="match_parent"

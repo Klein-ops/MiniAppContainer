@@ -38,7 +38,7 @@
                     android:layout_width="24dp"
                     android:layout_height="24dp"
                     android:contentDescription="调试模式"
-                    android:src="@android:drawable/ic_menu_manage"
+                    android:src="@drawable/ic_manage"
                     android:tint="@color/brand_primary" />
 
                 <LinearLayout
@@ -67,7 +67,9 @@
                 <androidx.appcompat.widget.SwitchCompat
                     android:id="@+id/switch_debug"
                     android:layout_width="wrap_content"
-                    android:layout_height="wrap_content" />
+                    android:layout_height="wrap_content"
+                    android:theme="@style/ThemeOverlay.MiniApp.Switch"
+                    app:trackTint="@color/switch_track" />
             </LinearLayout>
         </com.google.android.material.card.MaterialCardView>
 
@@ -88,7 +90,7 @@
                     android:layout_width="24dp"
                     android:layout_height="24dp"
                     android:contentDescription="查看调用日志"
-                    android:src="@android:drawable/ic_menu_info_details"
+                    android:src="@drawable/ic_info"
                     android:tint="@color/brand_primary" />
 
                 <TextView
@@ -119,7 +121,7 @@
                     android:layout_width="24dp"
                     android:layout_height="24dp"
                     android:contentDescription="主题"
-                    android:src="@android:drawable/ic_menu_view"
+                    android:src="@drawable/ic_view"
                     android:tint="@color/brand_primary" />
 
                 <LinearLayout
@@ -172,7 +174,7 @@
                     android:layout_width="24dp"
                     android:layout_height="24dp"
                     android:contentDescription="备份与恢复"
-                    android:src="@android:drawable/ic_menu_save"
+                    android:src="@drawable/ic_save"
                     android:tint="@color/brand_primary" />
 
                 <TextView
@@ -203,7 +205,7 @@
                     android:layout_width="24dp"
                     android:layout_height="24dp"
                     android:contentDescription="权限状态"
-                    android:src="@android:drawable/ic_dialog_info"
+                    android:src="@drawable/ic_info"
                     android:tint="@color/brand_primary" />
 
                 <TextView
@@ -242,7 +244,7 @@
                     android:layout_width="24dp"
                     android:layout_height="24dp"
                     android:contentDescription="清理 WebView 缓存"
-                    android:src="@android:drawable/ic_menu_close_clear_cancel"
+                    android:src="@drawable/ic_close_black"
                     android:tint="@color/brand_primary" />
 
                 <TextView
@@ -273,7 +275,7 @@
                     android:layout_width="24dp"
                     android:layout_height="24dp"
                     android:contentDescription="关于蜗壳"
-                    android:src="@android:drawable/ic_menu_help"
+                    android:src="@drawable/ic_help"
                     android:tint="@color/brand_primary" />
 
                 <TextView

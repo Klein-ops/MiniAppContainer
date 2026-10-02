@@ -12,9 +12,9 @@
         android:id="@+id/toolbar"
         android:layout_width="match_parent"
         android:layout_height="?attr/actionBarSize"
-        android:background="@color/brand_primary_dark"
+        android:background="@color/md3_surfaceContainer"
         app:title="应用设置"
-        app:titleTextColor="#FFFFFF" />
+        app:titleTextColor="@color/md3_onSurface" />
 
     <ScrollView
         android:layout_width="match_parent"
@@ -65,7 +65,7 @@
                         android:layout_width="24dp"
                         android:layout_height="24dp"
                         android:contentDescription="重命名"
-                        android:src="@android:drawable/ic_menu_edit"
+                        android:src="@drawable/ic_edit"
                         android:tint="@color/brand_primary" />
 
                     <TextView
@@ -96,7 +96,7 @@
                         android:layout_width="24dp"
                         android:layout_height="24dp"
                         android:contentDescription="权限管理"
-                        android:src="@android:drawable/ic_lock_lock"
+                        android:src="@drawable/ic_lock"
                         android:tint="@color/brand_primary" />
 
                     <TextView
@@ -127,7 +127,7 @@
                         android:layout_width="24dp"
                         android:layout_height="24dp"
                         android:contentDescription="移动到分类"
-                        android:src="@android:drawable/ic_menu_sort_by_size"
+                        android:src="@drawable/ic_sort"
                         android:tint="@color/brand_primary" />
 
                     <TextView
@@ -158,7 +158,7 @@
                         android:layout_width="24dp"
                         android:layout_height="24dp"
                         android:contentDescription="创建桌面快捷方式"
-                        android:src="@android:drawable/ic_menu_add"
+                        android:src="@drawable/ic_add"
                         android:tint="@color/brand_primary" />
 
                     <TextView
@@ -189,7 +189,7 @@
                         android:layout_width="24dp"
                         android:layout_height="24dp"
                         android:contentDescription="清空数据"
-                        android:src="@android:drawable/ic_menu_delete"
+                        android:src="@drawable/ic_delete"
                         android:tint="@color/danger" />
 
                     <TextView
@@ -220,7 +220,7 @@
                         android:layout_width="24dp"
                         android:layout_height="24dp"
                         android:contentDescription="卸载应用"
-                        android:src="@android:drawable/ic_menu_close_clear_cancel"
+                        android:src="@drawable/ic_close_black"
                         android:tint="@color/danger" />
 
                     <TextView

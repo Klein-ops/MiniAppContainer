@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- 自绘应用占位图标（四宫格），黑色 fill 由 tint/图标加载处着色 -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="24dp"
+    android:height="24dp"
+    android:viewportWidth="24"
+    android:viewportHeight="24">
+    <path
+        android:fillColor="#FF000000"
+        android:pathData="M13,13v8h8v-8h-8zM3,21h8v-8H3v8zM3,3v8h8V3H3zM13,3v8h8V3h-8z" />
+</vector>

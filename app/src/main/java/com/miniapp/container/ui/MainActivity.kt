@@ -13,6 +13,7 @@ import android.widget.TextView
 import android.widget.Toast
 import androidx.activity.result.ActivityResultLauncher
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.core.content.ContextCompat
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import androidx.appcompat.app.AppCompatActivity
 import androidx.appcompat.widget.Toolbar
@@ -178,7 +179,10 @@ class MainActivity : AppCompatActivity() {
         val tv = LayoutInflater.from(this).inflate(R.layout.item_category_chip, categoryBar, false) as TextView
         tv.text = text
         tv.setBackgroundResource(if (selected) R.drawable.chip_selected else R.drawable.chip_unselected)
-        tv.setTextColor(if (selected) 0xFFFFFFFF.toInt() else 0xFF6B7280.toInt())
+        tv.setTextColor(
+            if (selected) ContextCompat.getColor(this, R.color.md3_onPrimaryContainer)
+            else ContextCompat.getColor(this, R.color.text_secondary)
+        )
         tv.setOnClickListener { onClick() }
         tv.setOnLongClickListener { onLongClick(); true }
         categoryBar.addView(tv)
@@ -291,6 +295,10 @@ class MainActivity : AppCompatActivity() {
 
     override fun onCreateOptionsMenu(menu: Menu): Boolean {
         menuInflater.inflate(R.menu.main_menu, menu)
+        // 菜单图标显式着色：跟随 onSurface（白天深色/夜间浅色可见），避免默认黑色在暗色下不可见
+        menu.findItem(R.id.action_search)?.icon?.setTint(
+            ContextCompat.getColor(this, R.color.md3_onSurface)
+        )
         return true
     }
 

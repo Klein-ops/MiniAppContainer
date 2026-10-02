@@ -62,7 +62,7 @@ class AppListAdapter : RecyclerView.Adapter<AppListAdapter.VH>() {
 
     /** 加载应用图标（支持 SVG/PNG，无图标或失败时重置为默认）。 */
     private fun loadIcon(holder: VH, info: MiniAppInfo) {
-        val default = android.R.drawable.sym_def_app_icon
+        val default = R.drawable.ic_app_placeholder
         // 无图标：必须重置，否则 RecyclerView 复用会残留上一个小程序的图标
         if (info.icon.isBlank()) {
             holder.imgIcon.setImageResource(default)

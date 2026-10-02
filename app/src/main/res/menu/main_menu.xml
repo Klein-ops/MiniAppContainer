@@ -4,8 +4,8 @@
     <!-- 顶栏右上角：搜索 -->
     <item
         android:id="@+id/action_search"
-        android:icon="@android:drawable/ic_menu_search"
-        android:iconTint="#FFFFFF"
+        android:icon="@drawable/ic_search"
+        android:iconTint="@color/md3_onSurface"
         android:title="搜索"
         app:showAsAction="always" />
 </menu>

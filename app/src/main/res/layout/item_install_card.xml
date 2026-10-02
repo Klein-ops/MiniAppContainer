@@ -16,15 +16,15 @@
         android:layout_width="18dp"
         android:layout_height="18dp"
         android:contentDescription="安装新应用"
-        android:src="@android:drawable/ic_input_add"
-        android:tint="#FFFFFF" />
+        android:src="@drawable/ic_add_circle"
+        android:tint="@color/md3_onTertiary" />
 
     <TextView
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_marginStart="8dp"
         android:text="安装新应用"
-        android:textColor="#FFFFFF"
+        android:textColor="@color/md3_onTertiary"
         android:textSize="15sp"
         android:textStyle="bold" />
 

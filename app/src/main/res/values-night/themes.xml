@@ -43,7 +43,7 @@
         <item name="android:windowBackground">@color/bg_window</item>
         <!-- 状态栏：浅色（跟随 Toolbar surfaceContainer）+ 深色图标（MD3 现代一体化） -->
         <item name="android:statusBarColor" tools:targetApi="l">@color/md3_surfaceContainer</item>
-        <item name="android:windowLightStatusBar" tools:targetApi="m">true</item>
+        <item name="android:windowLightStatusBar" tools:targetApi="m">false</item>
         <!-- 页面切换动画 -->
         <item name="android:windowAnimationStyle">@style/Animation.MiniApp.Activity</item>
         <!-- 所有 AlertDialog 统一圆角 -->
@@ -85,7 +85,7 @@
     <style name="Widget.MiniApp.DialogButton" parent="Widget.Material3.Button.TextButton.Dialog">
         <item name="android:textColor">@color/md3_primary</item>
     </style>
-    <!-- 开关（白天）：开启态 thumb/track 用强调色烧橙，与 CTA 一致；避免深青绿在浅绿卡片上突兀（不覆盖 colorControlNormal 保持关闭态原样） -->
+    <!-- 开关（夜间）：开启态 thumb/track 用亮橙强调色（与 CTA 一致，昼夜统一橙；不覆盖 colorControlNormal 保持关闭态原样） -->
     <style name="ThemeOverlay.MiniApp.Switch" parent="">
         <item name="colorControlActivated">@color/brand_accent</item>
     </style>

@@ -1,22 +1,63 @@
 <resources>
-    <!-- 品牌色（鲜明蓝） -->
-    <color name="brand_primary">#2563EB</color>
-    <color name="brand_primary_dark">#1E40AF</color>
-    <color name="brand_accent">#F59E0B</color>
-    <color name="danger">#DC2626</color>
-    <color name="ok">#16A34A</color>
-
-    <!-- M3 color role -->
+    <!-- ============ 配色方案：纯绿主色 + 烧橙强调色（简约沉稳，无蓝绿/荧光） ============
+         primary/中性面 来自 SchemeVibrant(seed #2E7D32) 官方算法（material-color-utilities）
+         tertiary（强调色）手动指定烧橙 #C2410C（青橙互补中的暖色领地主色，稳重不跳） -->
+    <!-- 品牌语义色（名字保持与代码引用兼容） -->
+    <color name="brand_primary">#006E1B</color>            <!-- Vibrant primary：深纯绿（不偏蓝） -->
+    <color name="brand_primary_dark">#005312</color>       <!-- Vibrant onPrimaryContainer：更深绿 -->
+    <color name="brand_accent">#C2410C</color>             <!-- 强调色：烧橙（手动指定） -->
+    <color name="danger">#BA1A1A</color>                   <!-- Vibrant error -->
+    <color name="ok">#16A34A</color>                       <!-- 语义绿 -->
+    <!-- 品牌色 - on/container 配对 -->
     <color name="brand_on_primary">#FFFFFF</color>
-    <color name="brand_primary_container">#DBEAFE</color>
-    <color name="brand_on_primary_container">#1E3A8A</color>
-    <color name="brand_on_secondary">#1A1504</color>
-
-    <!-- 通用语义色（slate 系，更柔和易读） -->
-    <color name="bg_window">#F1F5F9</color>
-    <color name="bg_card">#FFFFFF</color>
-    <color name="bg_card_raised">#F8FAFC</color>
-    <color name="text_primary">#0F172A</color>
-    <color name="text_secondary">#475569</color>
-    <color name="divider">#E2E8F0</color>
+    <color name="brand_primary_container">#A8E6B0</color>
+    <color name="brand_on_primary_container">#005312</color>
+    <color name="brand_on_secondary">#FFFFFF</color>       <!-- Vibrant onSecondary -->
+    <!-- 通用语义色（Vibrant 中性面：微绿白，干净） -->
+    <color name="bg_window">#F3FCEC</color>                <!-- Vibrant surface：页面底色 -->
+    <color name="bg_card">#EDF6E7</color>                  <!-- surfaceContainerLow：卡片/浮层 -->
+    <color name="bg_card_raised">#E2EBDB</color>           <!-- surfaceContainerHigh -->
+    <color name="text_primary">#161E14</color>             <!-- Vibrant onSurface -->
+    <color name="text_secondary">#3F4A3C</color>           <!-- Vibrant onSurfaceVariant -->
+    <color name="divider">#BECAB8</color>                  <!-- Vibrant outlineVariant -->
+    <!-- ============ MD3 完整角色 ============ -->
+    <!-- primary 家族（Vibrant 纯绿） -->
+    <color name="md3_primary">#006E1B</color>
+    <color name="md3_onPrimary">#FFFFFF</color>
+    <color name="md3_primaryContainer">#A8E6B0</color>
+    <color name="md3_onPrimaryContainer">#005312</color>
+    <!-- secondary 家族（Vibrant 灰绿，作辅助） -->
+    <color name="md3_secondary">#426650</color>
+    <color name="md3_onSecondary">#FFFFFF</color>
+    <color name="md3_secondaryContainer">#C4ECD0</color>
+    <color name="md3_onSecondaryContainer">#2A4E39</color>
+    <!-- tertiary 家族（烧橙强调色） -->
+    <color name="md3_tertiary">#C2410C</color>
+    <color name="md3_onTertiary">#FFFFFF</color>
+    <color name="md3_tertiaryContainer">#FFDBCC</color>
+    <color name="md3_onTertiaryContainer">#7A2E00</color>
+    <!-- error 家族（Vibrant） -->
+    <color name="md3_error">#BA1A1A</color>
+    <color name="md3_onError">#FFFFFF</color>
+    <color name="md3_errorContainer">#FFDAD6</color>
+    <color name="md3_onErrorContainer">#93000A</color>
+    <!-- surface / 中性面 -->
+    <color name="md3_surface">#F3FCEC</color>
+    <color name="md3_onSurface">#161E14</color>
+    <color name="md3_surfaceVariant">#DAE6D3</color>
+    <color name="md3_onSurfaceVariant">#3F4A3C</color>
+    <color name="md3_outline">#6F7A6B</color>
+    <color name="md3_outlineVariant">#BECAB8</color>
+    <color name="md3_surfaceContainerLowest">#FFFFFF</color>
+    <color name="md3_surfaceContainerLow">#EDF6E7</color>
+    <color name="md3_surfaceContainer">#E8F1E1</color>
+    <color name="md3_surfaceContainerHigh">#E2EBDB</color>
+    <color name="md3_surfaceContainerHighest">#DCE5D6</color>
+    <color name="md3_surfaceDim">#D4DDCE</color>
+    <color name="md3_surfaceBright">#F3FCEC</color>
+    <!-- inverse / scrim -->
+    <color name="md3_inverseSurface">#2A3328</color>
+    <color name="md3_inverseOnSurface">#EAF4E4</color>
+    <color name="md3_inversePrimary">#4CAF50</color>
+    <color name="md3_scrim">#000000</color>
 </resources>
