@@ -6,14 +6,15 @@ import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
-import android.widget.ArrayAdapter
-import android.widget.BaseAdapter
-import android.widget.ImageButton
-import android.widget.ListView
+import android.widget.LinearLayout
 import android.widget.TextView
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.appcompat.app.AppCompatActivity
-import androidx.appcompat.widget.SwitchCompat
+import androidx.core.content.ContextCompat
+import androidx.recyclerview.widget.LinearLayoutManager
+import androidx.recyclerview.widget.RecyclerView
+import com.google.android.material.checkbox.MaterialCheckBox
+import com.google.android.material.materialswitch.MaterialSwitch
 import androidx.lifecycle.lifecycleScope
 import com.google.android.material.button.MaterialButton
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
@@ -96,9 +97,10 @@ class BackupActivity : AppCompatActivity() {
             return
         }
         val view = layoutInflater.inflate(R.layout.dialog_backup_options, null)
-        val list = view.findViewById<ListView>(R.id.list_apps)
-        val swData = view.findViewById<SwitchCompat>(R.id.switch_include_data)
+        val list = view.findViewById<RecyclerView>(R.id.list_apps)
+        val swData = view.findViewById<MaterialSwitch>(R.id.switch_include_data)
         swData.isChecked = true
+        list.layoutManager = LinearLayoutManager(this)
 
         // 应用列表默认折叠：点「选择要备份的应用」展开/收起（避免列表撑高挤掉下方选项）
         list.visibility = android.view.View.GONE
@@ -116,15 +118,14 @@ class BackupActivity : AppCompatActivity() {
         }
 
         val names = apps.map { it.displayName.ifBlank { it.uname } }
-        list.adapter = ArrayAdapter(this, android.R.layout.simple_list_item_multiple_choice, names)
-        list.choiceMode = ListView.CHOICE_MODE_MULTIPLE
-        for (i in names.indices) list.setItemChecked(i, true)   // 默认全选（折叠时确定=全部）
+        val adapter = BackupPickAdapter(names)
+        list.adapter = adapter
 
         MaterialAlertDialogBuilder(this)
             .setTitle("选择备份内容")
             .setView(view)
             .setPositiveButton("确定") { _, _ ->
-                val checked = apps.filterIndexed { i, _ -> list.checkedItemPositions.get(i) }
+                val checked = apps.filterIndexed { i, _ -> adapter.isChecked(i) }
                 // 全选等价于"全部"
                 val keys = if (checked.size == apps.size) emptyList() else checked.map { it.appKey }
                 onConfirm(keys, swData.isChecked)
@@ -218,9 +219,10 @@ class BackupActivity : AppCompatActivity() {
 
     private fun showBackupListDialog(names: List<String>) {
         val view = layoutInflater.inflate(R.layout.dialog_backup_list, null)
-        val listView = view.findViewById<ListView>(R.id.list_backups)
+        val recycler = view.findViewById<RecyclerView>(R.id.list_backups)
         val adapter = BackupRowAdapter(names)
-        listView.adapter = adapter
+        recycler.layoutManager = LinearLayoutManager(this)
+        recycler.adapter = adapter
 
         val dialog = MaterialAlertDialogBuilder(this)
             .setTitle("选择要恢复的备份")
@@ -228,7 +230,7 @@ class BackupActivity : AppCompatActivity() {
             .setNegativeButton("关闭", null)
             .showRounded()
 
-        listView.setOnItemClickListener { _, _, position, _ ->
+        adapter.onClick = { position ->
             dialog.dismiss()
             lifecycleScope.launch { doRestore(names[position]) }
         }
@@ -294,22 +296,62 @@ class BackupActivity : AppCompatActivity() {
 
 }
 
-/** WebDAV 备份列表行：名称 + 删除按钮。 */
-private class BackupRowAdapter(private val names: List<String>) : BaseAdapter() {
+/** WebDAV 备份列表行：名称 + 删除按钮（RecyclerView 版）。 */
+private class BackupRowAdapter(private val names: List<String>) :
+    RecyclerView.Adapter<BackupRowAdapter.VH>() {
 
+    var onClick: ((Int) -> Unit)? = null
     var onDelete: ((String) -> Unit)? = null
 
-    override fun getCount(): Int = names.size
-    override fun getItem(pos: Int): Any = names[pos]
-    override fun getItemId(pos: Int): Long = pos.toLong()
+    class VH(val root: View) : RecyclerView.ViewHolder(root)
 
-    override fun getView(pos: Int, convertView: View?, parent: ViewGroup): View {
-        val v = convertView ?: LayoutInflater.from(parent.context)
+    override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): VH {
+        val v = LayoutInflater.from(parent.context)
             .inflate(R.layout.item_backup_row, parent, false)
-        v.findViewById<TextView>(R.id.tv_backup_name).text = names[pos]
-        v.findViewById<ImageButton>(R.id.btn_backup_delete).setOnClickListener {
-            onDelete?.invoke(names[pos])
+        return VH(v)
+    }
+
+    override fun getItemCount(): Int = names.size
+
+    override fun onBindViewHolder(holder: VH, position: Int) {
+        val name = names[position]
+        holder.root.findViewById<TextView>(R.id.tv_backup_name).text = name
+        holder.root.setOnClickListener { onClick?.invoke(position) }
+        holder.root.findViewById<View>(R.id.btn_backup_delete).setOnClickListener {
+            onDelete?.invoke(name)
         }
-        return v
+    }
+}
+
+/** 备份多选列表：MaterialCheckBox 每行一个，默认全选。 */
+private class BackupPickAdapter(private val names: List<String>) :
+    RecyclerView.Adapter<BackupPickAdapter.VH>() {
+
+    private val checked = BooleanArray(names.size) { true }
+
+    class VH(val root: LinearLayout) : RecyclerView.ViewHolder(root)
+
+    fun isChecked(pos: Int): Boolean = checked[pos]
+
+    override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): VH {
+        val cb = MaterialCheckBox(parent.context).apply {
+            isChecked = true
+        }
+        val root = LinearLayout(parent.context).apply {
+            orientation = LinearLayout.HORIZONTAL
+            gravity = android.view.Gravity.CENTER_VERTICAL
+            addView(cb)
+        }
+        return VH(root)
+    }
+
+    override fun getItemCount(): Int = names.size
+
+    override fun onBindViewHolder(holder: VH, position: Int) {
+        val cb = holder.root.getChildAt(0) as MaterialCheckBox
+        cb.text = names[position]
+        cb.isChecked = checked[position]
+        cb.setOnCheckedChangeListener { _, c -> checked[position] = c }
+        holder.root.setOnClickListener { cb.toggle() }
     }
 }

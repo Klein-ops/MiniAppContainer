@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:background="@color/bg_window">
@@ -31,13 +32,14 @@
                 android:scaleType="fitCenter"
                 android:src="@mipmap/ic_launcher" />
 
-            <ProgressBar
+            <com.google.android.material.progressindicator.CircularProgressIndicator
                 android:id="@+id/splash_spinner"
-                style="?android:attr/progressBarStyle"
                 android:layout_width="36dp"
                 android:layout_height="36dp"
                 android:layout_marginTop="20dp"
-                android:indeterminateTint="@color/brand_primary" />
+                app:indicatorColor="@color/brand_primary"
+                app:trackColor="@color/md3_surfaceVariant"
+                app:trackThickness="3dp" />
         </LinearLayout>
     </FrameLayout>
 

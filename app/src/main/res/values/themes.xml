@@ -85,10 +85,6 @@
     <style name="Widget.MiniApp.DialogButton" parent="Widget.Material3.Button.TextButton.Dialog">
         <item name="android:textColor">@color/md3_primary</item>
     </style>
-    <!-- 开关（白天）：开启态 thumb/track 用强调色烧橙，与 CTA 一致；避免深青绿在浅绿卡片上突兀（不覆盖 colorControlNormal 保持关闭态原样） -->
-    <style name="ThemeOverlay.MiniApp.Switch" parent="">
-        <item name="colorControlActivated">@color/brand_accent</item>
-    </style>
 
     <!-- 设置页/应用设置页统一卡片行：Filled 无描边（surfaceContainerHighest 填充，MD3 Filled 变体）、圆角、可点击涟漪 -->
     <style name="Widget.MiniApp.SettingCard" parent="Widget.Material3.CardView.Filled">
@@ -103,12 +99,12 @@
         <item name="android:foreground">?attr/selectableItemBackground</item>
     </style>
 
-    <!-- 页面进入/退出动画 -->
+    <!-- 页面进入/退出动画：MD3 fade-through 淡入淡出转场（无滑动） -->
     <style name="Animation.MiniApp.Activity" parent="@android:style/Animation.Activity">
-        <item name="android:activityOpenEnterAnimation">@anim/slide_in_right</item>
-        <item name="android:activityOpenExitAnimation">@anim/fade_out_slight</item>
-        <item name="android:activityCloseEnterAnimation">@anim/fade_in_slight</item>
-        <item name="android:activityCloseExitAnimation">@anim/slide_out_right</item>
+        <item name="android:activityOpenEnterAnimation">@anim/m3_activity_fade_in</item>
+        <item name="android:activityOpenExitAnimation">@anim/m3_activity_fade_out</item>
+        <item name="android:activityCloseEnterAnimation">@anim/m3_activity_fade_in</item>
+        <item name="android:activityCloseExitAnimation">@anim/m3_activity_fade_out</item>
     </style>
 
 </resources>

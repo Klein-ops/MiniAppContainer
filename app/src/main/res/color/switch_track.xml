@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- 开关轨道色（白天）：开启=烧橙强调色，关闭=outlineVariant 淡灰 -->
+<!-- 开关轨道色（白天）：开启=品牌深纯绿，关闭=outlineVariant 淡灰 -->
 <selector xmlns:android="http://schemas.android.com/apk/res/android">
-    <item android:color="@color/brand_accent" android:state_checked="true" />
+    <item android:color="@color/brand_primary" android:state_checked="true" />
     <item android:color="@color/md3_outlineVariant" />
 </selector>

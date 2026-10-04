@@ -30,40 +30,64 @@
                 android:text="配置 WebDAV 服务器，用于备份小程序数据、以及小程序通过「网络存储」接口读写自己的数据。"
                 android:textColor="@color/text_secondary"
                 android:textSize="13sp" />
-
-            <EditText
-                android:id="@+id/et_url"
+            <com.google.android.material.textfield.TextInputLayout
+                android:id="@+id/layout_url"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="12dp"
                 android:hint="WebDAV 服务器地址（如 https://dav.example.com/dav/）"
-                android:inputType="textUri"
-                android:textColor="@color/text_primary"
-                android:textColorHint="@color/text_secondary"
-                android:textSize="14sp" />
-
-            <EditText
-                android:id="@+id/et_user"
+                app:boxBackgroundMode="outline"
+                app:boxStrokeColor="@color/brand_primary"
+                app:boxStrokeWidth="1.5dp"
+                app:hintTextColor="@color/brand_primary">
+                <com.google.android.material.textfield.TextInputEditText
+                    android:id="@+id/et_url"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:inputType="textUri"
+                    android:textColor="@color/text_primary"
+                    android:textColorHint="@color/text_secondary"
+                    android:textSize="14sp" />
+            </com.google.android.material.textfield.TextInputLayout>
+            <com.google.android.material.textfield.TextInputLayout
+                android:id="@+id/layout_user"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="8dp"
                 android:hint="用户名（可选）"
-                android:inputType="text"
-                android:textColor="@color/text_primary"
-                android:textColorHint="@color/text_secondary"
-                android:textSize="14sp" />
-
-            <EditText
-                android:id="@+id/et_pass"
+                app:boxBackgroundMode="outline"
+                app:boxStrokeColor="@color/brand_primary"
+                app:boxStrokeWidth="1.5dp"
+                app:hintTextColor="@color/brand_primary">
+                <com.google.android.material.textfield.TextInputEditText
+                    android:id="@+id/et_user"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:inputType="text"
+                    android:textColor="@color/text_primary"
+                    android:textColorHint="@color/text_secondary"
+                    android:textSize="14sp" />
+            </com.google.android.material.textfield.TextInputLayout>
+            <com.google.android.material.textfield.TextInputLayout
+                android:id="@+id/layout_pass"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="8dp"
-                android:drawableEnd="@drawable/ic_visibility_off"
-                android:drawablePadding="8dp"
                 android:hint="密码（可选，点击右侧眼睛可显示）"
-                android:inputType="textPassword"
-                android:textColor="@color/text_primary"
-                android:textColorHint="@color/text_secondary"
+                app:boxBackgroundMode="outline"
+                app:boxStrokeColor="@color/brand_primary"
+                app:boxStrokeWidth="1.5dp"
+                app:endIconMode="password_toggle"
+                app:hintTextColor="@color/brand_primary">
+                <com.google.android.material.textfield.TextInputEditText
+                    android:id="@+id/et_pass"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:inputType="textPassword"
+                    android:textColor="@color/text_primary"
+                    android:textColorHint="@color/text_secondary"
+                    android:textSize="14sp" />
+            </com.google.android.material.textfield.TextInputLayout>
                 android:textSize="14sp" />
 
             <com.google.android.material.button.MaterialButton
@@ -106,11 +130,14 @@
                     android:textStyle="bold" />
             </LinearLayout>
 
-            <SeekBar
+            <com.google.android.material.slider.Slider
                 android:id="@+id/seek_level"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:max="9" />
+                android:stepSize="1"
+                android:value="0"
+                android:valueFrom="0"
+                android:valueTo="9" />
 
             <TextView
                 android:layout_width="match_parent"

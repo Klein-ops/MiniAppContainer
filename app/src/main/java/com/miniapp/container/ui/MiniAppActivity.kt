@@ -282,6 +282,8 @@ class MiniAppActivity : AppCompatActivity() {
     }
 
     private fun configureWebView(w: WebView) {
+        // 渲染方式：默认硬件加速；老设备（Adreno 驱动 FBO 销毁崩溃）可在设置页关闭走软渲染
+        com.miniapp.container.sys.WebViewRender.apply(w)
         val s = w.settings
         s.javaScriptEnabled = true
         s.domStorageEnabled = true

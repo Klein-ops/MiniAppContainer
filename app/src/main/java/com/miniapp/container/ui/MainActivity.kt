@@ -370,7 +370,7 @@ class MainActivity : AppCompatActivity() {
 
     // ===== 设置页各项 =====
     private fun setupSettingsPage() {
-        val switchDebug = findViewById<androidx.appcompat.widget.SwitchCompat>(R.id.switch_debug)
+        val switchDebug = findViewById<com.google.android.material.materialswitch.MaterialSwitch>(R.id.switch_debug)
         switchDebug.isChecked = com.miniapp.container.debug.DebugBus.enabled
         switchDebug.setOnCheckedChangeListener { _, checked ->
             com.miniapp.container.debug.DebugBus.setEnabled(checked)
@@ -378,6 +378,12 @@ class MainActivity : AppCompatActivity() {
         }
         findViewById<android.view.View>(R.id.card_debug_log)
             .setOnClickListener { startActivity(Intent(this, DebugActivity::class.java)) }
+        // WebView 硬件加速：老设备（Adreno 驱动 bug）渲染崩溃时关闭走软件渲染
+        val switchRender = findViewById<com.google.android.material.materialswitch.MaterialSwitch>(R.id.switch_webview_render)
+        switchRender.isChecked = com.miniapp.container.sys.WebViewRender.isHardwareAccelerated(this)
+        switchRender.setOnCheckedChangeListener { _, checked ->
+            com.miniapp.container.sys.WebViewRender.setHardwareAccelerated(this, checked)
+        }
         findViewById<android.view.View>(R.id.card_backup)
             .setOnClickListener { startActivity(Intent(this, BackupActivity::class.java)) }
         findViewById<android.view.View>(R.id.card_permission_status)

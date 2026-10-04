@@ -5,7 +5,6 @@
     android:layout_height="wrap_content"
     android:orientation="vertical"
     android:paddingHorizontal="4dp">
-
     <TextView
         android:id="@+id/tv_backup_pick"
         android:layout_width="match_parent"
@@ -18,15 +17,12 @@
         android:text="选择要备份的应用 ▾"
         android:textColor="@color/text_secondary"
         android:textSize="13sp" />
-
-    <ListView
+    <androidx.recyclerview.widget.RecyclerView
         android:id="@+id/list_apps"
         android:layout_width="match_parent"
         android:layout_height="240dp"
         android:visibility="gone"
-        android:divider="@color/divider"
-        android:dividerHeight="1dp" />
-
+        app:layoutManager="androidx.recyclerview.widget.LinearLayoutManager" />
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
@@ -42,11 +38,10 @@
             android:textColor="@color/text_primary"
             android:textSize="14sp" />
 
-        <androidx.appcompat.widget.SwitchCompat
+        <com.google.android.material.materialswitch.MaterialSwitch
             android:id="@+id/switch_include_data"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:theme="@style/ThemeOverlay.MiniApp.Switch"
             app:trackTint="@color/switch_track" />
     </LinearLayout>
 

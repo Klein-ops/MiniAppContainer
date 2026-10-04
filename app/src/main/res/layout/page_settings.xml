@@ -64,15 +64,57 @@
                         android:textSize="12sp" />
                 </LinearLayout>
 
-                <androidx.appcompat.widget.SwitchCompat
+                <com.google.android.material.materialswitch.MaterialSwitch
                     android:id="@+id/switch_debug"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:theme="@style/ThemeOverlay.MiniApp.Switch"
                     app:trackTint="@color/switch_track" />
             </LinearLayout>
         </com.google.android.material.card.MaterialCardView>
 
+        <!-- WebView 硬件加速 -->
+        <com.google.android.material.card.MaterialCardView
+            android:id="@+id/card_webview_render"
+            style="@style/Widget.MiniApp.SettingCard">
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:gravity="center_vertical"
+                android:orientation="horizontal"
+                android:paddingHorizontal="16dp"
+                android:paddingVertical="14dp">
+                <ImageView
+                    android:layout_width="24dp"
+                    android:layout_height="24dp"
+                    android:contentDescription="WebView 硬件加速"
+                    android:src="@drawable/ic_view"
+                    android:tint="@color/brand_primary" />
+                <LinearLayout
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="12dp"
+                    android:layout_weight="1"
+                    android:orientation="vertical">
+                    <TextView
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:text="WebView 硬件加速"
+                        android:textColor="@color/text_primary"
+                        android:textSize="15sp" />
+                    <TextView
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:text="老设备渲染崩溃时关闭（改用软件渲染）"
+                        android:textColor="@color/text_secondary"
+                        android:textSize="12sp" />
+                </LinearLayout>
+                <com.google.android.material.materialswitch.MaterialSwitch
+                    android:id="@+id/switch_webview_render"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    app:trackTint="@color/switch_track" />
+            </LinearLayout>
+        </com.google.android.material.card.MaterialCardView>
         <!-- 查看调用日志 -->
         <com.google.android.material.card.MaterialCardView
             android:id="@+id/card_debug_log"

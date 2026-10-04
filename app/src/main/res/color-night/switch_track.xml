@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- 开关轨道色（夜间）：开启=亮橙强调色（与 CTA 一致，不再用绿），关闭=outlineVariant 深灰 -->
+<!-- 开关轨道色（夜间）：开启=柔和绿（非荧光），关闭=outlineVariant 深灰 -->
 <selector xmlns:android="http://schemas.android.com/apk/res/android">
-    <item android:color="@color/brand_accent" android:state_checked="true" />
+    <item android:color="@color/brand_primary" android:state_checked="true" />
     <item android:color="@color/md3_outlineVariant" />
 </selector>

@@ -4,7 +4,6 @@ import android.app.Dialog
 import android.graphics.drawable.Drawable
 import android.graphics.drawable.GradientDrawable
 import android.graphics.drawable.InsetDrawable
-import androidx.appcompat.app.AlertDialog
 import androidx.core.content.ContextCompat
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.google.android.material.shape.MaterialShapeDrawable
@@ -79,7 +78,7 @@ object RoundedDialog {
 }
 
 /** 显示对话框并统一圆角（替代 `.show()`）。 */
-fun MaterialAlertDialogBuilder.showRounded(): AlertDialog {
+fun MaterialAlertDialogBuilder.showRounded(): Dialog {
     val dialog = show()
     RoundedDialog.apply(dialog)
     return dialog

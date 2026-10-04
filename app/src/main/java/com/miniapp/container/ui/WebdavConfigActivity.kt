@@ -1,15 +1,12 @@
 package com.miniapp.container.ui
-
 import android.os.Bundle
 import android.view.WindowManager
-import android.text.InputType
-import android.widget.SeekBar
-import android.view.MotionEvent
 import android.widget.EditText
 import android.widget.TextView
 import androidx.appcompat.app.AppCompatActivity
 import androidx.lifecycle.lifecycleScope
 import com.google.android.material.button.MaterialButton
+import com.google.android.material.slider.Slider
 import com.miniapp.container.R
 import com.miniapp.container.util.setupBackToolbar
 import com.miniapp.container.netdisk.WebdavClient
@@ -28,8 +25,6 @@ class WebdavConfigActivity : AppCompatActivity() {
     private lateinit var tvStatus: TextView
     private lateinit var tvPaths: TextView
     private lateinit var config: WebdavConfig
-    private var passVisible = false
-
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         // 进入页面不自动弹出键盘，用户点击输入框时才弹出
@@ -44,8 +39,6 @@ class WebdavConfigActivity : AppCompatActivity() {
         tvStatus = findViewById(R.id.tv_status)
         tvPaths = findViewById(R.id.tv_paths)
         setupCompressionLevel()
-
-        setupPasswordToggle()
         renderPaths()
         renderStatus()
 
@@ -62,52 +55,14 @@ class WebdavConfigActivity : AppCompatActivity() {
 
     /** 压缩等级滑块：0-9，保存到配置。 */
     private fun setupCompressionLevel() {
-        val seek = findViewById<SeekBar>(R.id.seek_level)
+        val slider = findViewById<Slider>(R.id.seek_level)
         val tv = findViewById<TextView>(R.id.tv_level)
-        seek.progress = config.compressionLevel
+        slider.value = config.compressionLevel.toFloat()
         tv.text = config.compressionLevel.toString()
-        seek.setOnSeekBarChangeListener(object : android.widget.SeekBar.OnSeekBarChangeListener {
-            override fun onProgressChanged(sb: SeekBar?, progress: Int, fromUser: Boolean) {
-                tv.text = progress.toString()
-                if (fromUser) config.compressionLevel = progress
-            }
-            override fun onStartTrackingTouch(sb: SeekBar?) {}
-            override fun onStopTrackingTouch(sb: SeekBar?) {}
-        })
-    }
-
-    /** 点击密码框右侧眼睛图标切换明文/密文。 */
-    private fun setupPasswordToggle() {
-        etPass.setOnTouchListener { _, event ->
-            var handled = false
-            if (event.action == MotionEvent.ACTION_UP) {
-                // index 2 = END（用 Relative 版本，RTL 下也正确）
-                val icon = etPass.compoundDrawablesRelative[2]
-                if (icon != null) {
-                    val iconLeft = etPass.width - etPass.paddingEnd - icon.intrinsicWidth
-                    if (event.x >= iconLeft) {
-                        togglePasswordVisible()
-                        etPass.performClick()
-                        handled = true
-                    }
-                }
-            }
-            handled
+        slider.addOnChangeListener { _, value, fromUser ->
+            tv.text = value.toInt().toString()
+            if (fromUser) config.compressionLevel = value.toInt()
         }
-    }
-
-    private fun togglePasswordVisible() {
-        passVisible = !passVisible
-        val sel = etPass.selectionEnd.coerceAtLeast(0)
-        etPass.inputType = if (passVisible) {
-            InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_VARIATION_VISIBLE_PASSWORD
-        } else {
-            InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_VARIATION_PASSWORD
-        }
-        etPass.setCompoundDrawablesRelativeWithIntrinsicBounds(
-            0, 0, if (passVisible) R.drawable.ic_visibility else R.drawable.ic_visibility_off, 0
-        )
-        etPass.setSelection(sel.coerceAtMost(etPass.text.length))
     }
 
     private fun save() {

@@ -1,6 +1,5 @@
 package com.miniapp.container.ui
 import android.os.Bundle
-import android.view.ContextThemeWrapper
 import android.view.Gravity
 import android.view.ViewGroup
 import com.miniapp.container.util.InputDialog
@@ -12,7 +11,7 @@ import com.miniapp.container.util.sectionTitle
 import android.widget.LinearLayout
 import android.widget.TextView
 import androidx.appcompat.app.AppCompatActivity
-import androidx.appcompat.widget.SwitchCompat
+import com.google.android.material.materialswitch.MaterialSwitch
 import androidx.core.content.ContextCompat
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.miniapp.container.MiniAppApp
@@ -154,7 +153,7 @@ class PathFilterActivity : AppCompatActivity() {
             // 自定义 view 在 Material 对话框里不自带内容边距，需自己留 24dp 水平
             setPadding(dp(24), 0, dp(24), 0)
         }
-        val sw = SwitchCompat(ContextThemeWrapper(this, R.style.ThemeOverlay_MiniApp_Switch)).apply {
+        val sw = MaterialSwitch(this).apply {
             text = "启用此规则"
             isChecked = enabled
             trackTintList = ContextCompat.getColorStateList(this@PathFilterActivity, R.color.switch_track)
